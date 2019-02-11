@@ -1,0 +1,21 @@
+<launch>
+  <arg name="vision_addr" default="224.5.23.2" />
+  <arg name="vision_port" default="10006" />
+  <arg name="side" default="left" />
+
+  <arg name="referee_addr" default="224.5.23.1" />
+  <arg name="referee_port" default="10003" />
+
+
+  <node name="vision_receiver" pkg="consai2_receiver" type="vision_receiver.py" output="screen" required="true">
+    <param name="vision_addr" value="$(arg vision_addr)" />
+    <param name="vision_port" value="$(arg vision_port)" />
+    <param name="side" value="$(arg side)" />
+  </node>
+
+  <node name="referee_receiver" pkg="consai2_receiver" type="referee_receiver.py" output="screen" required="true">
+    <param name="referee_addr" value="$(arg referee_addr)" />
+    <param name="referee_port" value="$(arg referee_port)" />
+  </node>
+
+</launch>
