@@ -199,3 +199,8 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 catkin_add_nosetests(scripts/tests/test_format_converter.py)
+
+if(CATKIN_ENABLE_TESTING)
+    find_package(rostest REQUIRED)
+    add_rostest(launch/receiver.test)
+endif()
