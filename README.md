@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/SSL-Roots/consai2.svg?branch=master)](https://travis-ci.org/SSL-Roots/consai2)
+
 # CON-SAI2
 
 CON-SAIの修正版
