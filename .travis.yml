@@ -1,0 +1,38 @@
+os: linux
+group: stable
+sudo: required
+dist: xenial
+services:
+  - docker
+language: generic
+python:
+  - "2.7"
+before_install:
+
+install:
+    # Install ROS
+    # Refelence: http://wiki.ros.org/kinetic/Installation/Ubuntu
+    - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+    - sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+    - sudo apt-get update -qq
+    - sudo apt-get install ros-kinetic-desktop-full -y
+    - sudo rosdep init
+    - rosdep update
+    - echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
+    - source ~/.bashrc
+
+    # Copy Sciurus packages to /catkin_ws/src
+    - mkdir -p ~/catkin_ws/src/
+    - rsync -a ./ ~/catkin_ws/src/consai2
+    - cd ~/catkin_ws/src/
+    - catkin_init_workspace 
+    - rosdep install -r -y --from-paths . --ignore-src
+    - cd ..
+    - catkin_make
+    - echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+    - source ~/.bashrc
+
+script:
+    # Code level tests
+    - catkin_make run_tests # Always returns 0
+    - catkin_test_results   # Output previous test results
