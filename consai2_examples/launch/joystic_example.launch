@@ -1,0 +1,31 @@
+<launch>
+  <arg name="joydev" default="/dev/input/js0" />
+  <!-- grSimのロボットを動かす場合はtrue -->
+  <arg name="sim" default="true" />
+  <!-- controllerを経由せず直接操作する場合はtrue -->
+  <arg name="direct" default="true" />
+
+  <node name="joy_core" pkg="joy" type="joy_node" required="true">
+    <param name="dev" type="string" value="$(arg joydev)" />
+  </node>
+
+  <group if="$(arg sim)">
+    <node name="joystick_sim" pkg="consai2_examples" type="joystick_sim.py" required="true" output="screen">
+      <param name="direct" value="$(arg direct)" />
+      <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
+      <param name="button_shutdown_1" value="8" type="int" />
+      <param name="button_shutdown_2" value="9" type="int" />
+
+      <param name="button_move_enable" value="4" type="int" />
+      <param name="axis_vel_surge"   value="1" type="int" />
+      <param name="axis_vel_sway"   value="0" type="int" />
+      <param name="axis_vel_angular"   value="2" type="int" />
+
+      <param name="button_kick_enable" value="5" type="int" />
+      <param name="button_kick_straight" value="0" type="int" />
+      <param name="button_kick_chip" value="3" type="int" />
+
+      <param name="button_dribble_enable" value="7" type="int" />
+    </node>
+  </group>
+</launch>
