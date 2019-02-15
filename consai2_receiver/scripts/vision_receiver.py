@@ -50,13 +50,12 @@ class FormatConverter(object):
     def _convert_to_ball_topic(self, raw_ball):
         detection_ball = DetectionBall()
 
-        detection_ball.position.x = raw_ball.x * self._TO_METER
-        detection_ball.position.y = raw_ball.y * self._TO_METER
-        detection_ball.position.z = raw_ball.z * self._TO_METER
+        detection_ball.pose.x = raw_ball.x * self._TO_METER
+        detection_ball.pose.y = raw_ball.y * self._TO_METER
 
         if self._invert_side:
-            detection_ball.position.x = -detection_ball.position.x
-            detection_ball.position.y = -detection_ball.position.y
+            detection_ball.pose.x = -detection_ball.pose.x
+            detection_ball.pose.y = -detection_ball.pose.y
 
         return detection_ball
 
@@ -64,15 +63,14 @@ class FormatConverter(object):
         detection_robot = DetectionRobot()
 
         detection_robot.robot_id   = raw_robot.robot_id
-        detection_robot.position.x = raw_robot.x * self._TO_METER
-        detection_robot.position.y = raw_robot.y * self._TO_METER
-        detection_robot.position.z = raw_robot.height * self._TO_METER
-        detection_robot.direction  = raw_robot.orientation
+        detection_robot.pose.x = raw_robot.x * self._TO_METER
+        detection_robot.pose.y = raw_robot.y * self._TO_METER
+        detection_robot.pose.theta  = raw_robot.orientation
 
         if self._invert_side:
-            detection_robot.position.x = -detection_robot.position.x
-            detection_robot.position.y = -detection_robot.position.y
-            detection_robot.direction += math.pi
+            detection_robot.pose.x = -detection_robot.pose.x
+            detection_robot.pose.y = -detection_robot.pose.y
+            detection_robot.pose.theta += math.pi
 
         return detection_robot
 
