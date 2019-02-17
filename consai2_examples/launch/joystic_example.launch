@@ -42,6 +42,11 @@
 
       <param name="button_color_enable"   value="8" type="int" />
       <param name="axis_color_change"     value="5" type="int" />
+
+      <param name="button_all_id_1"       value="4" type="int" />
+      <param name="button_all_id_2"       value="5" type="int" />
+      <param name="button_all_id_3"       value="7" type="int" />
+      <param name="button_all_id_4"       value="9" type="int" />
     </node>
 
     <include file="$(find consai2_sender)/launch/sender.launch">

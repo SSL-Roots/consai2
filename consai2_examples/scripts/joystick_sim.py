@@ -36,6 +36,12 @@ class JoyWrapper(object):
         self._BUTTON_COLOR_ENABLE   = rospy.get_param('~button_color_enable')
         self._AXIS_COLOR_CHANGE     = rospy.get_param('~axis_color_change')
 
+        self._BUTTON_ALL_ID_1       = rospy.get_param('~button_all_id_1')
+        self._BUTTON_ALL_ID_2       = rospy.get_param('~button_all_id_2')
+        self._BUTTON_ALL_ID_3       = rospy.get_param('~button_all_id_3')
+        self._BUTTON_ALL_ID_4       = rospy.get_param('~button_all_id_4')
+
+
         #TODO:MAX_IDを設定するファイルを決める
         self._MAX_ID = rospy.get_param('max_id')
 
@@ -84,10 +90,10 @@ class JoyWrapper(object):
             print 'robot_id:' + str(self._robot_id)
 
         # 全ID操作の変更
-        if msg.buttons[self._BUTTON_ID_ENABLE] and \
-                msg.buttons[self._BUTTON_MOVE_ENABLE] and \
-                msg.buttons[self._BUTTON_KICK_ENABLE] and \
-                msg.buttons[self._BUTTON_DRIBBLE_ENABLE]:
+        if msg.buttons[self._BUTTON_ALL_ID_1] and \
+                msg.buttons[self._BUTTON_ALL_ID_2] and \
+                msg.buttons[self._BUTTON_ALL_ID_3] and \
+                msg.buttons[self._BUTTON_ALL_ID_4]:
             self._all_member = not self._all_member
             print 'all_member: ' + str(self._all_member)
 
