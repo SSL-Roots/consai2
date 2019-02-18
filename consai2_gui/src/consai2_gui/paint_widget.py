@@ -2,13 +2,14 @@
 
 import rospy
 import math
+import copy
 
 from python_qt_binding.QtCore import Qt, QPointF, QRectF
 from python_qt_binding.QtGui import QPainter, QPen ,QColor
 from python_qt_binding.QtGui import QMouseEvent
 from python_qt_binding.QtWidgets import QWidget
 
-from consai2_msgs.msg import VisionGeometry, BallInfo
+from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 
 
 class PaintWidget(QWidget):
@@ -18,9 +19,16 @@ class PaintWidget(QWidget):
         self._WHITE_LINE_THICKNESS = 2 # 白線の太さ
         self._ZOOM_RATE = 0.1 # 拡大縮小率
         self._SCALE_LIMIT = 0.2 # 縮小率の限界値
+        self._ALPHA_DETECTED = 255 # 検出できたロボット・ボールの透明度
+        self._ALPHA_NOT_DETECTED  = 127 # 検出できなかったロボット・ボールの透明度
+        self._COLOR_BALL = QColor(Qt.red)
+        self._COLOR_ROBOT  = {'blue':QColor(Qt.cyan), 'yellow':QColor(Qt.yellow)}
+        self._ID_POS = (0.15, 0.15) # IDを描画するロボット中心からの位置
 
         # TODO: ロボット・ボールサイズは、ROSパラメータで設定する
-        self._BALL_RADIUS = rospy.get_param('ball_radius', 0.043)
+        self._BALL_RADIUS = rospy.get_param('~ball_radius', 0.043)
+        self._ROBOT_RADIUS = rospy.get_param('~robot_radius', 0.09)
+        self._MAX_ID = rospy.get_param('~max_id', 15)
 
         # GUIパラメータ
         self._trans      = QPointF(0.0, 0.0) # x, y方向の移動
@@ -45,6 +53,7 @@ class PaintWidget(QWidget):
 
         # ロボット・ボール情報
         self._ball_info = BallInfo()
+        self._robot_info = {'blue':[],'yellow':[]}
 
         # Subscribers
         self._sub_geometry = rospy.Subscriber(
@@ -54,6 +63,24 @@ class PaintWidget(QWidget):
         self._sub_ball_info = rospy.Subscriber(
                 'vision_wrapper/ball_info', BallInfo,
                 self._callback_ball_info, queue_size=1)
+
+        self._subs_robot_info = {'blue':[], 'yellow':[]}
+
+        for robot_id in range(self._MAX_ID +1):
+            # 末尾に16進数の文字列をつける
+            topic_id = hex(robot_id)[2:]
+            topic_name = 'vision_wrapper/robot_info_blue_' + topic_id
+            self._subs_robot_info['blue'].append(
+                    rospy.Subscriber(topic_name, RobotInfo,
+                        self._callback_blue_info, callback_args=robot_id))
+
+            topic_name = 'vision_wrapper/robot_info_yellow_' + topic_id
+            self._subs_robot_info['yellow'].append(
+                    rospy.Subscriber(topic_name, RobotInfo,
+                        self._callback_yellow_info, callback_args=robot_id))
+
+            self._robot_info['blue'].append(RobotInfo())
+            self._robot_info['yellow'].append(RobotInfo())
 
 
     def _callback_geometry(self, msg):
@@ -91,6 +118,12 @@ class PaintWidget(QWidget):
 
     def _callback_ball_info(self, msg):
         self._ball_info = msg
+
+    def _callback_blue_info(self, msg, robot_id):
+        self._robot_info['blue'][robot_id] = msg
+
+    def _callback_yellow_info(self, msg, robot_id):
+        self._robot_info['yellow'][robot_id] = msg
 
 
     def mousePressEvent(self, event):
@@ -155,6 +188,7 @@ class PaintWidget(QWidget):
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
         self._draw_ball(painter)
+        self._draw_robots(painter)
 
 
     def resizeEvent(self, event):
@@ -255,11 +289,49 @@ class PaintWidget(QWidget):
                     self._ball_info.pose.x, self._ball_info.pose.y)
             size = self._BALL_RADIUS * self._scale_field_to_view
 
-            ball_color = QColor(Qt.red)
+            ball_color = copy.deepcopy(self._COLOR_BALL)
             if self._ball_info.detected is False:
                 # ボールを検出してないときは透明度を変える
-                ball_color.setAlpha(127)
+                ball_color.setAlpha(self._ALPHA_NOT_DETECTED)
             painter.setPen(Qt.black)
             painter.setBrush(ball_color)
             painter.drawEllipse(point, size, size)
+
+
+    def _draw_robots(self, painter):
+        # 全てのロボットを描画する
+
+        for blue in self._robot_info['blue']:
+            self._draw_robot(painter, blue, 'blue')
+            
+        for yellow in self._robot_info['yellow']:
+            self._draw_robot(painter, yellow, 'yellow')
+
+
+    def _draw_robot(self, painter, robot, color):
+        # ロボット1台を描画する
+
+        if robot.disappeared is False:
+            point = self._convert_to_view(robot.pose.x, robot.pose.y)
+            size = self._ROBOT_RADIUS * self._scale_field_to_view
+
+            robot_color = copy.deepcopy(self._COLOR_ROBOT[color])
+            if robot.detected is False:
+                # ロボットを検出してないときは透明度を変える
+                robot_color.setAlpha(self._ALPHA_NOT_DETECTED)
+            painter.setPen(Qt.black)
+            painter.setBrush(robot_color)
+            painter.drawEllipse(point, size, size)
+
+            # ロボット角度
+            line_x = self._ROBOT_RADIUS * math.cos(robot.pose.theta)
+            line_y = self._ROBOT_RADIUS * math.sin(robot.pose.theta)
+            line_point = point + self._convert_to_view(line_x, line_y)
+            painter.drawLine(point, line_point)
+
+            # ロボットID
+            text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
+            painter.drawText(text_point, str(robot.robot_id))
+
+
 
