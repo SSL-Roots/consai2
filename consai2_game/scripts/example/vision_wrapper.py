@@ -126,6 +126,7 @@ class VisionWrapper(object):
                         self._robot_info[color][robot_id].pose, average_pose,
                         self._robot_info[color][robot_id].detection_stamp, time_stamp)
             
+                self._robot_info[color][robot_id].robot_id = robot_id
                 self._robot_info[color][robot_id].pose = average_pose
                 self._robot_info[color][robot_id].last_detection_pose = average_pose
                 self._robot_info[color][robot_id].velocity = velocity
