@@ -1,0 +1,28 @@
+<launch>
+  <arg name="vision_addr" default="224.5.23.2" />
+  <arg name="vision_port" default="10006" />
+  <arg name="side" default="left" />
+
+  <arg name="referee_addr" default="224.5.23.1" />
+  <arg name="referee_port" default="10003" />
+
+  <arg name="publish_ball" default="true" />
+  <arg name="publish_blue" default="true" />
+  <arg name="publish_yellow" default="true" />
+
+  <include file="$(find consai2_receiver)/launch/receiver.launch" >
+    <arg name="vision_addr" default="$(arg vision_addr)" />
+    <arg name="vision_port" default="$(arg vision_port)" />
+    <arg name="side" default="$(arg side)" />
+
+    <arg name="referee_addr" default="$(arg referee_addr)" />
+    <arg name="referee_port" default="$(arg referee_port)" />
+  </include>
+
+  <node name="vision_wrapper" pkg="consai2_game" type="vision_wrapper.py" required="true" output="screen" >
+    <param name="publish_ball" value="$(arg publish_ball)" />
+    <param name="publish_blue" value="$(arg publish_blue)" />
+    <param name="publish_yellow" value="$(arg publish_yellow)" />
+  </node>
+
+</launch>
