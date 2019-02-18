@@ -8,7 +8,7 @@ from python_qt_binding.QtGui import QPainter, QPen ,QColor
 from python_qt_binding.QtGui import QMouseEvent
 from python_qt_binding.QtWidgets import QWidget
 
-from consai2_msgs.msg import VisionGeometry
+from consai2_msgs.msg import VisionGeometry, BallInfo
 
 
 class PaintWidget(QWidget):
@@ -18,6 +18,9 @@ class PaintWidget(QWidget):
         self._WHITE_LINE_THICKNESS = 2 # 白線の太さ
         self._ZOOM_RATE = 0.1 # 拡大縮小率
         self._SCALE_LIMIT = 0.2 # 縮小率の限界値
+
+        # TODO: ロボット・ボールサイズは、ROSパラメータで設定する
+        self._BALL_RADIUS = rospy.get_param('ball_radius', 0.043)
 
         # GUIパラメータ
         self._trans      = QPointF(0.0, 0.0) # x, y方向の移動
@@ -40,10 +43,17 @@ class PaintWidget(QWidget):
         self._field_lines = []
         self._field_arcs = []
 
+        # ロボット・ボール情報
+        self._ball_info = BallInfo()
+
         # Subscribers
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry, 
                 self._callback_geometry, queue_size=1)
+
+        self._sub_ball_info = rospy.Subscriber(
+                'vision_wrapper/ball_info', BallInfo,
+                self._callback_ball_info, queue_size=1)
 
 
     def _callback_geometry(self, msg):
@@ -77,6 +87,10 @@ class PaintWidget(QWidget):
                         "radius":arc.radius, "a1":arc.a1, "a2":arc.a2, "thickness":arc.thickness})
 
         self._resize_draw_world()
+
+
+    def _callback_ball_info(self, msg):
+        self._ball_info = msg
 
 
     def mousePressEvent(self, event):
@@ -140,6 +154,7 @@ class PaintWidget(QWidget):
 
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
+        self._draw_ball(painter)
 
 
     def resizeEvent(self, event):
@@ -231,4 +246,20 @@ class PaintWidget(QWidget):
             span_angle = end_angle - start_angle
             painter.drawArc(top_left.x(), top_left.y(), size, size, start_angle, span_angle)
 
+    
+    def _draw_ball(self, painter):
+        # ボールを描画する
+
+        if self._ball_info.disappeared is False:
+            point = self._convert_to_view(
+                    self._ball_info.pose.x, self._ball_info.pose.y)
+            size = self._BALL_RADIUS * self._scale_field_to_view
+
+            ball_color = QColor(Qt.red)
+            if self._ball_info.detected is False:
+                # ボールを検出してないときは透明度を変える
+                ball_color.setAlpha(127)
+            painter.setPen(Qt.black)
+            painter.setBrush(ball_color)
+            painter.drawEllipse(point, size, size)
 
