@@ -29,7 +29,6 @@ add_message_files(
   RefereeTeamInfo.msg
   RefereeGameEvent.msg
   RobotInfo.msg
-  RobotInfoArray.msg
   BallInfo.msg
   RobotCommand.msg
   RobotCommands.msg
