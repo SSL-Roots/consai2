@@ -1,0 +1,18 @@
+<library path="src">
+  <class name="CON-SAI2 Visualizer" type="consai2_gui.visualizer.Visualizer" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      A GUI plugin for displaying CON-SAI2 information.
+    </description>
+    <qtgui>
+      <group>
+        <label>Visualization</label>
+        <icon type="theme">folder</icon>
+        <statustip>Plugins related to visualization.</statustip>
+      </group>
+
+      <label>CON-SAI2 Visualizer</label>
+      <icon type="theme">video-display</icon>
+      <statustip>A GUI plugin for displaying CON-SAI2 information.</statustip>
+    </qtgui>
+  </class>
+</library>
