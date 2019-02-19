@@ -6,7 +6,7 @@ import socket
 import math
 
 from proto import grSim_Packet_pb2
-from consai2_msgs.msg import RobotCommands
+from consai2_msgs.msg import RobotCommands, ReplaceBall, ReplaceBall, Replacements
 
 class SimSender(object):
     def __init__(self):
@@ -20,6 +20,10 @@ class SimSender(object):
                 RobotCommands,
                 self._send_commands,
                 queue_size = 10)
+
+        self._sub_replacement = rospy.Subscriber(
+                'sim_sender/replacements', Replacements, self._send_replacements,
+                queue_size = 1)
 
         self._MAX_KICK_SPEED = 8.0 # m/s
 
@@ -61,6 +65,29 @@ class SimSender(object):
         message = packet.SerializeToString()
         self._sock.sendto(message, (self._host, self._port))
 
+
+    def _send_replacements(self, msg):
+        print 'subscribe'
+        packet = grSim_Packet_pb2.grSim_Packet()
+
+        if msg.ball.is_enabled:
+            replace_ball = packet.replacement.ball
+            replace_ball.x = msg.ball.x
+            replace_ball.y = msg.ball.y
+            replace_ball.vx = msg.ball.vx
+            replace_ball.vy = msg.ball.vy
+
+        for robot in msg.robots:
+            replace_robot = packet.replacement.robots.add()
+            replace_robot.x = robot.x
+            replace_robot.y = robot.y
+            replace_robot.dir = robot.dir
+            replace_robot.id = robot.id
+            replace_robot.yellowteam = robot.yellowteam
+            replace_robot.turnon = robot.turnon
+
+        message = packet.SerializeToString()
+        self._sock.sendto(message, (self._host, self._port))
 
 
 if __name__ == '__main__':

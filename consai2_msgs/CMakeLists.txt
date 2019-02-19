@@ -32,6 +32,9 @@ add_message_files(
   BallInfo.msg
   RobotCommand.msg
   RobotCommands.msg
+  ReplaceBall.msg
+  ReplaceRobot.msg
+  Replacements.msg
 )
 
 ## Generate services in the 'srv' folder
