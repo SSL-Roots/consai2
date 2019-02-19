@@ -10,6 +10,7 @@ from python_qt_binding.QtGui import QMouseEvent
 from python_qt_binding.QtWidgets import QWidget
 
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
+from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
 
 
 class PaintWidget(QWidget):
@@ -24,6 +25,12 @@ class PaintWidget(QWidget):
         self._COLOR_BALL = QColor(Qt.red)
         self._COLOR_ROBOT  = {'blue':QColor(Qt.cyan), 'yellow':QColor(Qt.yellow)}
         self._ID_POS = (0.15, 0.15) # IDを描画するロボット中心からの位置
+
+        # Replace
+        self._REPLACE_CLICK_POS_THRESHOLD = 0.1
+        self._REPLACE_CLICK_VEL_ANGLE_THRESHOLD = self._REPLACE_CLICK_POS_THRESHOLD + 0.1
+        self._REPLACE_BALL_VELOCITY_GAIN = 3.0
+        self._REPLACE_MAX_BALL_VELOCITY = 8.0
 
         # TODO: ロボット・ボールサイズは、ROSパラメータで設定する
         self._BALL_RADIUS = rospy.get_param('~ball_radius', 0.043)
@@ -40,6 +47,12 @@ class PaintWidget(QWidget):
         self._scale_field_to_view = 1.0 # フィールドから描画領域に縮小するスケール
         self._click_point = QPointF(0.0, 0.0) # マウスでクリックした描画座標
         self._current_mouse_pos = QPointF(0.0, 0.0) # マウスカーソル位置
+        self._replace_func = None
+        self._replace_id = 0
+        self._replace_is_yellow = False
+        self._do_replacement = False
+        self._replacement_target = {'ball_pos':False, 'ball_vel':False,
+                'robot_pos':False, 'robot_angle':False}
 
         # フィールド形状
         # raw_vision_geometryの値で更新される
@@ -54,6 +67,10 @@ class PaintWidget(QWidget):
         # ロボット・ボール情報
         self._ball_info = BallInfo()
         self._robot_info = {'blue':[],'yellow':[]}
+
+        # Publisher
+        self._pub_replace = rospy.Publisher('sim_sender/replacements', 
+                Replacements, queue_size=1)
 
         # Subscribers
         self._sub_geometry = rospy.Subscriber(
@@ -132,6 +149,8 @@ class PaintWidget(QWidget):
         if event.buttons() == Qt.LeftButton:
             self._click_point = event.localPos()
 
+            self._do_replacement = self._is_replacement_click(self._click_point)
+
         elif event.buttons() == Qt.RightButton:
             self._reset_painter_status()
 
@@ -140,9 +159,12 @@ class PaintWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         # マウスのドラッグ操作で描画領域を移動する
+        # Replacementを行うときは描画領域を移動しない
         self._current_mouse_pos = event.localPos()
 
-        if event.buttons() == Qt.LeftButton:
+        if self._do_replacement:
+            pass
+        elif event.buttons() == Qt.LeftButton:
             self._mouse_trans = (
                     self._current_mouse_pos - self._click_point) / self._scale.x()
 
@@ -151,8 +173,13 @@ class PaintWidget(QWidget):
 
     def mouseReleaseEvent(self, event):
         # マウスのドラッグ操作で描画領域を移動する
-        self._trans += self._mouse_trans
-        self._mouse_trans = QPointF(0.0, 0.0)
+        # Replacementを行うときは描画領域を移動しない
+        if self._do_replacement:
+            self._do_replacement = False
+            self._replace_func(event.localPos())
+        else:
+            self._trans += self._mouse_trans
+            self._mouse_trans = QPointF(0.0, 0.0)
         
         self.update()
 
@@ -242,11 +269,220 @@ class PaintWidget(QWidget):
         return point
 
     
+    def _convert_to_field(self, x, y):
+        # 描画座標系をフィールド座標系に変換する
+        x /= self._scale.x()
+        y /= self._scale.y()
+
+        x -= (self._trans.x() + self._mouse_trans.x())
+        y -= (self._trans.y() + self._mouse_trans.y())
+
+        x -= self.width() * 0.5 / self._scale.x()
+        y -= self.height() * 0.5 / self._scale.y()
+
+        if self._do_rotate_view:
+            x, y = -y, x
+
+        field_x = x / self._scale_field_to_view
+        field_y = -y / self._scale_field_to_view
+        point = QPointF(field_x, field_y)
+
+        return point
+
+    
     def _reset_painter_status(self):
         # 描画領域の移動と拡大縮小を初期化する
         self._trans = QPointF(0.0, 0.0)
         self._mouse_trans = QPointF(0.0, 0.0)
         self._scale = QPointF(1.0, 1.0)
+
+
+    def _is_replacement_click(self, mouse_pos):
+        # クリックした描画位置にオブジェクトがあればReplacementと判定する
+        # ボールとロボットが近い場合、ボールのReplacementを優先する
+        field_point = self._convert_to_field(mouse_pos.x(), mouse_pos.y())
+
+        is_clicked = True
+
+        result = self._is_ball_clicked(field_point)
+        if result == 'pos':
+            self._replacement_target['ball_pos'] = True
+            self._replace_func = self._replace_ball_pos
+        elif result == 'vel_angle':
+            self._replacement_target['ball_vel'] = True
+            self._replace_func = self._replace_ball_vel
+        else:
+            result, robot_id, is_yellow = self._is_robot_clicked(field_point)
+            self._replace_id = robot_id
+            self._replace_is_yellow = is_yellow
+
+            if result == 'pos':
+                self._replacement_target['robot_pos'] = True
+                self._replace_func = self._replace_robot_pos
+            elif result == 'vel_angle':
+                self._replacement_target['robot_angle'] = True
+                self._replace_func = self._replace_robot_angle
+            else:
+                is_clicked = False
+
+        return is_clicked
+
+
+    def _is_clicked(self, field_point1, field_point2):
+        # フィールド上のオブジェクトをクリックしたかどうか判定する
+        diff_point = field_point1 - field_point2
+        diff_norm = math.hypot(diff_point.x(), diff_point.y())
+        if diff_norm < self._REPLACE_CLICK_POS_THRESHOLD:
+            return 'pos'
+        elif diff_norm < self._REPLACE_CLICK_VEL_ANGLE_THRESHOLD:
+            return 'vel_angle'
+
+        return False
+
+
+    def _is_ball_clicked(self, field_point):
+        # ボールをクリックしたか判定する
+        # ボールが消えていれば判定しない
+
+        if self._ball_info.disappeared:
+            return False
+
+        pos_x = self._ball_info.pose.x
+        pos_y = self._ball_info.pose.y
+        ball_pos = QPointF(pos_x, pos_y)
+
+        return self._is_clicked(field_point, ball_pos)
+
+    def _is_robot_clicked(self, field_point):
+        # ロボットをクリックしたか判定する
+        # 消えたロボットは対照外
+
+        is_clicked = False
+        replace_id = 0
+        is_yellow = False
+
+        for robot in self._robot_info['blue']:
+            if robot.disappeared:
+                continue
+            robot_point = QPointF(robot.pose.x, robot.pose.y)
+            is_clicked = self._is_clicked(field_point, robot_point)
+
+            if is_clicked:
+                is_yellow = False
+                return is_clicked, robot.robot_id, is_yellow
+
+        for robot in self._robot_info['yellow']:
+            if robot.disappeared:
+                continue
+            robot_point = QPointF(robot.pose.x, robot.pose.y)
+            is_clicked = self._is_clicked(field_point, robot_point)
+
+            if is_clicked:
+                is_yellow = True
+                return is_clicked, robot.robot_id, is_yellow
+
+        return is_clicked, replace_id, is_yellow
+
+
+    def _replace_ball_pos(self, mouse_pos):
+        # ボール位置のReplacement
+        field_point = self._convert_to_field(mouse_pos.x(), mouse_pos.y())
+
+        ball = ReplaceBall()
+        ball.x = field_point.x()
+        ball.y = field_point.y()
+        ball.is_enabled = True
+        replacements = Replacements()
+        replacements.ball = ball
+        self._pub_replace.publish(replacements)
+        self._replacement_target['ball_pos'] = False
+
+
+    def _replace_ball_vel(self, mouse_pos):
+        # ボール速度のReplacement
+        ball_point = QPointF(self._ball_info.pose.x, self._ball_info.pose.y)
+        field_point = self._convert_to_field(mouse_pos.x(), mouse_pos.y())
+        velocity = self._replacement_velocity(ball_point, field_point)
+
+        ball = ReplaceBall()
+        ball.x = ball_point.x()
+        ball.y = ball_point.y()
+        ball.vx = velocity.x()
+        ball.vy = velocity.y()
+        ball.is_enabled = True
+        replacements = Replacements()
+        replacements.ball = ball
+        self._pub_replace.publish(replacements)
+        self._replacement_target['ball_vel'] = False
+
+
+    def _replacement_velocity(self, from_point, to_point):
+        # Replacementのボール速度を計算する
+        diff_point = to_point - from_point
+        diff_norm = math.hypot(diff_point.x(), diff_point.y())
+
+        velocity_norm = diff_norm * self._REPLACE_BALL_VELOCITY_GAIN
+        if velocity_norm > self._REPLACE_MAX_BALL_VELOCITY:
+            velocity_norm = self._REPLACE_MAX_BALL_VELOCITY
+
+        angle = math.atan2(diff_point.y(), diff_point.x())
+        velocity = QPointF(
+                velocity_norm * math.cos(angle),
+                velocity_norm * math.sin(angle))
+
+        return velocity
+
+
+    def _replace_robot_pos(self, mouse_pos):
+        # ロボット位置のReplacement
+        field_point = self._convert_to_field(mouse_pos.x(), mouse_pos.y())
+
+        # ロボット角度をradiansからdegreesに変換する
+        direction = 0
+        if self._replace_is_yellow:
+            direction = math.degrees(self._robot_info['yellow'][self._replace_id].pose.theta)
+        else:
+            direction = math.degrees(self._robot_info['blue'][self._replace_id].pose.theta)
+
+        robot = ReplaceRobot()
+        robot.x = field_point.x()
+        robot.y = field_point.y()
+        robot.dir = direction
+        robot.id = self._replace_id
+        robot.yellowteam = self._replace_is_yellow
+        robot.turnon = True
+        replacements = Replacements()
+        replacements.robots.append(robot)
+        self._pub_replace.publish(replacements)
+        self._replacement_target['robot_pos'] = False
+
+
+    def _replace_robot_angle(self, mouse_pos):
+        # ロボット角度のReplacement
+        field_point = self._convert_to_field(mouse_pos.x(), mouse_pos.y())
+
+        # ロボット角度をradiansからdegreesに変換する
+        robot_point = QPointF()
+        if self._replace_is_yellow:
+            robot_point = QPointF(
+                    self._robot_info['yellow'][self._replace_id].pose.x,
+                    self._robot_info['yellow'][self._replace_id].pose.y)
+        else:
+            robot_point = QPointF(
+                    self._robot_info['blue'][self._replace_id].pose.x,
+                    self._robot_info['blue'][self._replace_id].pose.y)
+
+        robot = ReplaceRobot()
+        robot.x = robot_point.x()
+        robot.y = robot_point.y()
+        robot.dir = math.degrees(self._to_angle(robot_point, field_point))
+        robot.id = self._replace_id
+        robot.yellowteam = self._replace_is_yellow
+        robot.turnon = True
+        replacements = Replacements()
+        replacements.robots.append(robot)
+        self._pub_replace.publish(replacements)
+        self._replacement_target['robot_angle'] = False
 
 
     def _draw_field(self, painter):
@@ -333,5 +569,10 @@ class PaintWidget(QWidget):
             text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
             painter.drawText(text_point, str(robot.robot_id))
 
+    
+    def _to_angle(self, from_point, to_point):
+        diff_point = to_point - from_point
+
+        return math.atan2(diff_point.y(), diff_point.x())
 
 
