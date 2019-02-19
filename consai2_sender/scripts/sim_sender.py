@@ -67,7 +67,6 @@ class SimSender(object):
 
 
     def _send_replacements(self, msg):
-        print 'subscribe'
         packet = grSim_Packet_pb2.grSim_Packet()
 
         if msg.ball.is_enabled:
