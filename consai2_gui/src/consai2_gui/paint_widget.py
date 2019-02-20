@@ -99,6 +99,9 @@ class PaintWidget(QWidget):
             self._robot_info['blue'].append(RobotInfo())
             self._robot_info['yellow'].append(RobotInfo())
 
+        # Configs
+        # This function enables mouse tracking without pressing mouse button
+        self.setMouseTracking(True)
 
     def _callback_geometry(self, msg):
         # フィールド形状を更新
@@ -215,7 +218,21 @@ class PaintWidget(QWidget):
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
         self._draw_ball(painter)
+        self._draw_ball_velocity(painter)
         self._draw_robots(painter)
+
+        if self._replacement_target['ball_pos'] or self._replacement_target['robot_pos']:
+            self._draw_pos_replacement(painter)
+            self._draw_cursor_coordinate(painter)
+
+        elif self._replacement_target['ball_vel']:
+            self._draw_vel_replacement(painter)
+
+        elif self._replacement_target['robot_angle']:
+            self._draw_angle_replacement(painter)
+
+        else:
+            self._draw_cursor_coordinate(painter)
 
 
     def resizeEvent(self, event):
@@ -533,6 +550,31 @@ class PaintWidget(QWidget):
             painter.setBrush(ball_color)
             painter.drawEllipse(point, size, size)
 
+    
+    def _draw_ball_velocity(self, painter):
+        # ボールの速度方向を描画する
+        VELOCITY_THRESH = 1.0
+        PAINT_DIST = 10.0 # meters
+
+        ball_pos = self._ball_info.pose
+        ball_vel = self._ball_info.velocity
+
+        # 速度が小さければ描画しない
+        if math.hypot(ball_vel.x, ball_vel.y) < VELOCITY_THRESH:
+            return
+
+        direction = math.atan2(ball_vel.y, ball_vel.x)
+
+        vel_pos_x = PAINT_DIST * math.cos(direction) + ball_pos.x
+        vel_pos_y = PAINT_DIST * math.sin(direction) + ball_pos.y
+
+        point1 = self._convert_to_view(ball_pos.x, ball_pos.y)
+        point2 = self._convert_to_view(vel_pos_x, vel_pos_y)
+
+        painter.setPen(QPen(QColor(102, 0, 255), 2))
+        painter.drawLine(point1, point2)
+
+
 
     def _draw_robots(self, painter):
         # 全てのロボットを描画する
@@ -569,10 +611,79 @@ class PaintWidget(QWidget):
             text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
             painter.drawText(text_point, str(robot.robot_id))
 
+
+    def _draw_cursor_coordinate(self, painter):
+        # マウスカーソルのフィールド座標を描画する
+        current_pos = self._convert_to_field(
+                self._current_mouse_pos.x(), self._current_mouse_pos.y())
+        current_point = self._convert_to_view(current_pos.x(), current_pos.y())
+
+        text = "(" + str(round(current_pos.x(),2)) + ", " + str(round(current_pos.y(),2)) + ")"
+
+        painter.setPen(Qt.black)
+        painter.drawText(current_point, text)
+
+
+    def _draw_pos_replacement(self, painter):
+        # 位置のReplacementを描画する
+        start_pos = self._convert_to_field(
+                self._click_point.x(), self._click_point.y())
+        current_pos = self._convert_to_field(
+                self._current_mouse_pos.x(), self._current_mouse_pos.y())
+
+        start_point = self._convert_to_view(start_pos.x(), start_pos.y())
+        current_point = self._convert_to_view(current_pos.x(), current_pos.y())
+
+        painter.setPen(QPen(Qt.red, 2))
+        painter.drawLine(start_point, current_point)
+
+
+    def _draw_vel_replacement(self, painter):
+        # ボール速度のReplacementを描画する
+
+        current_pos = self._convert_to_field(
+                self._current_mouse_pos.x(), self._current_mouse_pos.y())
+        current_point = self._convert_to_view(current_pos.x(), current_pos.y())
+        ball_pos = QPointF(
+                self._ball_info.pose.x, self._ball_info.pose.y)
+        ball_point = self._convert_to_view(ball_pos.x(), ball_pos.y())
+
+        painter.setPen(QPen(Qt.blue, 2))
+        painter.drawLine(ball_point, current_point)
+
+        # 速度の数値を描画する
+        velocity = self._replacement_velocity(ball_pos, current_pos)
+        text = "[" + str(round(velocity.x(),2)) + ", " + str(round(velocity.y(),2)) + "]"
+        painter.setPen(Qt.black)
+        painter.drawText(current_point, text)
+
+
+    def _draw_angle_replacement(self, painter):
+        # ロボット角度のReplacementを描画する
+        robot_pos = QPointF()
+        if self._replace_is_yellow:
+            robot_pos.setX(self._robot_info['yellow'][self._replace_id].pose.x)
+            robot_pos.setY(self._robot_info['yellow'][self._replace_id].pose.y)
+        else:
+            robot_pos.setX(self._robot_info['blue'][self._replace_id].pose.x)
+            robot_pos.setY(self._robot_info['blue'][self._replace_id].pose.y)
+        robot_point = self._convert_to_view(robot_pos.x(), robot_pos.y())
+
+        current_pos = self._convert_to_field(
+                self._current_mouse_pos.x(), self._current_mouse_pos.y())
+        current_point = self._convert_to_view(current_pos.x(), current_pos.y())
+
+        painter.setPen(QPen(Qt.blue, 2))
+        painter.drawLine(robot_point, current_point)
+
+        # 角度の数値を描画する
+        angle = math.degrees(self._to_angle(robot_pos, current_pos))
+        text = "[" + str(round(angle,2)) + "]"
+        painter.setPen(Qt.black)
+        painter.drawText(current_point, text)
+
     
     def _to_angle(self, from_point, to_point):
         diff_point = to_point - from_point
 
         return math.atan2(diff_point.y(), diff_point.x())
-
-
