@@ -7,6 +7,8 @@
   <!-- Sender用のパラメータ -->
   <arg name="server_addr" default="127.0.0.1" />
   <arg name="server_port" default="20011" />
+  <arg name="device" default="/dev/ttyUSB0" />
+  <arg name="baudrate" default="57600" />
 
   <!-- IDの最大値 -->
   <arg name="max_id" default="11" />
@@ -16,43 +18,43 @@
     <param name="dev" type="string" value="$(arg joydev)" />
   </node>
 
-  <group if="$(arg sim)">
-    <node name="joystick_sim" pkg="consai2_examples" type="joystick_sim.py" required="true" output="screen">
-      <param name="direct" value="$(arg direct)" />
-      <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
-      <!-- ひとつのボタンに複数の機能を割り当てています -->
-      <param name="button_shutdown_1"     value="8" type="int" />
-      <param name="button_shutdown_2"     value="9" type="int" />
+  <node name="joystick_sim" pkg="consai2_examples" type="joystick_sim.py" required="true" output="screen">
+    <param name="direct" value="$(arg direct)" />
+    <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
+    <!-- ひとつのボタンに複数の機能を割り当てています -->
+    <param name="button_shutdown_1"     value="8" type="int" />
+    <param name="button_shutdown_2"     value="9" type="int" />
 
-      <param name="button_move_enable"    value="4" type="int" />
-      <param name="axis_vel_surge"        value="1" type="int" />
-      <param name="axis_vel_sway"         value="0" type="int" />
-      <param name="axis_vel_angular"      value="2" type="int" />
+    <param name="button_move_enable"    value="4" type="int" />
+    <param name="axis_vel_surge"        value="1" type="int" />
+    <param name="axis_vel_sway"         value="0" type="int" />
+    <param name="axis_vel_angular"      value="2" type="int" />
 
-      <param name="button_kick_enable"    value="5" type="int" />
-      <param name="button_kick_straight"  value="0" type="int" />
-      <param name="button_kick_chip"      value="3" type="int" />
-      <param name="axis_kick_power"       value="5" type="int" />
+    <param name="button_kick_enable"    value="5" type="int" />
+    <param name="button_kick_straight"  value="0" type="int" />
+    <param name="button_kick_chip"      value="3" type="int" />
+    <param name="axis_kick_power"       value="5" type="int" />
 
-      <param name="button_dribble_enable" value="7" type="int" />
-      <param name="axis_dribble_power"    value="5" type="int" />
+    <param name="button_dribble_enable" value="7" type="int" />
+    <param name="axis_dribble_power"    value="5" type="int" />
 
-      <param name="button_id_enable"      value="9" type="int" />
-      <param name="axis_id_change"        value="5" type="int" />
+    <param name="button_id_enable"      value="9" type="int" />
+    <param name="axis_id_change"        value="5" type="int" />
 
-      <param name="button_color_enable"   value="8" type="int" />
-      <param name="axis_color_change"     value="5" type="int" />
+    <param name="button_color_enable"   value="8" type="int" />
+    <param name="axis_color_change"     value="5" type="int" />
 
-      <param name="button_all_id_1"       value="4" type="int" />
-      <param name="button_all_id_2"       value="5" type="int" />
-      <param name="button_all_id_3"       value="7" type="int" />
-      <param name="button_all_id_4"       value="9" type="int" />
-    </node>
+    <param name="button_all_id_1"       value="4" type="int" />
+    <param name="button_all_id_2"       value="5" type="int" />
+    <param name="button_all_id_3"       value="7" type="int" />
+    <param name="button_all_id_4"       value="9" type="int" />
+  </node>
 
-    <include file="$(find consai2_sender)/launch/sender.launch">
-      <arg name="server_addr" value="$(arg server_addr)" />
-      <arg name="server_port" value="$(arg server_port)" />
-      <arg name="sim" value="$(arg sim)" />
-    </include>
-  </group>
+  <include file="$(find consai2_sender)/launch/sender.launch">
+    <arg name="server_addr" value="$(arg server_addr)" />
+    <arg name="server_port" value="$(arg server_port)" />
+    <arg name="device" value="$(arg device)" />
+    <arg name="baudrate" value="$(arg baudrate)" />
+    <arg name="sim" value="$(arg sim)" />
+  </include>
 </launch>
