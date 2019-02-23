@@ -123,7 +123,7 @@ class JoyWrapper(object):
 
         # ドリブラー
         if msg.buttons[self._BUTTON_DRIBBLE_ENABLE]:
-            command.dribble_power = self._MAX_DRIBBLE_POWER
+            command.dribble_power = self._dribble_power
 
             # パワーの変更
             axis_value = msg.axes[self._AXIS_DRIBBLE_POWER]
