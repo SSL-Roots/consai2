@@ -153,7 +153,7 @@ class JoyWrapper(object):
 
 
 def main():
-    rospy.init_node('joystick_sim')
+    rospy.init_node('joystick_example')
 
     joy_wrapper = JoyWrapper()
 
