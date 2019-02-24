@@ -1,16 +1,16 @@
 <launch>
+  <!-- Receiver用のパラメータ -->
   <arg name="vision_addr" default="224.5.23.2" />
   <arg name="vision_port" default="10006" />
   <arg name="side" default="left" />
-
   <arg name="referee_addr" default="224.5.23.1" />
   <arg name="referee_port" default="10003" />
-
+  <!-- game用のパラメータ -->
   <arg name="publish_ball" default="true" />
   <arg name="publish_blue" default="true" />
   <arg name="publish_yellow" default="true" />
-
-  <arg name="max_id" default="15" />
+  <!-- その他パラメータの読み込み -->
+  <include file="$(find consai2_description)/launch/description.launch"/>
 
   <include file="$(find consai2_receiver)/launch/receiver.launch" >
     <arg name="vision_addr" default="$(arg vision_addr)" />
@@ -25,11 +25,8 @@
     <param name="publish_ball" value="$(arg publish_ball)" />
     <param name="publish_blue" value="$(arg publish_blue)" />
     <param name="publish_yellow" value="$(arg publish_yellow)" />
-    <param name="max_id" value="$(arg max_id)" />
   </node>
 
-  <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" >
-    <param name="max_id" value="$(arg max_id)" />
-  </node>
+  <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" />
 
 </launch>

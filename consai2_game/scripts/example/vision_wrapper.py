@@ -13,7 +13,7 @@ class VisionWrapper(object):
         self._DISAPPERED_TIME_THRESH = 3.0 
         self._PUBLISH_ROBOT = {'blue':False, 'yellow':False}
 
-        self._MAX_ID = rospy.get_param('~max_id', 15)
+        self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
         self._PUBLISH_BALL = rospy.get_param('~publish_ball', True)
         self._PUBLISH_ROBOT['blue'] = rospy.get_param('~publish_blue', True)
         self._PUBLISH_ROBOT['yellow'] = rospy.get_param('~publish_yellow', False)

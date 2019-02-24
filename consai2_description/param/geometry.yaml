@@ -1,0 +1,2 @@
+robot_radius    : 0.09   # ロボットの半径
+ball_radius     : 0.0215 # ボールの半径

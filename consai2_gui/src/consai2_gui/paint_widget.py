@@ -32,10 +32,9 @@ class PaintWidget(QWidget):
         self._REPLACE_BALL_VELOCITY_GAIN = 3.0
         self._REPLACE_MAX_BALL_VELOCITY = 8.0
 
-        # TODO: ロボット・ボールサイズは、ROSパラメータで設定する
-        self._BALL_RADIUS = rospy.get_param('~ball_radius', 0.043)
-        self._ROBOT_RADIUS = rospy.get_param('~robot_radius', 0.09)
-        self._MAX_ID = rospy.get_param('~max_id', 15)
+        self._BALL_RADIUS = rospy.get_param('consai2_description/ball_radius', 0.0215)
+        self._ROBOT_RADIUS = rospy.get_param('consai2_description/robot_radius', 0.09)
+        self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
         # GUIパラメータ
         self._trans      = QPointF(0.0, 0.0) # x, y方向の移動

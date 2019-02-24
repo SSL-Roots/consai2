@@ -9,10 +9,8 @@
   <arg name="server_port" default="20011" />
   <arg name="device" default="/dev/ttyUSB0" />
   <arg name="baudrate" default="57600" />
-
-  <!-- IDの最大値 -->
-  <arg name="max_id" default="11" />
-  <param name="max_id" value="$(arg max_id)" />
+  <!-- その他パラメータの読み込み -->
+  <include file="$(find consai2_description)/launch/description.launch"/>
 
   <node name="joy_core" pkg="joy" type="joy_node" required="true">
     <param name="dev" type="string" value="$(arg joydev)" />

@@ -13,6 +13,7 @@ class JoyWrapper(object):
         self._sub_joy = rospy.Subscriber('joy', Joy, self._callback_joy, queue_size=1)
         self._pub_commands = rospy.Publisher('consai2_control/robot_commands', RobotCommands, queue_size=1)
 
+        self._MAX_ID = rospy.get_param('consai2_description/max_id')
         # /consai2_examples/launch/joystick_example.launch でキー割り当てを変更する
         self._BUTTON_SHUTDOWN_1     = rospy.get_param('~button_shutdown_1')
         self._BUTTON_SHUTDOWN_2     = rospy.get_param('~button_shutdown_2')
@@ -41,9 +42,6 @@ class JoyWrapper(object):
         self._BUTTON_ALL_ID_3       = rospy.get_param('~button_all_id_3')
         self._BUTTON_ALL_ID_4       = rospy.get_param('~button_all_id_4')
 
-
-        #TODO:MAX_IDを設定するファイルを決める
-        self._MAX_ID = rospy.get_param('max_id')
 
         self._MAX_VEL_SURGE = 1.0
         self._MAX_VEL_SWAY = 1.0

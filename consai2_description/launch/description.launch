@@ -1,0 +1,6 @@
+<launch>
+  <group ns="consai2_description">
+    <rosparam command="load" file="$(find consai2_description)/param/game.yaml" />
+    <rosparam command="load" file="$(find consai2_description)/param/geometry.yaml" />
+  </group>
+</launch>
