@@ -135,6 +135,7 @@ class VisionWrapper(object):
                 self._robot_info[color][robot_id].disappeared = False
             else:
                 self._robot_info[color][robot_id].detected = False
+                self._robot_info[color][robot_id].robot_id = robot_id
 
                 # 座標を受け取らなかった場合は、速度を用いて線形予測する
                 if self._robot_info[color][robot_id].disappeared is False:
