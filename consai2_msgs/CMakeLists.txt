@@ -35,6 +35,7 @@ add_message_files(
   ReplaceBall.msg
   ReplaceRobot.msg
   Replacements.msg
+  ControlTarget.msg
 )
 
 ## Generate services in the 'srv' folder
