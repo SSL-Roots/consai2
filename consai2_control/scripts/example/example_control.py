@@ -15,8 +15,10 @@ class Controller(object):
         self._COLORS = ['blue', 'yellow']
 
         self._MAX_VELOCITY = 4.0 # m/s
+        self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
         self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
-        self._POSE_P_GAIN = 0.1
+        self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
+        self._POSE_P_GAIN = 1.0
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
@@ -55,8 +57,6 @@ class Controller(object):
                 RobotCommands, queue_size=QUEUE_SIZE)
 
 
-
-
     def _callback_robot_info(self, msg, color):
         self._robot_info[color][msg.robot_id] = msg
 
@@ -65,65 +65,96 @@ class Controller(object):
 
 
     def _control_update(self, color, robot_id):
+        # ロボットの走行制御を更新する
+        # ControlTargetを受け取ってない場合は停止司令を生成する
+
         command = RobotCommand()
         command.robot_id = robot_id
 
-        robot_info = self._robot_info[color][robot_id]
         control_target = self._control_target[color][robot_id]
 
-        # 制御速度を計算
-        control_velocity = self._pid_pose_control(color, robot_id, robot_info.pose, control_target.goal_pose)
+        # 制御目標が有効であれば
+        if control_target.control_enable:
+            robot_info = self._robot_info[color][robot_id]
+            current_control_velocity = self._control_velocity[color][robot_id]
 
-        # 速度方向をロボット座標系に変換
+            # 制御速度を計算
+            control_velocity = self._pid_pose_control(
+                    color, robot_id, robot_info.pose, control_target.goal_pose,
+                    current_control_velocity)
+            # 速度方向をロボット座標系に変換
+            theta = robot_info.pose.theta
+            command.vel_surge = math.cos(theta)*control_velocity.x + math.sin(theta)*control_velocity.y
+            command.vel_sway = -math.sin(theta)*control_velocity.x + math.cos(theta)*control_velocity.y
+            command.vel_angular = control_velocity.theta
 
-        theta = robot_info.pose.theta
-
-        command.vel_surge = math.cos(-theta)*control_velocity.x - math.sin(-theta)*control_velocity.y
-        command.vel_sway = math.sin(-theta)*control_velocity.x - math.cos(-theta)*control_velocity.y
-        command.vel_angular = 0.1
-
-        command.kick_power = control_target.kick_power
-        command.chip_enable = control_target.chip_enable
-        command.dribble_power = control_target.dribble_power
+            command.kick_power = control_target.kick_power
+            command.chip_enable = control_target.chip_enable
+            command.dribble_power = control_target.dribble_power
 
         return command
 
     
-    def _pid_pose_control(self, color, robot_id, robot_pose, goal_pose):
+    def _pid_pose_control(self, color, robot_id, robot_pose, goal_pose, current_control_velocity):
         # 現在姿勢と目標姿勢の差分から、field座標系での動作速度を求める
         diff_pose = Pose2D()
         target_velocity = Pose2D()
 
         diff_pose.x = goal_pose.x - robot_pose.x
-        diff_pose.y = goal_pose.x - robot_pose.x
-        # diff_pose.theta = goal_pose.theta - robot_pose.theta
+        diff_pose.y = goal_pose.y - robot_pose.y
+        diff_pose.theta = self._angle_normalize(goal_pose.theta - robot_pose.theta)
 
         # 目標動作速度を求める
         target_velocity.x = self._POSE_P_GAIN * diff_pose.x
         target_velocity.y = self._POSE_P_GAIN * diff_pose.y
-        # target_velocity.theta = self._POSE_P_GAIN * diff_pose.theta
+        target_velocity.theta = self._POSE_P_GAIN * diff_pose.theta
 
-        # 加速度を制限する
-        diff_velocity = Pose2D()
-        diff_velocity.x = target_velocity.x - self._control_velocity[color][robot_id].x
-        diff_velocity.y = target_velocity.y - self._control_velocity[color][robot_id].y
-        # diff_velocity.theta = target_velocity.theta - self._control_velocity[color][robot_id].theta
-
-        if math.fabs(diff_velocity.x) > self._MAX_ACCELERATION:
-            self._control_velocity[color][robot_id].x += math.copysign(self._MAX_ACCELERATION, diff_velocity.x)
-        else:
-            self._control_velocity[color][robot_id].x = target_velocity.x
+        # x方向の加速度制限
+        current_control_velocity.x = self._acceleration_limit(
+                target_velocity.x, current_control_velocity.x,
+                self._MAX_ACCELERATION)
             
-        if math.fabs(diff_velocity.y) > self._MAX_ACCELERATION:
-            self._control_velocity[color][robot_id].y += math.copysign(self._MAX_ACCELERATION, diff_velocity.y)
-        else:
-            self._control_velocity[color][robot_id].y = target_velocity.y
+        # y方向の加速度制限
+        current_control_velocity.y = self._acceleration_limit(
+                target_velocity.y, current_control_velocity.y,
+                self._MAX_ACCELERATION)
 
-        return self._control_velocity[color][robot_id]
+        # thetaの加速度制限
+        current_control_velocity.theta = self._acceleration_limit(
+                target_velocity.theta, current_control_velocity.theta,
+                self._MAX_ANGLE_ACCELERATION, is_angle=True)
+
+        return current_control_velocity
+
+    
+    def _acceleration_limit(self, target_velocity, current_velocity, limit_value, is_angle=False):
+        # 加速度制限をかけて目標速度を返す
+        diff_velocity = target_velocity - current_velocity
+
+        if is_angle:
+            diff_velocity = self._angle_normalize(diff_velocity)
+
+        if math.fabs(diff_velocity) > limit_value:
+            target_velocity = current_velocity + math.copysign(limit_value, diff_velocity)
+
+            if is_angle:
+                target_velocity = self._angle_normalize(target_velocity)
+
+        return target_velocity
+
+
+    def _angle_normalize(self, angle):
+        # 角度をpi  ~ -piの範囲に変換する
+        while angle > math.pi:
+            angle -= 2*math.pi
+
+        while angle < -math.pi:
+            angle += 2*math.pi
+
+        return angle
 
 
     def update(self):
-
         # consai vs consaiのために、blue, yellow両方のロボットを制御する
         for color in self._COLORS:
             robot_commands = RobotCommands()
@@ -141,7 +172,6 @@ class Controller(object):
                     robot_commands.commands.append(command)
 
             self._pub_commands.publish(robot_commands)
-
 
 
 def main():

@@ -38,4 +38,5 @@
   </include>
 
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+  <node name="control_example" pkg="consai2_examples" type="control_example.py" output="screen" />
 </launch>
