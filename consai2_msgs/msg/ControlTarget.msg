@@ -3,12 +3,9 @@
 uint8   robot_id
 
 bool control_enable
-geometry_msgs/Pose2D goal_pose
-geometry_msgs/Pose2D goal_velocity
-
-bool use_path
 # path[last] == goal_pose
 geometry_msgs/Pose2D[] path
+geometry_msgs/Pose2D goal_velocity
 
 # 0.0 ~ 1.0
 float64 kick_power
