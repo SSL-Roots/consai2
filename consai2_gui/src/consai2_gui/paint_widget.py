@@ -11,6 +11,7 @@ from python_qt_binding.QtWidgets import QWidget
 
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
+from consai2_msgs.msg import ControlTarget
 
 
 class PaintWidget(QWidget):
@@ -63,6 +64,9 @@ class PaintWidget(QWidget):
         self._field_lines = []
         self._field_arcs = []
 
+        # ジョイスティック情報
+        self._joy_target = ControlTarget()
+
         # ロボット・ボール情報
         self._ball_info = BallInfo()
         self._robot_info = {'blue':[],'yellow':[]}
@@ -79,6 +83,10 @@ class PaintWidget(QWidget):
         self._sub_ball_info = rospy.Subscriber(
                 'vision_wrapper/ball_info', BallInfo,
                 self._callback_ball_info, queue_size=1)
+
+        self._sub_joy_target = rospy.Subscriber(
+                'consai2_examples/joy_target', ControlTarget, 
+                self._callback_joy_target, queue_size=1)
 
         self._subs_robot_info = {'blue':[], 'yellow':[]}
 
@@ -143,6 +151,9 @@ class PaintWidget(QWidget):
 
     def _callback_yellow_info(self, msg, robot_id):
         self._robot_info['yellow'][robot_id] = msg
+
+    def _callback_joy_target(self, msg):
+        self._joy_target = msg
 
 
     def mousePressEvent(self, event):
@@ -218,8 +229,14 @@ class PaintWidget(QWidget):
         self._draw_field(painter)
         self._draw_ball(painter)
         self._draw_ball_velocity(painter)
+
+        # JoyStick関連
+        if len(self._joy_target.path) > 0:
+            self._draw_joy_target(painter)
+
         self._draw_robots(painter)
 
+        # grSim Replacement関連
         if self._replacement_target['ball_pos'] or self._replacement_target['robot_pos']:
             self._draw_pos_replacement(painter)
             self._draw_cursor_coordinate(painter)
@@ -232,6 +249,7 @@ class PaintWidget(QWidget):
 
         else:
             self._draw_cursor_coordinate(painter)
+
 
 
     def resizeEvent(self, event):
@@ -686,3 +704,39 @@ class PaintWidget(QWidget):
         diff_point = to_point - from_point
 
         return math.atan2(diff_point.y(), diff_point.x())
+
+
+    def _draw_joy_target(self, painter):
+        # JoyStickのControlTargetを描画する
+
+        # 経路の線を描画するための変数
+        prev_point = None
+
+        for i, pose in enumerate(self._joy_target.path):
+            point = self._convert_to_view(pose.x, pose.y)
+            size = self._ROBOT_RADIUS * self._scale_field_to_view
+
+            joy_color = QColor(Qt.magenta)
+            painter.setPen(Qt.black)
+            painter.setBrush(joy_color)
+            painter.drawEllipse(point, size, size)
+
+            # 角度
+            line_x = self._ROBOT_RADIUS * math.cos(pose.theta)
+            line_y = self._ROBOT_RADIUS * math.sin(pose.theta)
+            line_point = point + self._convert_to_view(line_x, line_y)
+            painter.drawLine(point, line_point)
+
+            # インデックス
+            text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
+            painter.drawText(text_point, str(i))
+
+            # 経路を描画
+            if prev_point is None:
+                prev_point = point
+            else:
+                painter.setPen(QPen(QColor(0,0,255, 127), 4))
+                painter.drawLine(prev_point, point)
+                prev_point = point
+
+

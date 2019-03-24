@@ -30,4 +30,11 @@
     <arg name="baudrate" value="$(arg baudrate)" />
     <arg name="sim" value="$(arg sim)" />
   </include>
+
+  <group unless="$(arg direct)">
+    <!-- ビジュアライザの起動 -->
+    <include file="$(find consai2_examples)/launch/visualizer.launch"/>
+    <!-- Controllerの起動 -->
+    <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+  </group>
 </launch>

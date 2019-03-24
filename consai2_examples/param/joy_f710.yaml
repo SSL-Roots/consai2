@@ -25,3 +25,8 @@ button_all_id_2         : 5
 button_all_id_3         : 7
 button_all_id_4         : 9
 
+# for indirect control
+button_path_enable      : 5
+button_add_pose         : 2
+button_delete_path      : 1
+button_send_target      : 0
