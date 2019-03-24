@@ -40,3 +40,9 @@ script:
     # Code level tests
     - catkin_make run_tests # Always returns 0
     - catkin_test_results   # Output previous test results
+    # ROS WTF tests
+    - cd ~/catkin_ws/src/consai2
+    - roswtf ./consai2_examples/launch/control_example.launch
+    - roswtf ./consai2_examples/launch/joystic_example.launch
+    - roswtf ./consai2_examples/launch/visualizer.launch
+
