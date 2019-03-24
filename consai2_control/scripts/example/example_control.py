@@ -199,16 +199,24 @@ class Controller(object):
         current_control_velocity.x = self._acceleration_limit(
                 target_velocity.x, current_control_velocity.x,
                 self._MAX_ACCELERATION)
-            
         # y方向の加速度制限
         current_control_velocity.y = self._acceleration_limit(
                 target_velocity.y, current_control_velocity.y,
                 self._MAX_ACCELERATION)
-
         # thetaの加速度制限
         current_control_velocity.theta = self._acceleration_limit(
                 target_velocity.theta, current_control_velocity.theta,
                 self._MAX_ANGLE_ACCELERATION, is_angle=True)
+
+        # x方向の速度制限
+        current_control_velocity.x = self._velocity_limit(
+                current_control_velocity.x, self._MAX_VELOCITY)
+        # y方向の速度制限
+        current_control_velocity.y = self._velocity_limit(
+                current_control_velocity.y, self._MAX_VELOCITY)
+        # theta方向の速度制限
+        current_control_velocity.theta = self._velocity_limit(
+                current_control_velocity.theta, self._MAX_ANGLE_VELOCITY)
 
         return current_control_velocity
 
@@ -225,6 +233,17 @@ class Controller(object):
 
             if is_angle:
                 target_velocity = angle_normalize(target_velocity)
+
+        return target_velocity
+
+    def _velocity_limit(self, target_velocity, limit_value):
+        # 速度制限をかけて目標速度を返す
+
+        if target_velocity > limit_value:
+            target_velocity = limit_value
+
+        elif target_velocity < -limit_value:
+            target_velocity = -limit_value
 
         return target_velocity
 
