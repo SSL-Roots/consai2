@@ -70,6 +70,8 @@ class JoyWrapper(object):
         self._MAX_DRIBBLE_POWER = 1.0 # DO NOT EDIT
         self._DRIBBLE_POWER_CONTROL = 0.1
 
+        self._indirect_control_enable = True
+
         # direct control用のパラメータ
         self._kick_power = 0.5
         self._dribble_power = 0.5
@@ -211,6 +213,8 @@ class JoyWrapper(object):
         MOVE_GAIN = 0.04 # meters
         MOVE_GAIN_ANGLE = 0.04 * math.pi # radians
 
+        control_enable = True
+
         # メッセージを取得してない場合は抜ける
         if self._joy_msg is None:
             return 
@@ -226,6 +230,9 @@ class JoyWrapper(object):
 
         # チームカラーの変更
         if self._joy_msg.buttons[self._BUTTON_COLOR_ENABLE]:
+            # カラー変更直後は操縦を停止する
+            self._indirect_control_enable = False
+
             if math.fabs(self._joy_msg.axes[self._AXIS_COLOR_CHANGE]) > 0:
                 self._is_yellow = not self._is_yellow
                 print 'is_yellow: ' + str(self._is_yellow)
@@ -236,6 +243,9 @@ class JoyWrapper(object):
 
         # IDの変更
         if self._joy_msg.buttons[self._BUTTON_ID_ENABLE]:
+            # ID変更直後は操縦を停止する
+            self._indirect_control_enable = False
+
             if math.fabs(self._joy_msg.axes[self._AXIS_ID_CHANGE]) > 0:
                 # 十字キーの入力に合わせて、IDを増減させる
                 self._robot_id += int(self._joy_msg.axes[self._AXIS_ID_CHANGE])
@@ -252,6 +262,9 @@ class JoyWrapper(object):
 
         # poseの更新
         if self._joy_msg.buttons[self._BUTTON_MOVE_ENABLE]:
+            # 操縦を許可する
+            self._indirect_control_enable = True
+
             if math.fabs(self._joy_msg.axes[self._AXIS_VEL_SWAY]):
                 # joystickの仕様により符号を反転している
                 gain = MOVE_GAIN*self._joy_msg.axes[self._AXIS_VEL_SWAY]
@@ -272,6 +285,9 @@ class JoyWrapper(object):
 
         # Pathの操作
         if self._joy_msg.buttons[self._BUTTON_PATH_ENABLE]:
+            # 操縦を許可する
+            self._indirect_control_enable = True
+
             # Poseの追加
             if self._joy_msg.buttons[self._BUTTON_ADD_POSE]:
                 self._joy_target.path.append(copy.deepcopy(current_joy_pose))
@@ -307,6 +323,25 @@ class JoyWrapper(object):
                 pub_control_target.publish(self._joy_target)
                 # self._pub_control_target.publish(self._joy_target)
                 print 'send target'
+
+        # Color, ID変更ボタンを押すことで操縦を停止できる
+        if self._indirect_control_enable is False:
+            stop_target = ControlTarget()
+            stop_target.robot_id = self._robot_id
+            stop_target.control_enable = False
+
+            color = 'blue'
+            if self._is_yellow:
+                color = 'yellow'
+
+            # 末尾に16進数の文字列をつける
+            topic_id = hex(self._robot_id)[2:]
+            topic_name = 'consai2_game/control_target_' + color +'_' + topic_id
+            pub_control_target = rospy.Publisher(
+                    topic_name, ControlTarget, queue_size=1)
+
+            pub_control_target.publish()
+
 
         self._pub_joy_target.publish(self._joy_target)
 

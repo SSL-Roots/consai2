@@ -124,6 +124,9 @@ class Controller(object):
                 else:
                     # 到達してないことをpublish
                     self._pubs_is_arrived[color][robot_id].publish(False)
+        else:
+            # 保存していた制御速度をリセットする
+            self._reset_control_velocity(color, robot_id)
 
         return command
 
@@ -170,6 +173,7 @@ class Controller(object):
         current_control_velocity = self._control_velocity[color][robot_id]
 
         # 制御速度を計算
+        # self._control_velocityにも同値を保存する
         control_velocity = self._pid_pose_control(
                 color, robot_id, robot_info.pose, goal_pose,
                 current_control_velocity)
@@ -246,6 +250,10 @@ class Controller(object):
             target_velocity = -limit_value
 
         return target_velocity
+
+    
+    def _reset_control_velocity(self, color, robot_id):
+        self._control_velocity[color][robot_id] = Pose2D()
 
 
     def update(self):
