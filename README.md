@@ -29,7 +29,7 @@ sudo pip2 install protobuf
 ### consai2のビルド
 
 ```zsh
-git clone https://github.com/SSL-Roots/consai2 ~/catkin_ws/src/
+git clone https://github.com/SSL-Roots/consai2 ~/catkin_ws/src/consai2
 cd ~/catkin_ws/src/
 rosdep install -r -y --from-paths . --ignore-src
 cd ~/catkin_ws/
