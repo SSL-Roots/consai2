@@ -16,20 +16,15 @@ class RealSender(object):
         self._MAX_VEL_ANGULAR = 2.0*math.pi
 
         self._serial = serial.Serial(self._DEVICE, self._BAUDRATE)
-        self._robot_commands = RobotCommands()
 
         self._sub_commands = rospy.Subscriber(
                 'consai2_control/robot_commands',
                 RobotCommands,
-                self._callback,
+                self._send,
                 queue_size = 10)
 
 
-    def _callback(self, msg):
-        self._robot_commands = msg
-
-
-    def send(self):
+    def _send(self, msg):
         # 実機ロボットに動作司令を送信する
         # Roots Protocol
         # 0: 1111 1111 |HEADER_1 0xFF
@@ -43,7 +38,8 @@ class RealSender(object):
         # 8: **** **** |XOR([2] ~ [7])
         # 9: **** **** |XOR([8],0xFF)
 
-        for command in self._robot_commands.commands:
+        for command in msg.commands:
+        # for command in self._robot_commands.commands:
             packet = bytearray()
 
             # ヘッダー
@@ -151,14 +147,9 @@ def main():
     rospy.init_node('real_sender')
     sender = RealSender()
 
-    r = rospy.Rate(60)
-    while not rospy.is_shutdown():
-        # ロボットの仕様により、定期通信しなければない
-        sender.send()
-        r.sleep()
+    rospy.on_shutdown(sender.close_serial)
 
-    sender.close_serial()
-
+    rospy.spin()
 
 if __name__ == '__main__':
     try:
