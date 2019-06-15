@@ -45,26 +45,22 @@ roslaunch consai2_sender sender.launch sim:=false device:=/dev/ttyUSB0 baudrate:
 
 ## Parameters
 - sim_sender
-  - ~/server_addr
+  - ~/server_addr (string, default:'127.0.0.1')
     - grSimのサーバアドレス
-    - default: 127.0.0.1
-  - ~/server_port
+  - ~/server_port (integer, default:20011)
     - grSimのポート番号
-    - default: 20011
 - real_sender 
-  - ~/device
+  - ~/device (string, default:'/dev/ttyUSB0')
     - 実機送信機のデバイス
-    - default: /dev/ttyUSB0
-  - ~/baudrate
+  - ~/baudrate (integer, default:57600)
     - 実機送信機のボーレート
-    - default: 57600
 
 ## Subsribe Topics
 - sim_sender
-  - consai2_control/robot_commands'
+  - consai2_control/robot_commands' (consai2_msgs/RobotCommands)
     - ロボットの動作司令
 - real_sender
-  - consai2_control/robot_commands'
+  - consai2_control/robot_commands' (consai2_msgs/RobotCommands)
     - ロボットの動作司令
 
 ## 参考ページ

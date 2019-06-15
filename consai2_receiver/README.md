@@ -38,33 +38,28 @@ roslaunch consai2_receiver receiver.launch side:=right
 ```
 
 ## Parameters
-- vision_receiver
+- vision_receiver (string, default:'224.5.23.2')
   - ~/vision_addr
     - Visionのマルチキャストアドレス
-    - default: 224.5.23.2
-  - ~/vision_port
+  - ~/vision_port (integer, default:10006)
     - Visionのポート番号
-    - default: 10006
-  - ~/side
-    - 自チームサイド
-    - default: left
+  - ~/side (string, default:'left')
+    - 自チームサイド ('left' or 'right')
 - referee_receiver
-  - ~/referee_addr
+  - ~/referee_addr (string, default:'224.5.23.1')
     - Refereeのマルチキャストアドレス
-    - default: 224.5.23.1
-  - ~/referee_port
+  - ~/referee_port (integer, default:10003)
     - Refereeのポート番号
-    - default: 10003
 
 ## Publish Topics
 
 - vision_receiver
-  - raw_vision_detections
+  - raw_vision_detections (consai2_msgs/VisionDetections)
     - 各カメラで撮影されたロボットとボールの座標・角度
-  - raw_vision_geometry
+  - raw_vision_geometry (consai2_msgs/VisionGeometry)
     - Visionで設定されたフィールド形状
 - referee_receiver
-  - raw_referee
+  - raw_referee (consai2_msgs/Referee)
     - Refereeが出力する信号
 
 
