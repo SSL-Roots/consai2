@@ -5,8 +5,9 @@ import rospy
 import multicast
 import math
 
-from proto import referee_pb2
+from consai2_receiver_proto import referee_pb2
 from consai2_msgs.msg import Referee
+from geometry_msgs.msg import Point
 
 
 class RefereeReceiver(object):
@@ -37,7 +38,10 @@ class RefereeReceiver(object):
         referee.yellow = packet_referee.yellow
 
         if packet_referee.HasField('designated_position'):
-            referee.designated_position = packet_referee.designated_position
+            referee.designated_position = Point(
+                    packet_referee.designated_position.x,
+                    packet_referee.designated_position.y,
+                    0)
 
         if packet_referee.HasField('gameEvent'):
             referee.game_event = packet_referee.gameEvent

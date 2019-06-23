@@ -7,7 +7,7 @@ import math
 
 from consai2_msgs.msg import VisionGeometry, FieldLineSegment, FieldCircularArc
 from consai2_msgs.msg import VisionDetections, DetectionFrame, DetectionBall, DetectionRobot
-from proto import messages_robocup_ssl_wrapper_pb2 as ssl_wrapper
+from consai2_receiver_proto import messages_robocup_ssl_wrapper_pb2 as ssl_wrapper
 
 
 
