@@ -133,6 +133,7 @@ class Controller(object):
 
     def _path_tracking(self, color, robot_id, path):
         ARRIVED_THRESH = 0.5 # meters
+        # ARRIVED_THRESH = 0.5 # meters
 
         arrived = False
         command = RobotCommand()
