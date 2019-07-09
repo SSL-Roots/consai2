@@ -27,6 +27,9 @@
     <param name="publish_yellow" value="$(arg publish_yellow)" />
   </node>
 
+  <node name="referee_wrapper" pkg="consai2_game" type="referee_wrapper.py" required="true" output="screen" >
+  </node>
+
   <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" />
 
 </launch>
