@@ -39,8 +39,8 @@ class RefereeReceiver(object):
 
         if packet_referee.HasField('designated_position'):
             referee.designated_position = Point(
-                    packet_referee.designated_position.x,
-                    packet_referee.designated_position.y,
+                    packet_referee.designated_position.x * 0.001, # millimeter to meter
+                    packet_referee.designated_position.y * 0.001, # millimeter to meter
                     0)
 
         if packet_referee.HasField('gameEvent'):
