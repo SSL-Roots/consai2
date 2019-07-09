@@ -36,6 +36,7 @@ add_message_files(
   ReplaceRobot.msg
   Replacements.msg
   ControlTarget.msg
+  DecodedReferee.msg
 )
 
 ## Generate services in the 'srv' folder
