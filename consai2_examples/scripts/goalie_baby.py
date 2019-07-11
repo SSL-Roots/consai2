@@ -8,9 +8,11 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotIn
 
 ball_pose = Pose2D()
 target_pose = Pose2D()
+xg = -6
+yg = 0
+xr = -5.5
 
 def path_example(target_id):
-    
     
     # 制御目標値を生成
     control_target = ControlTarget()
@@ -24,11 +26,11 @@ def path_example(target_id):
     pose = Pose2D()
     xb = ball_pose.x
     yb = ball_pose.y
-    a = (0 - yb)/(-6 - xb)
-    b = 0 - a * (-6)
-    y = a*(-5.5) + b
-    target_pose.x = -5.5
-    target_pose.y = y
+    a = (yg - yb)/(xg - xb)
+    b = yg - a * xg
+    yr = a*xr + b
+    target_pose.x = xr
+    target_pose.y = yr
     control_target.path.append(target_pose)
 
     return control_target
@@ -55,12 +57,15 @@ def main():
     rospy.sleep(3.0)
 
     # 制御目標値を生成
+    r = rospy.Rate(60)
     while 1:
         # ballの位置を取得する
         sub = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
 
         control_target = path_example(TARGET_ID)
         pub.publish(control_target)
+        r.sleep()
+
     print 'control_exmaple finish'
 
 if __name__ == '__main__':
