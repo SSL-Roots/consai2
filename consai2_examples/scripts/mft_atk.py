@@ -2,11 +2,12 @@
 # coding: UTF-8
 
 import rospy
+import math
+import tool
+
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
-import math
-import tool
 
 ball_pose = Pose2D()
 robot_pose = Pose2D()
@@ -33,6 +34,9 @@ def path_example(target_id):
 
     control_target.path.append(target_pose)
 
+    control_target.kick_power = 1.0
+    control_target.chip_enable = True
+
     return control_target
 
 def BallPose(data):
@@ -54,6 +58,8 @@ def main():
     topic_id = hex(TARGET_ID)[2:]
     topic_name = 'consai2_game/control_target_' + COLOR +'_' + topic_id
 
+    topic_name_robot_info = 'vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
+
     # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
 
@@ -66,7 +72,7 @@ def main():
         # ballの位置を取得する
         sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
         # Robotの位置を取得する
-        sub_robot = rospy.Subscriber('vision_wrapper/robot_info_blue_1', RobotInfo, RobotPose)
+        sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
         control_target = path_example(TARGET_ID)
         pub.publish(control_target)
@@ -84,19 +90,9 @@ class Coordinate(object):
 
         self._base = None # string data
         self._target = None # string data
-        self._update_func = None
-
-        # arrival parameters
-        self._arrived_position_tolerance = 0.1 # unit:meter
-        self._arrived_angle_tolerance = 3.0 * math.pi / 180.0
-
-        # interpose
-        self._to_dist = None
-        self._from_dist = None
 
         # approach to shoot
-        self._pose_max = Pose2D(-6,0,0)
-        self._my_role = None
+        self._pose_max = Pose2D()
         self._role_is_lower_side = False
         self._role_pose_hystersis = 0.1
         self._tuning_param_x = 0.3
@@ -106,12 +102,6 @@ class Coordinate(object):
 
         self._pose_max.x = BallRadius + self._tuning_param_x
         self._pose_max.y = BallRadius + RobotRadius + self._tuning_param_y
-
-
-        # receive_ball
-        self._can_receive_dist = 1.0 # unit:meter
-        self._can_receive_hysteresis = 0.3
-        self._receiving = False
 
 
     def _update_approach_to_shoot(self):
