@@ -12,14 +12,15 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotIn
 ball_pose = Pose2D()
 robot_pose = Pose2D()
 target_pose = Pose2D()
-xg = -6
-yg = 0
-xr = -5.5
+OUR_GOAL_X = -6
+OUR_GOAL_Y = 0
+FRONT_GOAL_X = 6
+FRONT_GOAL_Y = 0
 
 RobotRadius = 0.09
 BallRadius = 0.0215
 
-def path_example(target_id):
+def path_example(target_id, coordinate):
     
     # 制御目標値を生成
     control_target = ControlTarget()
@@ -29,13 +30,12 @@ def path_example(target_id):
     # Trueで走行開始
     control_target.control_enable = True
 
-    coordinate = Coordinate()
     coordinate._update_approach_to_shoot()
-
     control_target.path.append(target_pose)
 
-    control_target.kick_power = 1.0
-    control_target.chip_enable = True
+    if coordinate.approach_state == 3:
+        control_target.kick_power = 1.0
+        control_target.chip_enable = False
 
     return control_target
 
@@ -60,6 +60,8 @@ def main():
 
     topic_name_robot_info = 'vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
 
+    coordinate = Coordinate()
+
     # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
 
@@ -74,7 +76,7 @@ def main():
         # Robotの位置を取得する
         sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
-        control_target = path_example(TARGET_ID)
+        control_target = path_example(TARGET_ID, coordinate)
         pub.publish(control_target)
         r.sleep()
 
@@ -103,15 +105,17 @@ class Coordinate(object):
         self._pose_max.x = BallRadius + self._tuning_param_x
         self._pose_max.y = BallRadius + RobotRadius + self._tuning_param_y
 
+        self.approach_state = 0
+
 
     def _update_approach_to_shoot(self):
         # Reference to this idea
         # http://wiki.robocup.org/images/f/f9/Small_Size_League_-_RoboCup_2014_-_ETDP_RoboDragons.pdf
 
-        global robot_pose, target_pose, ball_pose
+        global target_pose
 
         # ball_pose = WorldModel.get_pose('Ball')
-        _target_pose = Pose2D(6,0,0)
+        _target_pose = Pose2D(FRONT_GOAL_X, FRONT_GOAL_Y,0)
         _role_pose = robot_pose
 
         if _target_pose is None or _role_pose is None:
@@ -138,6 +142,7 @@ class Coordinate(object):
         tr_approach_pose = Pose2D()
         if tr_role_pose.x > 0:
             # 1.ボールの斜め後ろへ近づく
+            self.approach_state = 1
 
             # copysign(x,y)でyの符号に合わせたxを取得できる
             tr_approach_pose = Pose2D(
@@ -155,6 +160,7 @@ class Coordinate(object):
             if tr_role_pose.y > self._tuning_param_pivot_y and \
                     angle_pivot_to_role < limit_angle:
                 # 2.ボール後ろへ回りこむ
+                self.approach_state = 2
             
                 diff_angle = tool.normalize(limit_angle - angle_pivot_to_role)
                 decrease_coef = diff_angle / self._tuning_angle
@@ -166,6 +172,7 @@ class Coordinate(object):
             
             else:
                 # 3.ボールに向かう
+                self.approach_state = 3
 
                 diff_angle = tool.normalize(angle_pivot_to_role - limit_angle)
                 approach_coef = diff_angle / (math.pi * 0.5 - self._tuning_angle)
