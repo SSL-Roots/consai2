@@ -1,0 +1,42 @@
+<launch>
+
+  <!-- Receiver用のパラメータ -->
+  <arg name="vision_addr" default="224.5.23.2" />
+  <arg name="vision_port" default="10006" />
+  <arg name="side" default="left" />
+  <arg name="referee_addr" default="224.5.23.1" />
+  <arg name="referee_port" default="10003" />
+  <!-- game用のパラメータ -->
+  <arg name="publish_ball" default="true" />
+  <arg name="publish_blue" default="true" />
+  <arg name="publish_yellow" default="true" />
+
+  <!-- grSimのロボットを動かす場合はtrue -->
+  <arg name="sim" default="true" />
+  <!-- Sender用のパラメータ -->
+  <arg name="server_addr" default="127.0.0.1" />
+  <arg name="server_port" default="20011" />
+  <arg name="device" default="/dev/ttyUSB0" />
+  <arg name="baudrate" default="57600" />
+
+  <!-- ビジュアライザの起動 -->
+  <include file="$(find consai2_examples)/launch/visualizer.launch">
+    <arg name="vision_addr" default="$(arg vision_addr)" />
+    <arg name="vision_port" default="$(arg vision_port)" />
+    <!-- game用のパラメータ -->
+    <arg name="publish_ball" default="$(arg publish_ball)" />
+    <arg name="publish_blue" default="$(arg publish_blue)" />
+    <arg name="publish_yellow" default="$(arg publish_yellow)" />
+  </include>
+
+  <include file="$(find consai2_sender)/launch/sender.launch">
+    <arg name="server_addr" value="$(arg server_addr)" />
+    <arg name="server_port" value="$(arg server_port)" />
+    <arg name="device" value="$(arg device)" />
+    <arg name="baudrate" value="$(arg baudrate)" />
+    <arg name="sim" value="$(arg sim)" />
+  </include>
+
+  <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+  <node name="mft_atk" pkg="consai2_examples" type="mft_atk.py" output="screen" />
+</launch>
