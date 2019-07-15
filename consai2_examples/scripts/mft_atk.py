@@ -5,16 +5,20 @@ import rospy
 import math
 import tool
 
-from consai2_msgs.msg import ControlTarget
+from consai2_msgs.msg import ControlTarget, RobotCommands, RobotCommand
 from geometry_msgs.msg import Pose2D
 from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
+import joystick_example
 
 ball_pose = Pose2D()
 robot_pose = Pose2D()
 target_pose = Pose2D()
-OUR_GOAL_X = 6
+cmd = ControlTarget()
+
+
+OUR_GOAL_X = -6
 OUR_GOAL_Y = 0
-FRONT_GOAL_X = -6
+FRONT_GOAL_X = 6
 FRONT_GOAL_Y = 0
 
 RobotRadius = 0.09
@@ -24,14 +28,13 @@ def path_example(target_id, coordinate):
     
     # 制御目標値を生成
     control_target = ControlTarget()
+    robot_commands = RobotCommands()
+    command = RobotCommand()
 
     # ロボットID
     control_target.robot_id = target_id
     # Trueで走行開始
     control_target.control_enable = True
-
-    coordinate._update_approach_to_shoot()
-    control_target.path.append(target_pose)
 
     if coordinate.approach_state == 3:
         control_target.kick_power = 1.0
@@ -47,12 +50,17 @@ def RobotPose(data):
     global robot_pose
     robot_pose = data.pose
 
+def joy_cmd(data):
+    global cmd
+    cmd = data
+
+
 def main():
     rospy.init_node('control_example')
     
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 1 # 0 ~ MAX_ID
+    TARGET_ID = 5 # 0 ~ MAX_ID
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
@@ -65,7 +73,10 @@ def main():
     # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
 
+    # joy_
+    joy_wrapper = joystick_example.JoyWrapper()
     print 'control_exmaple start'
+
     rospy.sleep(3.0)
 
     # 制御目標値を生成
@@ -76,7 +87,11 @@ def main():
         # Robotの位置を取得する
         sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
+        # パスの生成
         control_target = path_example(TARGET_ID, coordinate)
+
+        joy_wrapper.update()
+
         pub.publish(control_target)
         r.sleep()
 
