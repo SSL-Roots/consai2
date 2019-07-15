@@ -1,6 +1,19 @@
 #!/usr/bin/env python2
 # coding: UTF-8
 
+import math
+import tool
+
+from geometry_msgs.msg import Pose2D
+
+RobotRadius = 0.09
+BallRadius = 0.0215
+
+OUR_GOAL_X = -6
+OUR_GOAL_Y = 0
+FRONT_GOAL_X = 6
+FRONT_GOAL_Y = 0
+
 class Coordinate(object):
     # Coordinateクラスは、フィールド状況をもとに移動目標位置、目標角度を生成する
     # Coordinateクラスには、移動目標の生成方法をsetしなければならない
@@ -8,6 +21,10 @@ class Coordinate(object):
 
     def __init__(self):
         self.pose = Pose2D() # pos_x, pos_y, thta
+
+        self._robot_pose = Pose2D()
+        self._ball_pose = Pose2D()
+        self.target_pose = Pose2D()
 
         self._base = None # string data
         self._target = None # string data
@@ -26,23 +43,28 @@ class Coordinate(object):
 
         self.approach_state = 0
 
+    def _update_robot_pose(self, robot_pose):
+        self._robot_pose = robot_pose
+
+    def _update_ball_pose(self, ball_pose):
+        self._ball_pose = ball_pose
+
+    def get_target_pose(self):
+        return self.target_pose
 
     def _update_approach_to_shoot(self):
         # Reference to this idea
         # http://wiki.robocup.org/images/f/f9/Small_Size_League_-_RoboCup_2014_-_ETDP_RoboDragons.pdf
 
-        global target_pose
-
-        # ball_pose = WorldModel.get_pose('Ball')
         _target_pose = Pose2D(FRONT_GOAL_X, FRONT_GOAL_Y,0)
-        _role_pose = robot_pose
+        _role_pose = self._robot_pose
 
         if _target_pose is None or _role_pose is None:
             return False
 
         # ボールからターゲットを見た座標系で計算する
-        angle_ball_to_target = tool.getAngle(ball_pose, _target_pose)
-        trans = tool.Trans(ball_pose, angle_ball_to_target)
+        angle_ball_to_target = tool.getAngle(self._ball_pose, _target_pose)
+        trans = tool.Trans(self._ball_pose, angle_ball_to_target)
         tr_role_pose = trans.transform(_role_pose)
 
         # tr_role_poseのloser_side判定にヒステリシスをもたせる
@@ -111,7 +133,7 @@ class Coordinate(object):
         self.pose = trans.invertedTransform(tr_approach_pose)
         self.pose.theta = angle_ball_to_target
 
-        target_pose = self.pose
+        self.target_pose = self.pose
         
         return True
 
