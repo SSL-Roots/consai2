@@ -6,7 +6,8 @@
   <node name="joy_core" pkg="joy" type="joy_node" required="true">
     <param name="dev" type="string" value="$(arg joydev)" />
   </node>
-  <node name="joystick_example" pkg="consai2_examples" type="joystick_example.py" required="true" output="screen">
+  <!--<node name="joystick_example" pkg="consai2_examples" type="joystick_example.py" required="true" output="screen"> -->
+   <node name="mft_atk" pkg="consai2_examples" type="mft_atk.py" required="true" output="screen" > 
     <param name="direct" value="$(arg direct)" />
     <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
     <!-- ひとつのボタンに複数の機能を割り当てています -->
@@ -51,6 +52,5 @@
   </include>
 
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
-  <node name="mft_atk" pkg="consai2_examples" type="mft_atk.py" output="screen" />
   <node name="mft_goalie" pkg="consai2_examples" type="goalie_baby.py" output="screen" />
 </launch>
