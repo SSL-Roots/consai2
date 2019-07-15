@@ -12,9 +12,9 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotIn
 ball_pose = Pose2D()
 robot_pose = Pose2D()
 target_pose = Pose2D()
-OUR_GOAL_X = -6
+OUR_GOAL_X = 6
 OUR_GOAL_Y = 0
-FRONT_GOAL_X = 6
+FRONT_GOAL_X = -6
 FRONT_GOAL_Y = 0
 
 RobotRadius = 0.09
