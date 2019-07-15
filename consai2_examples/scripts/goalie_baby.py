@@ -52,7 +52,7 @@ def main():
     
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 0 # 0 ~ MAX_ID
+    TARGET_ID = 5 # 0 ~ MAX_ID
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]

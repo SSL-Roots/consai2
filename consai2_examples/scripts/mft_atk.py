@@ -78,15 +78,15 @@ def main():
         # Robotの位置を取得する
         sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
-        _coordinate._update_robot_pose(robot_pose)
-        _coordinate._update_ball_pose(ball_pose)
+        # _coordinate._update_robot_pose(robot_pose)
+        # _coordinate._update_ball_pose(ball_pose)
 
         # パスの生成
-        control_target = path_example(TARGET_ID, _coordinate, joy_wrapper)
+        # control_target = path_example(TARGET_ID, _coordinate, joy_wrapper)
 
-        #joy_wrapper.update()
+        joy_wrapper.update(full_control=False)
 
-        pub.publish(control_target)
+        # pub.publish(control_target)
         r.sleep()
 
     print 'control_exmaple finish'
