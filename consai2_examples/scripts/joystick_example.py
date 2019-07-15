@@ -357,10 +357,8 @@ class JoyWrapper(object):
         # メッセージを取得してない場合は抜ける
         if self._joy_msg is None:
             return
-
-        # x = self._joy_msg.buttons[self._BUTTON_KICK_CHIP]
-        lb = self._joy_msg.buttons[self._BUTTON_ALL_ID_1]
-        return lb 
+            
+        return self._joy_msg
 
     def update(self, full_control=True):
         if self._DIRECT:
