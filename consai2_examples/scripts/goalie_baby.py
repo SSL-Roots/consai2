@@ -12,6 +12,8 @@ xg = -6
 yg = 0
 xr = -5.5
 
+goalie_threshold_y = 0.5
+
 def path_example(target_id):
     
     # 制御目標値を生成
@@ -31,6 +33,12 @@ def path_example(target_id):
     yr = a*xr + b
     target_pose.x = xr
     target_pose.y = yr
+    
+    if target_pose.y > goalie_threshold_y:
+        target_pose.y = goalie_threshold_y
+    elif target_pose.y < -goalie_threshold_y:
+        target_pose.y = -goalie_threshold_y
+
     control_target.path.append(target_pose)
 
     return control_target
