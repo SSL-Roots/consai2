@@ -353,130 +353,20 @@ class JoyWrapper(object):
 
         self._pub_joy_target.publish(self._joy_target)
 
-    # MFT用
-    def get_ball_pose(self, data):
-        self._ball_pose = data.pose
-
-    def _mft_control_update(self):
-        # 直接ロボットを操縦する
-        robot_commands = RobotCommands()
-        robot_commands.header.stamp = rospy.Time.now()
-
-        command = RobotCommand()
-
+    def get_button_status(self):
         # メッセージを取得してない場合は抜ける
         if self._joy_msg is None:
-            return 
-
-        # シャットダウン
-        if self._joy_msg.buttons[self._BUTTON_SHUTDOWN_1] and\
-                self._joy_msg.buttons[self._BUTTON_SHUTDOWN_2]:
-            rospy.signal_shutdown('finish')
             return
 
-        # IDの変更
-        if self._joy_msg.buttons[self._BUTTON_ID_ENABLE]:
-            if math.fabs(self._joy_msg.axes[self._AXIS_ID_CHANGE]) > 0:
-                # 十字キーの入力に合わせて、IDを増減させる
-                self._robot_id += int(self._joy_msg.axes[self._AXIS_ID_CHANGE])
-
-                if self._robot_id > self._MAX_ID:
-                    self._robot_id = self._MAX_ID
-                if self._robot_id < 0:
-                    self._robot_id = 0
-                print 'robot_id:' + str(self._robot_id)
-                # キーが離れるまでループ
-                while self._joy_msg.axes[self._AXIS_ID_CHANGE] != 0: 
-                    pass
-
-        # 全ID操作の変更
-        if self._joy_msg.buttons[self._BUTTON_ALL_ID_1] and \
-                self._joy_msg.buttons[self._BUTTON_ALL_ID_2] and \
-                self._joy_msg.buttons[self._BUTTON_ALL_ID_3] and \
-                self._joy_msg.buttons[self._BUTTON_ALL_ID_4]:
-            self._all_member = not self._all_member
-            print 'all_member: ' + str(self._all_member)
-            # キーが離れるまでループ
-            while self._joy_msg.buttons[self._BUTTON_ALL_ID_1] != 0 or \
-                    self._joy_msg.buttons[self._BUTTON_ALL_ID_2] != 0 or\
-                    self._joy_msg.buttons[self._BUTTON_ALL_ID_3] != 0 or\
-                    self._joy_msg.buttons[self._BUTTON_ALL_ID_4] != 0: 
-                pass
-
-        # 走行
-        # if self._joy_msg.buttons[self._BUTTON_MOVE_ENABLE]:
-        if self._joy_msg.buttons[self._BUTTON_ALL_ID_1]:
-
-            sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, self.get_ball_pose)
-
-            self.control_target.path.append(self._ball_pose)
-            self.control_target.control_enable = True
-            self.pub_atk.publish(self.control_target)
-                # command.vel_surge = self._joy_msg.axes[self._AXIS_VEL_SURGE] * self._MAX_VEL_SURGE
-                # command.vel_sway = self._joy_msg.axes[self._AXIS_VEL_SWAY] * self._MAX_VEL_SWAY
-                # command.vel_angular = self._joy_msg.axes[self._AXIS_VEL_ANGULAR] * self._MAX_VEL_ANGULAR
-
-        # キック
-        if self._joy_msg.buttons[self._BUTTON_KICK_ENABLE]:
-            if self._joy_msg.buttons[self._BUTTON_KICK_STRAIGHT]:
-                command.kick_power = self._kick_power
-            elif self._joy_msg.buttons[self._BUTTON_KICK_CHIP]:
-                command.kick_power = self._kick_power
-                command.chip_enable = True
-
-            # パワーの変更
-            axis_value = self._joy_msg.axes[self._AXIS_KICK_POWER]
-            if math.fabs(axis_value) > 0:
-                self._kick_power += math.copysign(self._KICK_POWER_CONTROL, axis_value)
-                if self._kick_power > self._MAX_KICK_POWER:
-                    self._kick_power = self._MAX_KICK_POWER
-                if self._kick_power < 0.001:
-                    self._kick_power = 0.0
-                print 'kick_power :' + str(self._kick_power)
-                # キーが離れるまでループ
-                while self._joy_msg.axes[self._AXIS_KICK_POWER] != 0: 
-                    pass
-
-        # ドリブラー
-        if self._joy_msg.buttons[self._BUTTON_DRIBBLE_ENABLE]:
-            command.dribble_power = self._dribble_power
-
-            # パワーの変更
-            axis_value = self._joy_msg.axes[self._AXIS_DRIBBLE_POWER]
-            if math.fabs(axis_value) > 0:
-                self._dribble_power += math.copysign(self._DRIBBLE_POWER_CONTROL, axis_value)
-                if self._dribble_power > self._MAX_DRIBBLE_POWER:
-                    self._dribble_power = self._MAX_DRIBBLE_POWER
-                if self._dribble_power < 0.001:
-                    self._dribble_power = 0.0
-                print 'dribble_power:' + str(self._dribble_power)
-                # キーが離れるまでループ
-                while self._joy_msg.axes[self._AXIS_DRIBBLE_POWER] != 0: 
-                    pass
-
-        # チームカラーをセット
-        robot_commands.is_yellow = self._is_yellow
-
-        # IDとコマンドをセット
-        if self._all_member:
-            # 全IDのロボットを動かす
-            for robot_id in range(self._MAX_ID + 1):
-                command.robot_id = robot_id
-                robot_commands.commands.append(copy.deepcopy(command))
-        else:
-            command.robot_id = self._robot_id
-            robot_commands.commands.append(command)
-
-        self._pub_commands.publish(robot_commands)
+        # x = self._joy_msg.buttons[self._BUTTON_KICK_CHIP]
+        lb = self._joy_msg.buttons[self._BUTTON_ALL_ID_1]
+        return lb 
 
     def update(self, full_control=True):
-        if full_control == True:
-            if self._DIRECT:
-                self._direct_control_update()
-            else:
-                self._indirect_control_update()
+        if self._DIRECT:
+            self._direct_control_update()
         else:
-            self._mft_control_update()
+            self._indirect_control_update()
 
 
 def main():

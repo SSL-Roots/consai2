@@ -51,7 +51,7 @@ def main():
     
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 1 # 0 ~ MAX_ID
+    TARGET_ID = 3 # 0 ~ MAX_ID
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
@@ -78,15 +78,16 @@ def main():
         # Robotの位置を取得する
         sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
-        # _coordinate._update_robot_pose(robot_pose)
-        # _coordinate._update_ball_pose(ball_pose)
+        # joy_wrapper.update()
+        lb = joy_wrapper.get_button_status()
+        if lb:
+            _coordinate._update_robot_pose(robot_pose)
+            _coordinate._update_ball_pose(ball_pose)
 
-        # パスの生成
-        # control_target = path_example(TARGET_ID, _coordinate, joy_wrapper)
+            # パスの生成
+            control_target = path_example(TARGET_ID, _coordinate, joy_wrapper)
 
-        joy_wrapper.update(full_control=False)
-
-        # pub.publish(control_target)
+            pub.publish(control_target)
         r.sleep()
 
     print 'control_exmaple finish'
