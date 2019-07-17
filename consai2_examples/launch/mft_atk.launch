@@ -7,7 +7,7 @@
     <param name="dev" type="string" value="$(arg joydev)" />
   </node>
   <!--<node name="joystick_example" pkg="consai2_examples" type="joystick_example.py" required="true" output="screen"> -->
-   <node name="mft_atk" pkg="consai2_examples" type="mft_atk.py" required="true" output="screen" > 
+  <node name="mft_atk" pkg="consai2_examples" type="mft_atk.py" required="true" output="screen"> 
     <param name="direct" value="$(arg direct)" />
     <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
     <!-- ひとつのボタンに複数の機能を割り当てています -->

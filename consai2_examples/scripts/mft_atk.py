@@ -11,6 +11,8 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotIn
 import joystick_example
 import coordinate
 
+import math
+
 ball_pose = Pose2D()
 robot_pose = Pose2D()
 target_pose = Pose2D()
@@ -34,24 +36,59 @@ def path_example(target_id, coordinate, joy_wrapper, button_x):
     # Trueで走行開始
     control_target.control_enable = True
 
+    # 経路生成
     coordinate._update_approach_to_shoot()
+    
+    # ロボットとボールの間の距離
+    dist = distance_2_poses(robot_pose, ball_pose)
 
-    if coordinate.approach_state == 3:
-        control_target.dribble_power = 0.5
-        #joy_wrapper.update()
-        if button_x:
+    # ロボットとボール間の相対角度(degで取得)
+    angle_rb = angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg')
+
+    print dist, angle_rb
+    if dist < 0.11 and abs(angle_rb) < 30:
+        command.robot_id = target_id
+        command.dribble_power = 0.5
+        command.vel_surge = 0
+        command.vel_sway = 0
+        command.vel_angular = 0
+        if abs(angle_rb) < 10 and button_x:
+            print 'kick success'
             command.kick_power = 0.5
-            command.robot_id = target_id
-            robot_commands.commands.append(copy.deepcopy(command))
-            joy_wrapper._pub_commands.publish(robot_commands)
         else:
-            target_pose = coordinate.get_target_pose()
-            control_target.path.append(target_pose)
+            command.kick_power = 0
+        robot_commands.commands.append(copy.deepcopy(command))
+        joy_wrapper._pub_commands.publish(robot_commands)
+    # else:
+        # target_pose = coordinate.get_target_pose()
+        # control_target.path.append(target_pose)
     else:
+        control_target.dribble_power = 0
+        control_target.kick_power = 0
         target_pose = coordinate.get_target_pose()
         control_target.path.append(target_pose)
 
     return control_target
+
+def rot(target_id, joy_wrapper, button_lt, button_rt):
+    
+    global command
+    robot_commands = RobotCommands()
+    robot_commands.header.stamp = rospy.Time.now()
+
+    command.robot_id = target_id
+
+    if button_lt:
+        command.vel_angular = 1.5 * math.pi
+    elif button_rt:
+        command.vel_angular = -1.5 * math.pi
+
+    robot_commands.commands.append(copy.deepcopy(command))
+    joy_wrapper._pub_commands.publish(robot_commands)
+    
+    # ロボットとボール間の相対角度(degで取得)を表示
+    print angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg') 
+
 
 def BallPose(data):
     global ball_pose
@@ -61,6 +98,49 @@ def RobotPose(data):
     global robot_pose
     robot_pose = data.pose
 
+# 2つの角度の差分を取る
+def angle_2_diff(angle_1, angle_2, unit='rad'):
+    
+    angle_diff = (angle_1 - angle_2) 
+    angle_diff = angle_normalize(angle_diff)
+
+    # 単位をdegに直す
+    if unit == 'deg':
+        angle_diff *= 180/math.pi
+
+    return angle_diff
+
+# 角度を-pi ~ piに変換
+def angle_normalize(angle):
+    while angle > math.pi:
+        angle -= 2*math.pi
+
+    while angle < -math.pi:
+        angle += 2*math.pi
+
+    return angle
+
+# 角度を計算する
+# ２点間の直線と水平線との角度
+def angle_2_poses(pose1, pose2):
+    diff_pose = Pose2D()
+
+    diff_pose.x = pose2.x - pose1.x
+    diff_pose.y = pose2.y - pose1.y
+
+    return math.atan2(diff_pose.y, diff_pose.x)
+
+# 2点間の距離を計算する
+def distance_2_poses(pose1, pose2):
+    # 2点間の距離を取る
+    # pose.theta は使用しない
+
+    diff_pose = Pose2D()
+
+    diff_pose.x = pose1.x - pose2.x
+    diff_pose.y = pose1.y - pose2.y
+
+    return math.hypot(diff_pose.x, diff_pose.y)
 
 def main():
     rospy.init_node('control_example')
@@ -96,13 +176,17 @@ def main():
 
         try:
             _joy_msg = joy_wrapper.get_button_status()
-            button_rb = _joy_msg.buttons[5]
+            button_lb = _joy_msg.buttons[4]
             button_x  = _joy_msg.buttons[0]
+            button_lt = _joy_msg.buttons[6]
+            button_rt = _joy_msg.buttons[7]
         except:
-            button_rb = 0
+            button_lb = 0
             button_x  = 0
+            button_lt = 0
+            button_rt = 0
 
-        if button_rb:
+        if button_lb:
             _coordinate._update_robot_pose(robot_pose)
             _coordinate._update_ball_pose(ball_pose)
 
@@ -110,8 +194,13 @@ def main():
             control_target = path_example(TARGET_ID, _coordinate, joy_wrapper, button_x)
 
             pub.publish(control_target)
-        else:
-            pub.publish(ControlTarget())
+
+        # 回転
+        elif button_lt or button_rt:
+            rot(TARGET_ID, joy_wrapper, button_lt, button_rt)
+
+        # else:
+            # pub.publish(ControlTarget())
 
         r.sleep()
 
