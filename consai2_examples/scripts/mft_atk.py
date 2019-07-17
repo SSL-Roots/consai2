@@ -21,15 +21,17 @@ target_pose = Pose2D()
 control_target = ControlTarget()
 command = RobotCommand()
 
-def path_example(target_id, coordinate, joy_wrapper, button_x):
+def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
     
     # 制御目標値を生成
-    global control_target, target_pose, command
+    global control_target, target_pose, command, robot_pose, ball_pose
     control_target = ControlTarget()
 
     robot_commands = RobotCommands()
     robot_commands.header.stamp = rospy.Time.now()
 
+    _robot_pose = robot_pose
+    _ball_pose = ball_pose
 
     # ロボットID
     control_target.robot_id = target_id
@@ -40,28 +42,24 @@ def path_example(target_id, coordinate, joy_wrapper, button_x):
     coordinate._update_approach_to_shoot()
     
     # ロボットとボールの間の距離
-    dist = distance_2_poses(robot_pose, ball_pose)
-
+    dist = distance_2_poses(_robot_pose, _ball_pose)
     # ロボットとボール間の相対角度(degで取得)
-    angle_rb = angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg')
+    angle_rb = angle_2_diff(_robot_pose.theta, angle_2_poses(_robot_pose, _ball_pose), unit='deg')
 
-    print dist, angle_rb
+    # ボールがしきい値内かどうか判定
     if dist < 0.11 and abs(angle_rb) < 30:
         command.robot_id = target_id
-        command.dribble_power = 0.5
         command.vel_surge = 0
         command.vel_sway = 0
-        command.vel_angular = 0
-        if abs(angle_rb) < 10 and button_x:
-            print 'kick success'
+        command.dribble_power = 0.5
+        command.vel_angular = ang_vel * math.pi
+        if abs(angle_rb) < 10 and button:
             command.kick_power = 0.5
         else:
             command.kick_power = 0
         robot_commands.commands.append(copy.deepcopy(command))
         joy_wrapper._pub_commands.publish(robot_commands)
-    # else:
-        # target_pose = coordinate.get_target_pose()
-        # control_target.path.append(target_pose)
+    # しきい値内では無い場合経路生成してボールまで行く
     else:
         control_target.dribble_power = 0
         control_target.kick_power = 0
@@ -69,26 +67,6 @@ def path_example(target_id, coordinate, joy_wrapper, button_x):
         control_target.path.append(target_pose)
 
     return control_target
-
-def rot(target_id, joy_wrapper, button_lt, button_rt):
-    
-    global command
-    robot_commands = RobotCommands()
-    robot_commands.header.stamp = rospy.Time.now()
-
-    command.robot_id = target_id
-
-    if button_lt:
-        command.vel_angular = 1.5 * math.pi
-    elif button_rt:
-        command.vel_angular = -1.5 * math.pi
-
-    robot_commands.commands.append(copy.deepcopy(command))
-    joy_wrapper._pub_commands.publish(robot_commands)
-    
-    # ロボットとボール間の相対角度(degで取得)を表示
-    print angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg') 
-
 
 def BallPose(data):
     global ball_pose
@@ -178,29 +156,20 @@ def main():
             _joy_msg = joy_wrapper.get_button_status()
             button_lb = _joy_msg.buttons[4]
             button_x  = _joy_msg.buttons[0]
-            button_lt = _joy_msg.buttons[6]
-            button_rt = _joy_msg.buttons[7]
+            ang_vel   = _joy_msg.axes[2] 
         except:
             button_lb = 0
             button_x  = 0
-            button_lt = 0
-            button_rt = 0
+            ang_vel   = 0 
 
         if button_lb:
             _coordinate._update_robot_pose(robot_pose)
             _coordinate._update_ball_pose(ball_pose)
 
             # パスの生成
-            control_target = path_example(TARGET_ID, _coordinate, joy_wrapper, button_x)
+            control_target = path_example(TARGET_ID, _coordinate, joy_wrapper, button_x, ang_vel)
 
             pub.publish(control_target)
-
-        # 回転
-        elif button_lt or button_rt:
-            rot(TARGET_ID, joy_wrapper, button_lt, button_rt)
-
-        # else:
-            # pub.publish(ControlTarget())
 
         r.sleep()
 
