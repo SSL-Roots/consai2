@@ -9,9 +9,9 @@ from geometry_msgs.msg import Pose2D
 RobotRadius = 0.09
 BallRadius = 0.0215
 
-OUR_GOAL_X = -6
+OUR_GOAL_X = 0.9
 OUR_GOAL_Y = 0
-FRONT_GOAL_X = -6
+FRONT_GOAL_X = -0.9
 FRONT_GOAL_Y = 0
 
 class Coordinate(object):

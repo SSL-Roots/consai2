@@ -10,12 +10,12 @@ ball_pose = Pose2D()
 target_pose = Pose2D()
 xg = -6
 yg = 0
-xr = -5.5
+xr = -0.8
 
 goalie_threshold_y = 0.5
 
+
 def path_example(target_id):
-    
     # 制御目標値を生成
     control_target = ControlTarget()
 
@@ -43,16 +43,17 @@ def path_example(target_id):
 
     return control_target
 
+
 def BallPose(data):
     global ball_pose
     ball_pose = data.pose
 
+
 def main():
     rospy.init_node('control_example')
-    
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 5 # 0 ~ MAX_ID
+    TARGET_ID = 1 # 0 ~ MAX_ID
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
@@ -75,6 +76,7 @@ def main():
         r.sleep()
 
     print 'control_exmaple finish'
+
 
 if __name__ == '__main__':
     main()
