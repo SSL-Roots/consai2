@@ -65,12 +65,12 @@ def main():
     print 'control_exmaple start'
     rospy.sleep(3.0)
 
+    # ballの位置を取得する
+    sub = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
+
     # 制御目標値を生成
     r = rospy.Rate(60)
     while 1:
-        # ballの位置を取得する
-        sub = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
-
         control_target = path_example(TARGET_ID)
         pub.publish(control_target)
         r.sleep()
