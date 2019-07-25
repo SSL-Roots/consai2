@@ -9,9 +9,9 @@ from geometry_msgs.msg import Pose2D
 RobotRadius = 0.09
 BallRadius = 0.0215
 
-OUR_GOAL_X = 0.9
+OUR_GOAL_X = 6.0
 OUR_GOAL_Y = 0
-FRONT_GOAL_X = -0.9
+FRONT_GOAL_X = -6.0
 FRONT_GOAL_Y = 0
 
 class Coordinate(object):
@@ -33,10 +33,10 @@ class Coordinate(object):
         self._pose_max = Pose2D()
         self._role_is_lower_side = False
         self._role_pose_hystersis = 0.1
-        self._tuning_param_x = 0.3
+        self._tuning_param_x = 0.5
         self._tuning_param_y = 0.3
         self._tuning_param_pivot_y = 0.1
-        self._tuning_angle = 30.0 * math.pi / 180.0  # 0 ~ 90 degree, do not edit 'math.pi / 180.0'
+        self._tuning_angle = 60.0 * math.pi / 180.0  # 0 ~ 90 degree, do not edit 'math.pi / 180.0'
 
         self._pose_max.x = BallRadius + self._tuning_param_x
         self._pose_max.y = BallRadius + RobotRadius + self._tuning_param_y

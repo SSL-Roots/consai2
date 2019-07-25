@@ -45,6 +45,7 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
     # ロボットとボール間の相対角度(degで取得)
     angle_rb = angle_2_diff(_robot_pose.theta, angle_2_poses(_robot_pose, _ball_pose), unit='deg')
 
+    kick_flag = False
     # ボールがしきい値内かどうか判定
     if dist < 0.11 and abs(angle_rb) < 30:
         command.robot_id = target_id
@@ -52,12 +53,15 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
         command.vel_sway = 0
         command.dribble_power = 0.3
         command.vel_angular = ang_vel * math.pi
+        # 指定角度以内 + ボタン入力がある場合蹴る
         if abs(angle_rb) < 20 and button:
             command.kick_power = 0.5
+            kick_flag = True
         else:
             command.kick_power = 0
         robot_commands.commands.append(copy.deepcopy(command))
         joy_wrapper._pub_commands.publish(robot_commands)
+
     # しきい値内では無い場合経路生成してボールまで行く
     else:
         control_target.dribble_power = 0
@@ -65,6 +69,16 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
         target_pose = coordinate.get_target_pose()
         control_target.path.append(target_pose)
 
+    return control_target, kick_flag
+
+# コントローラを離しているときは停止
+def stop(target_id):
+    
+    global control_target
+    
+    control_target.robot_id = target_id
+    control_target.control_enable = False
+    
     return control_target
 
 
@@ -155,7 +169,9 @@ def main():
     sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
     # Robotの位置を取得する
     sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
-    
+
+    kick_flag = False
+    button_flag = 0
     while 1:
         if joy_wrapper.get_button_status() != None:
             _joy_msg = joy_wrapper.get_button_status()
@@ -167,13 +183,27 @@ def main():
             button_x  = 0
             ang_vel   = 0
 
-        _coordinate._update_robot_pose(robot_pose)
-        _coordinate._update_ball_pose(ball_pose)
 
-        if button_lb:
+        if button_lb and kick_flag == False:
+            
+            _coordinate._update_robot_pose(robot_pose)
+            _coordinate._update_ball_pose(ball_pose)
             # パスの生成
-            control_target = path_example(TARGET_ID, _coordinate, joy_wrapper, button_x, ang_vel)
+            control_target, kick_flag = path_example(
+                                                TARGET_ID,
+                                                _coordinate,
+                                                joy_wrapper,
+                                                button_x,
+                                                ang_vel)
             pub.publish(control_target)
+            
+        elif button_flag == 1 and button_lb == 0:
+            kick_flag = False
+        else:
+            control_target = stop(TARGET_ID)
+            pub.publish(control_target)
+
+        button_flag = button_lb
 
         r.sleep()
 

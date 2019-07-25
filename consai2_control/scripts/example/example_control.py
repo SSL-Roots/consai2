@@ -41,7 +41,7 @@ class Controller(object):
         self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
         self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
         self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
-        self._POSE_P_GAIN = 1.0
+        self._POSE_P_GAIN = 2.0
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
@@ -132,7 +132,7 @@ class Controller(object):
 
 
     def _path_tracking(self, color, robot_id, path):
-        ARRIVED_THRESH = 0.5 # meters
+        ARRIVED_THRESH = 0.2 # meters
 
         arrived = False
         command = RobotCommand()
