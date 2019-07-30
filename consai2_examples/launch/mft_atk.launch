@@ -52,5 +52,6 @@
   </include>
 
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
-  <node name="mft_goalie" pkg="consai2_examples" type="goalie_baby.py" output="screen" />
+  <node name="mft_goalie" pkg="consai2_examples" type="goalie.py" output="screen" />
+  <!-- <node name="mft_goalie" pkg="consai2_examples" type="goalie_baby.py" output="screen" /> -->
 </launch>
