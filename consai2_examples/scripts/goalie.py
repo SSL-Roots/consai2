@@ -4,7 +4,7 @@
 import rospy
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
-from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
+from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo
 
 import math
 
@@ -12,23 +12,18 @@ ball_pose = Pose2D()
 target_pose = Pose2D()
 ball_vel = None
 
-xg = -6
+# ゴールの位置とゴーリーの普段いるx座標を指定
+# visionから正式な値はいただく
+xg = 0
 yg = 0
-# 桑田邸
-# xr = -0.8
-# grsim
-xr = -5.7
+xr = 0
 
 goal_pose = Pose2D()
-goal_pose.x = xg 
-goal_pose.y = yg 
 
 goalie_threshold_y = 1.5
 
 def set_pose(control_target, target_id):
     
-    global ball_pose, goal_pose, ball_vel
-
     # ロボットID
     control_target.robot_id = target_id
     # Trueで走行開始
@@ -40,30 +35,20 @@ def set_pose(control_target, target_id):
         dy = 0
         da = 0
     else:
-        dt = 1/60
+        # ボールの速度
         vx = ball_vel.x
         vy = ball_vel.y
-        va = ball_vel.theta
         v = math.hypot(ball_vel.x, ball_vel.y)
-
-        dx = vx * dt
-        dy = vx * dt
-        da = va * dt
-
-    # ボールの現在位置を取得
-    xb = ball_pose.x
-    yb = ball_pose.y
+        # ボールの進む角度
+        angle_ball = math.atan2(vy, vx)
+        # ボールの変化量を計算（正確ではなく方向を考慮した単位量）
+        dx = math.cos(angle_ball) 
+        dy = math.sin(angle_ball) 
 
     # ボールの次の予測位置を取得
-    xb_n = xb + dx
-    yb_n = yb + dy
     ball_pose_next = Pose2D() 
-    ball_pose_next.x = xb + xb_n
-    ball_pose_next.y = yb + yb_n
-
-    # ボールの位置の差分
-    d = distance_2_poses(ball_pose, ball_pose_next)
-    # print d
+    ball_pose_next.x = ball_pose.x + dx
+    ball_pose_next.y = ball_pose.y + dy
 
     # ボールが動いていないとき
     if v < 0.05:
@@ -86,6 +71,22 @@ def set_pose(control_target, target_id):
     control_target.path.append(target_pose)
 
     return control_target
+
+# フィールドの情報取得
+def get_field_info(data):
+    global xg, yg, xr, goal_pose
+    field_length = data.field_length
+    field_width  = data.field_width
+
+    goal_width = data.goal_width 
+    goal_depth = data.goal_depth 
+
+    # ゴールのx座標
+    xg = - field_length/2 - goal_depth
+    # ゴーリーの普段居るx座標
+    xr = xg + goal_depth  + 0.3
+    goal_pose.x = xg 
+    goal_pose.y = 0 
 
 # ボールの位置取得
 def get_ball_pose(data):
@@ -145,13 +146,18 @@ def main():
     topic_id = hex(TARGET_ID)[2:]
     topic_name = 'consai2_game/control_target_' + COLOR +'_' + topic_id
 
+    # 制御の情報
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
+
+    # ballの位置を取得する
+    sub = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, get_ball_pose)
+
+    # フィールドの情報をもらう
+    sub = rospy.Subscriber('vision_receiver/raw_vision_geometry', VisionGeometry, get_field_info)
 
     print 'control_exmaple start'
     rospy.sleep(3.0)
 
-    # ballの位置を取得する
-    sub = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, get_ball_pose)
 
     # 制御に使うインスタンス生成
     control_target = ControlTarget()
