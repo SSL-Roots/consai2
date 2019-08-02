@@ -8,6 +8,8 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo
 
 import math
 
+import time
+
 ball_pose = Pose2D()
 ball_vel = None
 goal_pose = Pose2D()
@@ -20,7 +22,6 @@ goalie_threshold_y = 0
 xg = 0
 yg = 0
 xr = 0
-
 
 def set_pose(control_target, target_id):
     
@@ -51,28 +52,34 @@ def set_pose(control_target, target_id):
     ball_pose_next.y = ball_pose.y + dy
 
     # ボールが動いていて、ゴールに向かってくる場合
-    if 0.05 < v and 0 < dx:
+    if 0.02 < v and dx < 0:
         a, b = line_slope_and_gradient(ball_pose, ball_pose_next)
+        xr_c = 0.2
     else:
         a, b = line_slope_and_gradient(ball_pose, goal_pose)
+        xr_c = 0
     
     # 位置を決める
-    yr = a*xr + b
+    yr = a*(xr + xr_c) + b
 
     # 位置
     if yr > goalie_threshold_y:
         yr = goalie_threshold_y
     elif yr < -goalie_threshold_y:
         yr = -goalie_threshold_y
-    elif ball_pose.x < xg:
+    elif ball_pose.x < xr:
         # ボールが後ろに出たらy座標は0にする
         yr = 0
 
-    target_pose.x = xr
+    target_pose.x = xr + xr_c
     target_pose.y = yr
 
     # 移動する
     control_target.path.append(target_pose)
+
+    # ゴール地点での速度
+    # goal_velocity = Pose2D(0.0, 0.0, 0.0)
+    # control_target.goal_velocity = goal_velocity
 
     return control_target
 
@@ -86,9 +93,9 @@ def get_field_info(data):
     goal_depth = data.goal_depth 
 
     # ゴールのx座標
-    xg = - field_length/2 - goal_depth
+    xg = - field_length/2
     # ゴーリーの普段居るx座標
-    xr = xg + goal_depth  + 0.3
+    xr = xg + 0.2
 
     goal_pose.x = xg 
     goal_pose.y = 0 

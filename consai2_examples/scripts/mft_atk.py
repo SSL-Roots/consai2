@@ -156,6 +156,11 @@ def main():
     # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
 
+    # ballの位置を取得する
+    sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
+    # Robotの位置を取得する
+    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
+
     # joy_
     joy_wrapper = joystick_example.JoyWrapper()
     print 'control_exmaple start'
@@ -164,11 +169,6 @@ def main():
 
     # 制御目標値を生成
     r = rospy.Rate(60)
-
-    # ballの位置を取得する
-    sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
-    # Robotの位置を取得する
-    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
     kick_flag = False
     button_flag = 0
