@@ -47,15 +47,15 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
 
     kick_flag = False
     # ボールがしきい値内かどうか判定
-    if dist < 0.11 and abs(angle_rb) < 30:
+    if dist < 0.13 and abs(angle_rb) < 30:
         command.robot_id = target_id
-        command.vel_surge = 0
+        command.vel_surge = 0.2
         command.vel_sway = 0
         command.dribble_power = 0.3
         command.vel_angular = ang_vel * math.pi
         # 指定角度以内 + ボタン入力がある場合蹴る
         if abs(angle_rb) < 20 and button:
-            command.kick_power = 0.5
+            command.kick_power = 0.3
             kick_flag = True
         else:
             command.kick_power = 0
