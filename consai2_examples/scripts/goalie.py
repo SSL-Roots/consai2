@@ -71,7 +71,7 @@ def set_pose(control_target, target_id):
         # ボールが後ろに出たらy座標は0にする
         yr = 0
 
-    target_pose.x = xr + xr_c
+    target_pose.x = xr
     target_pose.y = yr
 
     # 移動する
@@ -101,7 +101,8 @@ def get_field_info(data):
     goal_pose.y = 0 
 
     # ゴールの幅
-    goalie_threshold_y = field_width/6
+    # goalie_threshold_y = field_width/6
+    goalie_threshold_y = 0.5
 
 # ボールの位置取得
 def get_ball_pose(data):
@@ -155,7 +156,7 @@ def main():
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 5 # 0 ~ MAX_ID
+    TARGET_ID = 1 # 0 ~ MAX_ID
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]

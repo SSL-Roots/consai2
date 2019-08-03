@@ -227,8 +227,6 @@ class PaintWidget(QWidget):
 
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
-        self._draw_ball(painter)
-        self._draw_ball_velocity(painter)
 
         # JoyStick関連
         if len(self._joy_target.path) > 0:
@@ -249,6 +247,9 @@ class PaintWidget(QWidget):
 
         else:
             self._draw_cursor_coordinate(painter)
+
+        self._draw_ball(painter)
+        self._draw_ball_velocity(painter)
 
 
 

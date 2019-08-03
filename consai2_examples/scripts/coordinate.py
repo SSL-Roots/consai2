@@ -125,8 +125,8 @@ class Coordinate(object):
                         - self._tuning_param_x) + self._tuning_param_x
                 
                 # ずれて肩タックルするときはこれをいじる
-                tr_approach_pose = Pose2D(-pos_x, -0.04, 0)
-                # print limit_angle
+                tr_approach_pose = Pose2D(-pos_x, 0, 0)
+                # print pos_x
 
         # 上下反転していたapproach_poseを元に戻す
         if self._role_is_lower_side:

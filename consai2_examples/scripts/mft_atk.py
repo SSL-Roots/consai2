@@ -51,8 +51,8 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
         command.robot_id = target_id
         command.vel_surge = 0.2
         command.vel_sway = 0
-        command.dribble_power = 0.3
-        command.vel_angular = ang_vel * math.pi
+        command.dribble_power = 0.5
+        command.vel_angular = ang_vel * math.pi * 0.25
         # 指定角度以内 + ボタン入力がある場合蹴る
         if abs(angle_rb) < 20 and button:
             command.kick_power = 0.3
@@ -155,6 +155,7 @@ def main():
 
     # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
+    pub_joy = rospy.Publisher('consai2_examples/joy_target', ControlTarget, queue_size=1)
 
     # ballの位置を取得する
     sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
@@ -183,11 +184,10 @@ def main():
             button_x  = 0
             ang_vel   = 0
 
+        _coordinate._update_robot_pose(robot_pose)
+        _coordinate._update_ball_pose(ball_pose)
 
         if button_lb and kick_flag == False:
-            
-            _coordinate._update_robot_pose(robot_pose)
-            _coordinate._update_ball_pose(ball_pose)
             # パスの生成
             control_target, kick_flag = path_example(
                                                 TARGET_ID,
@@ -202,6 +202,7 @@ def main():
         else:
             control_target = stop(TARGET_ID)
             pub.publish(control_target)
+            pub_joy.publish(control_target)
 
         button_flag = button_lb
 

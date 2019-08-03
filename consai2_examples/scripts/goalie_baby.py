@@ -35,7 +35,7 @@ def path_example(target_id):
     b = yg - a * xg
     yr = a*xr + b
     target_pose.x = xr
-    target_pose.y = yr
+    target_pose.y = yb
     
     if target_pose.y > goalie_threshold_y:
         target_pose.y = goalie_threshold_y
