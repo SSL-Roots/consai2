@@ -18,6 +18,9 @@
   <arg name="server_port" default="20011" />
   <arg name="device" default="/dev/ttyUSB0" />
   <arg name="baudrate" default="57600" />
+  <!-- 複数のロボットを動かすときはTrue -->
+  <arg name="collective" default="false" />
+
 
   <!-- ビジュアライザの起動 -->
   <include file="$(find consai2_examples)/launch/visualizer.launch">
@@ -38,5 +41,10 @@
   </include>
 
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
-  <node name="control_example" pkg="consai2_examples" type="control_example.py" output="screen" />
+  <group unless="$(arg collective)">
+    <node name="control_example" pkg="consai2_examples" type="control_example.py" output="screen" />
+  </group>
+  <group if="$(arg collective)">
+    <node name="collective_control_example" pkg="consai2_examples" type="collective_control_example.py" output="screen" />
+  </group>
 </launch>
