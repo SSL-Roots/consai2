@@ -7,6 +7,19 @@ from consai2_msgs.msg import Referee, DecodedReferee, BallInfo
 from consai2_receiver_proto.referee_pb2 import SSL_Referee
 from geometry_msgs.msg import Pose2D
 
+REFEREE_TEXT = {
+        0 : "HALT", 1 : "STOP", 3 : "FORCE_START",
+        11 : "OUR_KICKOFF_PREPARATION", 12 : "OUR_KICKOFF_START",
+        13 : "OUR_PENALTY_PREPARATION", 14 : "OUR_PENALTY_START",
+        15 : "OUR_DIRECT_FREE", 16 : "OUR_INDIRECT_FREE",
+        17 : "OUR_TIMEOUT", 18 : "OUR_GOAL", 19 : "OUR_BALL_PLACEMENT",
+        21 : "THEIR_KICKOFF_PREPARATION", 22 : "THEIR_KICKOFF_START",
+        23 : "THEIR_PENALTY_PREPARATION", 24 : "THEIR_PENALTY_START",
+        25 : "THEIR_DIRECT_FREE", 26 : "THEIR_INDIRECT_FREE",
+        27 : "THEIR_TIMEOUT", 28 : "THEIR_GOAL", 29 : "THEIR_BALL_PLACEMENT",
+        }
+REFEREE_ID = {v:k for k, v in REFEREE_TEXT.items()}
+
 
 class RefereeWrapper(object):
     def __init__(self):
@@ -24,18 +37,6 @@ class RefereeWrapper(object):
 
         self._pub_decoded_referee = rospy.Publisher(
                 '~decoded_referee', DecodedReferee, queue_size=1)
-
-        self._REFEREE_TEXT = {
-                0 : "HALT", 1 : "STOP", 3 : "FORCE_START",
-                11 : "OUR_KICKOFF_PREPARATION", 12 : "OUR_KICKOFF_START",
-                13 : "OUR_PENALTY_PREPARATION", 14 : "OUR_PENALTY_START",
-                15 : "OUR_DIRECT_FREE", 16 : "OUR_INDIRECT_FREE",
-                17 : "OUR_TIMEOUT", 18 : "OUR_GOAL", 19 : "OUR_BALL_PLACEMENT",
-                21 : "THEIR_KICKOFF_PREPARATION", 22 : "THEIR_KICKOFF_START",
-                23 : "THEIR_PENALTY_PREPARATION", 24 : "THEIR_PENALTY_START",
-                25 : "THEIR_DIRECT_FREE", 26 : "THEIR_INDIRECT_FREE",
-                27 : "THEIR_TIMEOUT", 28 : "THEIR_GOAL", 29 : "THEIR_BALL_PLACEMENT",
-                }
 
         self._DECODE_ID = {
                 "OUR" : 10, "THEIR" : 20,
@@ -140,7 +141,7 @@ class RefereeWrapper(object):
         decoded_msg = DecodedReferee()
 
         decoded_msg.referee_id = self._decode_referee_id(msg.command)
-        decoded_msg.referee_text = self._REFEREE_TEXT.get(decoded_msg.referee_id, 'INVALID_COMMAND')
+        decoded_msg.referee_text = REFEREE_TEXT.get(decoded_msg.referee_id, 'INVALID_COMMAND')
         decoded_msg.placement_position = msg.designated_position
 
         # Decode restrictions
