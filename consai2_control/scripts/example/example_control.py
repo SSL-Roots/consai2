@@ -42,6 +42,8 @@ class Controller(object):
         self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
         self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
         self._POSE_P_GAIN = 1.0
+        self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
+        self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
@@ -139,6 +141,7 @@ class Controller(object):
         command.robot_id = robot_id
 
         path_index = self._path_index[color][robot_id]
+        robot_pose = self._robot_info[color][robot_id].pose
 
         if len(path) == 0 :
             # パスがセットされてない場合
@@ -149,16 +152,18 @@ class Controller(object):
             # 最後のposeに移動し続ける
             pose = path[-1]
             command = self._move_to_pose(color, robot_id, pose)
-            arrived = True
+
+            # ゴールに到着したか判定
+            if distance_2_poses(pose, robot_pose) < self._ARRIVED_THRESH:
+                arrived = True
         else:
             # 経路追従　
             pose = path[path_index]
             command = self._move_to_pose(color, robot_id, pose)
 
             # poseに近づいたか判定する
-            robot_pose = self._robot_info[color][robot_id].pose
 
-            if distance_2_poses(pose, robot_pose) < ARRIVED_THRESH:
+            if distance_2_poses(pose, robot_pose) < self._APPROACH_THRESH:
                 # 近づいたら次の経由位置へ向かう
                 self._path_index[color][robot_id] += 1
 
@@ -292,3 +297,5 @@ if __name__ == '__main__':
         main()
     except rospy.ROSInitException:
         pass
+
+
