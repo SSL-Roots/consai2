@@ -12,9 +12,9 @@ from geometry_msgs.msg import Point
 
 class RefereeReceiver(object):
     def __init__(self):
-        self._host = rospy.get_param('~referee_addr', '224.5.23.1')
-        self._port = rospy.get_param('~referee_port', 10003)
-        self._sock = multicast.Multicast(self._host, self._port)
+        self._HOST = rospy.get_param('consai2_description/referee_addr', '224.5.23.1')
+        self._PORT = rospy.get_param('consai2_description/referee_port', 10003)
+        self._sock = multicast.Multicast(self._HOST, self._PORT)
 
         self._pub_referee = rospy.Publisher('~raw_referee', Referee, queue_size=1)
 

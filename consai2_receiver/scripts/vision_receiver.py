@@ -77,10 +77,10 @@ class FormatConverter(object):
 
 class VisionReceiver(object):
     def __init__(self):
-        self._host = rospy.get_param('~vision_addr', '224.5.23.2')
-        self._port = rospy.get_param('~vision_port', 10006)
-        self._side = rospy.get_param('~side', 'left')
-        self._sock = multicast.Multicast(self._host, self._port)
+        self._HOST = rospy.get_param('consai2_description/vision_addr', '224.5.23.2')
+        self._PORT = rospy.get_param('consai2_description/vision_port', 10006)
+        self._SIDE = rospy.get_param('consai2_description/our_side', 'left')
+        self._sock = multicast.Multicast(self._HOST, self._PORT)
 
         self._pub_geometry = rospy.Publisher(
                 '~raw_vision_geometry', VisionGeometry, queue_size=1)
@@ -89,7 +89,7 @@ class VisionReceiver(object):
 
         # チームサイドの反転
         invert_side = False
-        if self._side != 'left':
+        if self._SIDE != 'left':
             invert_side = True
 
         self._converter = FormatConverter(invert_side)

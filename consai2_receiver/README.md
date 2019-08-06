@@ -13,43 +13,11 @@ roslaunch consai2_receiver receiver.launch
 
 ## マルチキャストアドレス・ポートの変更方法
 
-`consai2_receiver/launch/receiver.launch`を編集するか、
-launchファイルの引数で設定できます。
-
-```sh
-# 例:Visionのアドレス・ポートを変更
-roslaunch consai2_receiver receiver.launch vision_addr:=224.5.23.2 vision_port:=10006
-
-# 例:Refereeのアドレス・ポートを変更
-roslaunch consai2_receiver receiver.launch referee_addr:=224.5.23.2 referee_port:=10006
-```
+`consai2_description/param/game.yaml`を編集します。
 
 ## チームサイドの変更方法
 
-`consai2_receiver/launch/receiver.launch`を編集するか、
-launchファイルの引数で設定できます。
-
-```sh
-# 例：左守り、右攻め
-roslaunch consai2_receiver receiver.launch side:=left
-
-# 例：右守り、左攻め
-roslaunch consai2_receiver receiver.launch side:=right
-```
-
-## Parameters
-- vision_receiver (string, default:'224.5.23.2')
-  - ~/vision_addr
-    - Visionのマルチキャストアドレス
-  - ~/vision_port (integer, default:10006)
-    - Visionのポート番号
-  - ~/side (string, default:'left')
-    - 自チームサイド ('left' or 'right')
-- referee_receiver
-  - ~/referee_addr (string, default:'224.5.23.1')
-    - Refereeのマルチキャストアドレス
-  - ~/referee_port (integer, default:10003)
-    - Refereeのポート番号
+`consai2_description/param/game.yaml`を編集します。
 
 ## Publish Topics
 
