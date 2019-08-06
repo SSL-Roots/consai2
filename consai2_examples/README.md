@@ -2,6 +2,18 @@
 
 consai2のサンプルコード集です
 
+## Visualizer 
+
+ビジュアライザでフィールド・ロボット・ボールを描画するサンプルです。
+Refereeの信号も受信します。
+
+VisionとRefereeからデータを受信できるか確認したいときに実行すると良いです。
+
+次のコマンドでノードを起動します。
+
+```sh
+roslaunch consai2_examples visualizer.launch
+```
 
 ## joystic_example
 
