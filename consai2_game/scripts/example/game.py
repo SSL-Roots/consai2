@@ -9,6 +9,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
+import tool
 
 
 class RobotNode(object):
@@ -23,10 +24,15 @@ class RobotNode(object):
         self._my_pose = Pose2D()
         self._my_velocity = Pose2D()
 
+        self._is_attacker = False
+
 
     def set_state(self, pose, velocity):
         self._my_pose = pose
         self._my_velocity = velocity
+
+    def set_attacker(self, is_attacker):
+        self._is_attacker = is_attacker
 
 
     def get_sleep(self):
@@ -35,20 +41,30 @@ class RobotNode(object):
         return self._control_target
 
 
-    def get_action(self, referee):
+    def get_action(self, referee, ball_info):
         self._control_target.control_enable = True
 
-        if referee.referee_id == ref.REFEREE_ID["HALT"]:
-            # 制御を停止する
+        if referee.referee_id == ref.REFEREE_ID["HALT"] or \
+                ball_info.disappeared:
+            # HALT or ボールの消失で制御を停止する
             self._control_target.control_enable = False
 
         elif referee.referee_id == ref.REFEREE_ID["STOP"]:
             # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
             self._control_target.path = []
+
             pose = Pose2D()
-            pose.x = self._my_pose.x
-            pose.y = self._my_pose.y
-            pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+            if self._is_attacker:
+                # アタッカーならボールに近づく
+                pose.x = ball_info.pose.x - 0.5
+                pose.y = ball_info.pose.y
+                pose.theta = 0
+            else:
+                # それ以外ならくるくる回る
+                pose.x = self._my_pose.x
+                pose.y = self._my_pose.y
+                pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+
             self._control_target.path.append(pose)
 
         else:
@@ -62,18 +78,30 @@ class Game(object):
     def __init__(self):
         QUEUE_SIZE = 1
 
+        self._FAR_DISTANCE = 1e+10
         self._OUR_COLOR = rospy.get_param('consai2_description/our_color', 'blue')
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
         self._THEIR_COLOR = 'yellow'
         if self._OUR_COLOR == 'yellow':
             self._THEIR_COLOR = 'blue'
 
+
         self._robot_node = []
+        self._dist_to_ball = {} # ロボットからボールまでの距離
+        self._attacker_id = 0 # アタッカーID
+        for robot_id in range(self._MAX_ID + 1):
+            self._dist_to_ball[robot_id] = self._FAR_DISTANCE
+
 
         self._decoded_referee = DecodedReferee()
         self._sub_decoded_referee = rospy.Subscriber(
                 'referee_wrapper/decoded_referee', DecodedReferee, 
                 self._callback_referee, queue_size=1)
+
+        self._ball_info = BallInfo()
+        self._sub_ball_info = rospy.Subscriber(
+                'vision_wrapper/ball_info', BallInfo,
+                self._callback_ball_info, queue_size=1)
 
         self._robot_info = {'our':[],'their':[]}
         self._subs_robot_info = {'our':[],'their':[]}
@@ -109,11 +137,40 @@ class Game(object):
     def _callback_referee(self, msg):
         self._decoded_referee = msg
 
+    def _callback_ball_info(self, msg):
+        self._ball_info = msg
+
     def _callback_our_info(self, msg, robot_id):
         self._robot_info['our'][robot_id] = msg
 
     def _callback_their_info(self, msg, robot_id):
         self._robot_info['their'][robot_id] = msg
+
+
+    def _i_am_attacker(self, robot_id, new_robot_pose):
+        # ロボットとボールの距離を計算して、一番ボールに近ければTrue
+        MARGIN = 0.5 # meter
+
+        # ロボットとボールの距離を計算
+        # ボールが消える可能性を考慮して、last_detection_poseを使う
+        dist = tool.distance_2_poses(new_robot_pose, 
+                self._ball_info.last_detection_pose)
+        # 距離の更新
+        self._dist_to_ball[robot_id] = dist
+
+        # アタッカーIDが自分自身であれば、他と比較せずにTrueを返す
+        if self._attacker_id == robot_id:
+            return True
+
+        # アタッカーのボールロボット間距離を取得
+        # マージンを設けて、アタッカーの切り替わりの発振を防ぐ
+        closest_dist = self._dist_to_ball[self._attacker_id] - MARGIN
+
+        if dist < closest_dist:
+            self._attacker_id = robot_id
+            return True
+        else:
+            return False
 
 
     def update(self):
@@ -123,13 +180,22 @@ class Game(object):
             if our_info.disappeared:
                 # ロボットが消えていたら停止
                 target = self._robot_node[robot_id].get_sleep()
+
+                # ボールとの距離を初期化
+                self._dist_to_ball[robot_id] = self._FAR_DISTANCE
         
             else:
+                # アタッカー情報をセット
+                self._robot_node[robot_id].set_attacker(
+                        self._i_am_attacker(robot_id, our_info.pose))
+
                 # ロボットの状態を更新
                 self._robot_node[robot_id].set_state(
                         our_info.pose, our_info.velocity)
                 # 目標位置を生成
-                target = self._robot_node[robot_id].get_action(self._decoded_referee)
+                target = self._robot_node[robot_id].get_action(
+                        self._decoded_referee,
+                        self._ball_info)
 
             self._pubs_control_target[robot_id].publish(target)
 
