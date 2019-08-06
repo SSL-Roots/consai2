@@ -15,6 +15,46 @@ VisionとRefereeからデータを受信できるか確認したいときに実�
 roslaunch consai2_examples visualizer.launch
 ```
 
+## control_example
+
+consai2_controlを使うコード例です。
+
+次のコマンドでノードを起動します。
+
+```sh
+# 実機を動かす場合
+roslaunch consai2_examples control_example.launch sim:=false
+
+# grSimのロボットを動かす場合
+roslaunch consai2_examples control_example.launch sim:=true
+```
+
+複数のロボットを動かす場合は、次のコマンドを実行します。
+
+このサンプルではRefereeのSTOP信号でロボットが動作します。
+Refereeのアプリケーションを立ち上げてください。
+
+```sh
+# 例：grSimのロボットを動かす場合
+roslaunch consai2_examples control_example.launch sim:=true collective:=true
+```
+
+## Game
+
+試合用のサンプルです。
+
+事前に`consai2_description/param/game.yaml`を編集し、必要なパラメータを設定してください。
+
+次のコマンドでノードを起動します。
+
+```sh
+# 実機を動かす場合
+roslaunch consai2_examples game.launch sim:=false
+
+# grSimのロボットを動かす場合
+roslaunch consai2_examples game.launch sim:=true
+```
+
 ## joystic_example
 
 ジョイスティックでロボットを操縦するコード例です。
