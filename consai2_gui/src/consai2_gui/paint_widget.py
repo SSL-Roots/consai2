@@ -36,6 +36,12 @@ class PaintWidget(QWidget):
         self._BALL_RADIUS = rospy.get_param('consai2_description/ball_radius', 0.0215)
         self._ROBOT_RADIUS = rospy.get_param('consai2_description/robot_radius', 0.09)
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
+        self._SIDE = rospy.get_param('consai2_description/our_side', 'left')
+
+        # チームサイドの反転
+        self._invert_side = False
+        if self._SIDE != 'left':
+            self._invert_side = True
 
         # GUIパラメータ
         self._trans      = QPointF(0.0, 0.0) # x, y方向の移動
@@ -426,6 +432,11 @@ class PaintWidget(QWidget):
         ball.x = field_point.x()
         ball.y = field_point.y()
         ball.is_enabled = True
+
+        if self._invert_side:
+            ball.x *= -1.0
+            ball.y *= -1.0
+
         replacements = Replacements()
         replacements.ball = ball
         self._pub_replace.publish(replacements)
@@ -444,6 +455,13 @@ class PaintWidget(QWidget):
         ball.vx = velocity.x()
         ball.vy = velocity.y()
         ball.is_enabled = True
+
+        if self._invert_side:
+            ball.x *= -1.0
+            ball.y *= -1.0
+            ball.vx *= -1.0
+            ball.vy *= -1.0
+
         replacements = Replacements()
         replacements.ball = ball
         self._pub_replace.publish(replacements)
@@ -485,6 +503,12 @@ class PaintWidget(QWidget):
         robot.id = self._replace_id
         robot.yellowteam = self._replace_is_yellow
         robot.turnon = True
+
+        if self._invert_side:
+            robot.x *= -1.0
+            robot.y *= -1.0
+            robot.dir += 180
+
         replacements = Replacements()
         replacements.robots.append(robot)
         self._pub_replace.publish(replacements)
@@ -513,6 +537,12 @@ class PaintWidget(QWidget):
         robot.id = self._replace_id
         robot.yellowteam = self._replace_is_yellow
         robot.turnon = True
+
+        if self._invert_side:
+            robot.x *= -1.0
+            robot.y *= -1.0
+            robot.dir += 180
+
         replacements = Replacements()
         replacements.robots.append(robot)
         self._pub_replace.publish(replacements)
