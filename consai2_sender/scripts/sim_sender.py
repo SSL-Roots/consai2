@@ -10,8 +10,8 @@ from consai2_msgs.msg import RobotCommands, ReplaceBall, ReplaceBall, Replacemen
 
 class SimSender(object):
     def __init__(self):
-        self._host = rospy.get_param('~server_address', '127.0.0.1')
-        self._port = rospy.get_param('~server_port', 20011)
+        self._host = rospy.get_param('consai2_description/grsim_addr', '127.0.0.1')
+        self._port = rospy.get_param('consai2_description/grsim_port', 20011)
 
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 

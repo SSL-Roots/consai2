@@ -7,4 +7,8 @@ vision_addr : '224.5.23.2'  # Visionのマルチキャストアドレス
 vision_port : 10006         # Visionのポート番号
 referee_addr : '224.5.23.1' # Refereeのマルチキャストアドレス
 referee_port : 10003        # Refereeのポート番号
+grsim_addr : '127.0.0.1'    # コマンド送信先のgrSimアドレス
+grsim_port : 20011          # コマンド送信先のgrSimポート
+sender_device : '/dev/ttyUSB0'  # 実機送信機のデバイス名
+sender_baudrate : 57600         # 実機送信機のボーレート
 

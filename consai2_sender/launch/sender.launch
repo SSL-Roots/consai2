@@ -1,25 +1,19 @@
 <launch>
-  <arg name="sim" default="true" />
-  <!-- grSimのサーバアドレス・ポートの変更方法 -->
-  <arg name="server_addr" default="127.0.0.1" />
-  <arg name="server_port" default="20011" />
+  <!-- 実機 / grSim の切り替え -->
+  <arg name="sim" default="false" />
 
-  <!-- 実機送信機のデバイス・ボーレートの変更方法 -->
-  <arg name="device" default="/dev/ttyUSB0" />
-  <arg name="baudrate" default="57600" />
+  <!-- パラメータの読み込み -->
+  <arg name="load_description" default="true" />
+  <group if="$(arg load_description)">
+    <include file="$(find consai2_description)/launch/description.launch"/>
+  </group>
 
   <group if="$(arg sim)">
-    <node name="sim_sender" pkg="consai2_sender" type="sim_sender.py" output="screen" required="true">
-      <param name="server_addr" value="$(arg server_addr)" />
-      <param name="server_port" value="$(arg server_port)" />
-    </node>
+    <node name="sim_sender" pkg="consai2_sender" type="sim_sender.py" output="screen" required="true"/>
   </group>
 
   <group unless="$(arg sim)">
-    <node name="real_sender" pkg="consai2_sender" type="real_sender.py" output="screen" required="true">
-      <param name="device" value="$(arg device)" />
-      <param name="baudrate" value="$(arg baudrate)" />
-    </node>
+    <node name="real_sender" pkg="consai2_sender" type="real_sender.py" output="screen" required="true"/>
   </group>
 
 </launch>

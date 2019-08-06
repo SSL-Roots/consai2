@@ -25,35 +25,11 @@ roslaunch consai2_sender sender.launch sim:=true
 
 ## grSimのサーバアドレス・ポートの変更方法
 
-`consai2_sender/launch/sender.launch`を編集するか、
-launchファイルの引数で設定できます。
-
-```sh
-# 例:grSimのアドレス・ポートを変更
-roslaunch consai2_sender sender.launch sim:=true server_addr:=127.0.0.1 server_port:=20011
-```
+`consai2_description/param/game.yaml`を編集します。
 
 ## 実機送信機のデバイス・ボーレートの変更方法
 
-`consai2_sender/launch/sender.launch`を編集するか、
-launchファイルの引数で設定できます。
-
-```sh
-# 例:実機送信機のデバイス・ボーレートの変更方法
-roslaunch consai2_sender sender.launch sim:=false device:=/dev/ttyUSB0 baudrate:=57600
-```
-
-## Parameters
-- sim_sender
-  - ~/server_addr (string, default:'127.0.0.1')
-    - grSimのサーバアドレス
-  - ~/server_port (integer, default:20011)
-    - grSimのポート番号
-- real_sender 
-  - ~/device (string, default:'/dev/ttyUSB0')
-    - 実機送信機のデバイス
-  - ~/baudrate (integer, default:57600)
-    - 実機送信機のボーレート
+`consai2_description/param/game.yaml`を編集します。
 
 ## Subsribe Topics
 - sim_sender

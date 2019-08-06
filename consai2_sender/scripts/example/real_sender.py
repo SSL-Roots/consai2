@@ -9,8 +9,8 @@ from consai2_msgs.msg import RobotCommands
 
 class RealSender(object):
     def __init__(self):
-        self._DEVICE  = rospy.get_param('~device', '/dev/ttyUSB0')
-        self._BAUDRATE   = rospy.get_param('~baudrate', 57600)
+        self._DEVICE  = rospy.get_param('consai2_description/sender_device', '/dev/ttyUSB0')
+        self._BAUDRATE   = rospy.get_param('consai2_description/sender_baudrate', 57600)
 
         self._MAX_VEL_NORM = 4.0 # m/s
         self._MAX_VEL_ANGULAR = 2.0*math.pi
