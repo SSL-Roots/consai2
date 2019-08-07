@@ -9,7 +9,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-import tool
+from actions import tool, defense
 
 
 class RobotNode(object):
@@ -54,27 +54,33 @@ class RobotNode(object):
             self._control_target.control_enable = False
 
         elif referee.referee_id == ref.REFEREE_ID["STOP"]:
-            # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
-            self._control_target.path = []
 
             pose = Pose2D()
             if self._is_goalie:
                 # ゴーリーならボールの裏に回る
-                pose.x = ball_info.pose.x + 0.7
-                pose.y = ball_info.pose.y
-                pose.theta = math.pi
+
+                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
+                self._control_target.path = []
+                pose.x = self._my_pose.x
+                pose.y = self._my_pose.y
+                pose.theta = self._my_pose.theta + math.radians(60) # くるくる回る
+                self._control_target.path.append(pose)
+
             elif self._is_attacker:
                 # アタッカーならボールに近づく
-                pose.x = ball_info.pose.x - 0.5
-                pose.y = ball_info.pose.y
-                pose.theta = 0
+                self._control_target = defense.interpose(
+                        ball_info, self._control_target, dist_from_target=0.6)
+                # rospy.loginfo(self._control_target)
             else:
                 # それ以外ならくるくる回る
+
+                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
+                self._control_target.path = []
                 pose.x = self._my_pose.x
                 pose.y = self._my_pose.y
                 pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+                self._control_target.path.append(pose)
 
-            self._control_target.path.append(pose)
 
         else:
             # 制御を停止する
