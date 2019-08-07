@@ -25,6 +25,7 @@ class RobotNode(object):
         self._my_velocity = Pose2D()
 
         self._is_attacker = False
+        self._is_goalie = False
 
 
     def set_state(self, pose, velocity):
@@ -33,6 +34,9 @@ class RobotNode(object):
 
     def set_attacker(self, is_attacker):
         self._is_attacker = is_attacker
+
+    def set_goalie(self):
+        self._is_goalie = True
 
 
     def get_sleep(self):
@@ -54,7 +58,12 @@ class RobotNode(object):
             self._control_target.path = []
 
             pose = Pose2D()
-            if self._is_attacker:
+            if self._is_goalie:
+                # ゴーリーならボールの裏に回る
+                pose.x = ball_info.pose.x + 0.7
+                pose.y = ball_info.pose.y
+                pose.theta = math.pi
+            elif self._is_attacker:
                 # アタッカーならボールに近づく
                 pose.x = ball_info.pose.x - 0.5
                 pose.y = ball_info.pose.y
@@ -81,6 +90,7 @@ class Game(object):
         self._FAR_DISTANCE = 1e+10
         self._OUR_COLOR = rospy.get_param('consai2_description/our_color', 'blue')
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
+        self._GOALIE_ID = rospy.get_param('consai2_description/goalie_id', 0)
         self._THEIR_COLOR = 'yellow'
         if self._OUR_COLOR == 'yellow':
             self._THEIR_COLOR = 'blue'
@@ -90,6 +100,12 @@ class Game(object):
         self._dist_to_ball = {} # ロボットからボールまでの距離
         self._attacker_id = 0 # アタッカーID
         for robot_id in range(self._MAX_ID + 1):
+            self._robot_node.append(RobotNode(robot_id))
+            # ゴーリーを割り当てる
+            # ゴーリーはconsai2起動時のみにしか変更しない
+            if robot_id == self._GOALIE_ID:
+                self._robot_node[robot_id].set_goalie()
+
             self._dist_to_ball[robot_id] = self._FAR_DISTANCE
 
 
@@ -114,7 +130,6 @@ class Game(object):
 
             self._robot_info['our'].append(RobotInfo())
             self._robot_info['their'].append(RobotInfo())
-            self._robot_node.append(RobotNode(robot_id))
 
             topic_name = 'vision_wrapper/robot_info_' + self._OUR_COLOR + '_' + topic_id
             sub_robot_info = rospy.Subscriber(topic_name, RobotInfo, 
