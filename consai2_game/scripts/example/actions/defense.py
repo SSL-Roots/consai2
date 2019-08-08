@@ -4,11 +4,15 @@
 
 import rospy
 import math
+import sys,os
 
 from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+
+sys.path.append(os.pardir)
+from field import Field
 
 def is_close(pose1, pose2, threshold):
     # 2角姿勢が近いかどうかを判定する
@@ -43,7 +47,7 @@ def interpose(target_info, control_target,
     if dist_from_goal is None and dist_from_target is None:
         dist_from_target = 0.6 # 適当な値
 
-    OUR_GOAL_POSE = Pose2D(-4.0, 0, 0)
+    OUR_GOAL_POSE = Field.goal_pose('our', 'center')
     angle_to_target = tool.get_angle(OUR_GOAL_POSE, target_info.pose)
 
     new_goal_pose = Pose2D()

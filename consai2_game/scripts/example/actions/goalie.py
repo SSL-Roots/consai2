@@ -4,11 +4,15 @@
 
 import rospy
 import math
+import sys,os
 
 from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+
+sys.path.append(os.pardir)
+from field import Field
 
 def is_close(pose1, pose2, threshold):
     # 2角姿勢が近いかどうかを判定する
@@ -55,7 +59,7 @@ def interpose(ball_info, robot_info, control_target):
     ball_vel = ball_info.velocity
 
     # ゴールの位置
-    OUR_GOAL_POSE = Pose2D(-6.0, 0, 0)
+    OUR_GOAL_POSE = Field.goal_pose('our', 'center')
 
     xr = OUR_GOAL_POSE.x + 0.3
     goalie_threshold_y = 1.5
@@ -97,7 +101,7 @@ def interpose(ball_info, robot_info, control_target):
 
 
     if dist[min_dist_id] < 0.15 and robot_pose.x < 0:
-        print 'their'
+        rospy.logdebug('their')
         angle_their = robot_pose.theta
         if angle_their == 0:
             a = 1e-10
@@ -105,10 +109,10 @@ def interpose(ball_info, robot_info, control_target):
             a = math.tan(angle_their)
         b = robot_pose.y - a * robot_pose.x 
     elif 0.02 < v and dvx < 0:
-        print 'ball move'
+        rospy.logdebug('ball move')
         a, b = line_pram(ball_pose, ball_pose_next)
     else:
-        print('ball stop')
+        rospy.logdebug('ball stop')
         a, b = line_pram(ball_pose, OUR_GOAL_POSE)
     
     # 位置を決める
