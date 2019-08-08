@@ -4,12 +4,14 @@
 
 import rospy
 import math
+from consai2_msgs.msg import VisionGeometry
 from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 from actions import tool, defense, goalie
+from field import Field
 
 
 class RobotNode(object):
@@ -107,6 +109,9 @@ class Game(object):
 
             self._dist_to_ball[robot_id] = self._FAR_DISTANCE
 
+        self._sub_geometry = rospy.Subscriber(
+                'vision_receiver/raw_vision_geometry', VisionGeometry,
+                self._callback_geometry, queue_size=1)
 
         self._decoded_referee = DecodedReferee()
         self._sub_decoded_referee = rospy.Subscriber(
@@ -147,6 +152,9 @@ class Game(object):
                     queue_size=1)
             self._pubs_control_target.append(pub_control_target)
 
+
+    def _callback_geometry(self, msg):
+        Field.update(msg)
 
     def _callback_referee(self, msg):
         self._decoded_referee = msg
