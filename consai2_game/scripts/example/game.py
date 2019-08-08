@@ -9,7 +9,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-from actions import tool, defense
+from actions import tool, defense, goalie
 
 
 class RobotNode(object):
@@ -38,14 +38,13 @@ class RobotNode(object):
     def set_goalie(self):
         self._is_goalie = True
 
-
     def get_sleep(self):
         # 制御を停止する
         self._control_target.control_enable = False
         return self._control_target
 
 
-    def get_action(self, referee, ball_info):
+    def get_action(self, referee, ball_info, robot_info=None):
         self._control_target.control_enable = True
 
         if referee.referee_id == ref.REFEREE_ID["HALT"] or \
@@ -57,14 +56,9 @@ class RobotNode(object):
 
             pose = Pose2D()
             if self._is_goalie:
-                # ゴーリーならボールの裏に回る
-
-                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
-                self._control_target.path = []
-                pose.x = self._my_pose.x
-                pose.y = self._my_pose.y
-                pose.theta = self._my_pose.theta + math.radians(60) # くるくる回る
-                self._control_target.path.append(pose)
+                self._control_target = goalie.interpose(
+                        ball_info, robot_info, self._control_target)
+                # print self._control_target
 
             elif self._is_attacker:
                 # アタッカーならボールに近づく
@@ -100,7 +94,6 @@ class Game(object):
         self._THEIR_COLOR = 'yellow'
         if self._OUR_COLOR == 'yellow':
             self._THEIR_COLOR = 'blue'
-
 
         self._robot_node = []
         self._dist_to_ball = {} # ロボットからボールまでの距離
@@ -214,9 +207,13 @@ class Game(object):
                 self._robot_node[robot_id].set_state(
                         our_info.pose, our_info.velocity)
                 # 目標位置を生成
+                # target = self._robot_node[robot_id].get_action(
+                        # self._decoded_referee,
+                        # self._ball_info)
                 target = self._robot_node[robot_id].get_action(
                         self._decoded_referee,
-                        self._ball_info)
+                        self._ball_info,
+                        self._robot_info)
 
             self._pubs_control_target[robot_id].publish(target)
 
