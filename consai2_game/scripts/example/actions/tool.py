@@ -19,6 +19,18 @@ def distance_2_poses(pose1, pose2):
     return math.hypot(diff_pose.x, diff_pose.y)
 
 
+def is_close(pose1, pose2, threshold):
+    # 2つの姿勢が近いかどうかを判定する
+    result = False
+
+    if math.fabs(pose1.x - pose2.x) < threshold.x:
+        if math.fabs(pose1.y - pose2.y) < threshold.y:
+            if math.fabs(angle_normalize(pose1.theta - pose2.theta)) < threshold.theta:
+                    result = True
+
+    return result
+
+
 def angle_normalize(angle):
     # 角度をpi  ~ -piの範囲に変換する
     while angle > math.pi:

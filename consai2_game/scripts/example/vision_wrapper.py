@@ -3,7 +3,7 @@
 
 import rospy
 import math
-from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
+from consai2_msgs.msg import VisionDetections, BallInfo, RobotInfo
 from geometry_msgs.msg import Pose2D
 
 
