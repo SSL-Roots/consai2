@@ -14,17 +14,6 @@ import tool
 sys.path.append(os.pardir)
 from field import Field
 
-def is_close(pose1, pose2, threshold):
-    # 2角姿勢が近いかどうかを判定する
-    result = False
-
-    if math.fabs(pose1.x - pose2.x) < threshold.x:
-        if math.fabs(pose1.y - pose2.y) < threshold.y:
-            if math.fabs(tool.angle_normalize(pose1.theta - pose2.theta)) < threshold.theta:
-                    result = True
-
-    return result
-
 
 def interpose(target_info, control_target, 
         dist_from_goal=None, dist_from_target=None):
@@ -68,7 +57,7 @@ def interpose(target_info, control_target,
     if remake_path is False:
         current_goal_pose = control_target.path[-1]
 
-        if not is_close(current_goal_pose, new_goal_pose, Pose2D(0.1, 0.1, math.radians(10))):
+        if not tool.is_close(current_goal_pose, new_goal_pose, Pose2D(0.1, 0.1, math.radians(10))):
             remake_path = True
 
     # ---------------------------------------------------------
