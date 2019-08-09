@@ -21,13 +21,7 @@ def interpose(target_info, control_target,
     # dist_from_goal is not Noneなら、ゴール中心からdist分離れた位置に移動する
     # dist_from_target is not Noneなら、target_info.poseからdist分離れた位置に移動する
 
-    remake_path = False
-    # ---------------------------------------------------------
-    # pathが設定されてなければpathを新規作成
-    if control_target.path is None or len(control_target.path) == 0:
-        remake_path = True
 
-    # ---------------------------------------------------------
     # 到達姿勢の計算とcontrol_targetの更新(path以外)
     control_target.kick_power = 0.0
     control_target.dribble_power = 0.0
@@ -52,15 +46,18 @@ def interpose(target_info, control_target,
 
     new_goal_pose.theta = angle_to_target
 
+
     # ---------------------------------------------------------
+    remake_path = False
+    # pathが設定されてなければpathを新規作成
+    if control_target.path is None or len(control_target.path) == 0:
+        remake_path = True
     # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
     if remake_path is False:
         current_goal_pose = control_target.path[-1]
 
         if not tool.is_close(current_goal_pose, new_goal_pose, Pose2D(0.1, 0.1, math.radians(10))):
             remake_path = True
-
-    # ---------------------------------------------------------
     # remake_path is Trueならpathを再生成する
     # pathを再生成すると衝突回避用に作られた経路もリセットされる
     if remake_path:

@@ -118,16 +118,19 @@ def interpose(ball_info, robot_info, control_target):
         # yr = 0
     new_goal_pose = Pose2D(xr, yr, 0)
 
+    # ---------------------------------------------------------
     remake_path = False
+    # pathが設定されてなければpathを新規作成
     if control_target.path is None or len(control_target.path) == 0:
         remake_path = True
-
+    # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
     if remake_path is False:
         current_goal_pose = control_target.path[-1]
 
         if not tool.is_close(current_goal_pose, new_goal_pose, Pose2D(0.1, 0.1, math.radians(10))):
             remake_path = True
-    
+    # remake_path is Trueならpathを再生成する
+    # pathを再生成すると衝突回避用に作られた経路もリセットされる
     if remake_path:
         control_target.path = []
         control_target.path.append(new_goal_pose)
