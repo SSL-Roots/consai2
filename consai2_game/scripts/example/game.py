@@ -67,9 +67,8 @@ class RobotNode(object):
                 # アタッカーならボールに近づく
                 # self._control_target = defense.interpose(
                         # ball_info, self._control_target, dist_from_target=0.6)
-                if 3:
-                    self._control_target = defense_test.interpose(
-                        self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
+                self._control_target = defense_test.interpose(
+                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
                 # rospy.loginfo(self._control_target)
             else:
                 # それ以外ならくるくる回る
