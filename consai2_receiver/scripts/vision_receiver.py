@@ -88,6 +88,7 @@ class VisionReceiver(object):
                 '~raw_vision_detections', VisionDetections, queue_size=1)
 
         # チームサイドの反転
+        # FIXME: チームサイドの反転はより上位の vision_wrapperにやらせる
         invert_side = False
         if self._SIDE != 'left':
             invert_side = True
