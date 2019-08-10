@@ -41,13 +41,25 @@ roslaunch consai2_examples joystic_example.launch direct:=tru
 
 デフォルトのキー割り当てはこちらです。
 ジョイスティックは[Logicool Wireless Gamepad F710](https://support.logicool.co.jp/ja_jp/product/wireless-gamepad-f710)
-を使っています。
+を使っています。  
 
 ![Key_Config](https://github.com/SSL-Roots/consai2/blob/images/images/key_config_direct.png)
 
-`consai2_examples/launch/joystic_example.launch`のキー番号を編集することで、キー割り当てを変更できます。
+`consai2_examples/launch/joystic_example.launch`のキー番号を編集することで、キー割り当てを変更できます。  
 
 デフォルトのキー番号はこちらです。
 
 ![Key_Numbers](https://github.com/SSL-Roots/consai2/blob/images/images/key_numbders.png)
 
+### 使用するジョイスティックの変更
+
+[PS4のコントローラー(DUALSHOCK 4)](https://www.jp.playstation.com/accessories/dualshock4/)を使用することもできます。  
+`consai2_examples/launch/joystic_example.launch`のloadするファイルを変更してください。
+
+```
+<!-- Logicool Wireless Gamepad F710を使用する場合 -->
+<rosparam command="load" file="$(find consai2_examples)/param/joy_f710.yaml" />
+
+<!-- DUALSHOCK 4を使用する場合 -->
+<rosparam command="load" file="$(find consai2_examples)/param/joy_ps4.yaml" />
+```
