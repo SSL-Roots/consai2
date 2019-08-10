@@ -10,9 +10,17 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-from actions import tool, defense, offense, goalie
+from actions import tool, defense, offense, goalie, role
 from field import Field
 
+ROLE_GOALIE = 0
+ROLE_ATTACKER = 1
+ROLE_DEFENCE_GOAL_1 = 2
+ROLE_DEFENCE_GOAL_2 = 3
+ROLE_DEFENCE_ZONE_1 = 4
+ROLE_DEFENCE_ZONE_2 = 5
+ROLE_DEFENCE_ZONE_3 = 6
+ROLE_DEFENCE_ZONE_4 = 7
 
 class RobotNode(object):
     def __init__(self, robot_id):
@@ -28,6 +36,9 @@ class RobotNode(object):
 
         self._is_attacker = False
         self._is_goalie = False
+
+        # 0 is goalie, 1 is attacker, 2~7 is defense
+        self._my_role = 1
 
 
     def set_state(self, pose, velocity):
@@ -111,6 +122,32 @@ class RobotNode(object):
             pose.x = self._my_pose.x
             pose.y = self._my_pose.y
             pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+
+            if self._my_role == ROLE_GOALIE:
+                pose.x = -4
+                pose.y = 0
+            elif self._my_role == ROLE_ATTACKER:
+                pose.x = 0
+                pose.y = 0
+            elif self._my_role == ROLE_DEFENCE_GOAL_1:
+                pose.x = -3.5
+                pose.y = 1
+            elif self._my_role == ROLE_DEFENCE_GOAL_2:
+                pose.x = -3.5
+                pose.y = -1
+            elif self._my_role == ROLE_DEFENCE_ZONE_1:
+                pose.x = -1
+                pose.y = 2
+            elif self._my_role == ROLE_DEFENCE_ZONE_2:
+                pose.x = -1
+                pose.y = 1
+            elif self._my_role == ROLE_DEFENCE_ZONE_3:
+                pose.x = -1
+                pose.y = -1
+            elif self._my_role == ROLE_DEFENCE_ZONE_4:
+                pose.x = -1
+                pose.y = -2
+
             self._control_target.path.append(pose)
 
         return self._control_target
@@ -139,6 +176,8 @@ class Game(object):
                 self._robot_node[robot_id].set_goalie()
 
             self._dist_to_ball[robot_id] = self._FAR_DISTANCE
+
+        self._roledecision = role.RoleDecision(self._robot_node, self._MAX_ID, self._GOALIE_ID)
 
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry,
@@ -253,6 +292,8 @@ class Game(object):
                         self._decoded_referee,
                         self._ball_info,
                         self._robot_info)
+
+            self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
 
             self._pubs_control_target[robot_id].publish(target)
 
