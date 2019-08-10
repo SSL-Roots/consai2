@@ -10,7 +10,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-from actions import tool, defense, goalie
+from actions import tool, defense, offense, goalie
 from field import Field
 
 
@@ -49,38 +49,45 @@ class RobotNode(object):
     def get_action(self, referee, ball_info, robot_info=None):
         self._control_target.control_enable = True
 
-        if referee.referee_id == ref.REFEREE_ID["HALT"] or \
-                ball_info.disappeared:
-            # HALT or ボールの消失で制御を停止する
+        if referee.can_move_robot is False or ball_info.disappeared:
+            # 移動禁止 or ボールの消失で制御を停止する
             self._control_target.control_enable = False
 
-        elif referee.referee_id == ref.REFEREE_ID["STOP"]:
+        else:
+            if self._is_attacker:
+                # アタッカーはボール付近へ移動する
+                if referee.can_kick_ball:
+                    # ボールを蹴る
+                    self._control_target = offense.simple_kick(
+                            self._my_pose, ball_info, self._control_target)
+                else:
+                    # ボールに近づく
+                    self._control_target = defense.interpose(
+                            ball_info, self._control_target, dist_from_target=0.6)
 
-            pose = Pose2D()
-            if self._is_goalie:
+            elif self._is_goalie:
+                # キーパーはゴール前を移動する
                 self._control_target = goalie.interpose(
                         ball_info, robot_info, self._control_target)
-                # print self._control_target
 
-            elif self._is_attacker:
-                # アタッカーならボールに近づく
-                self._control_target = defense.interpose(
-                        ball_info, self._control_target, dist_from_target=0.6)
-                # rospy.loginfo(self._control_target)
             else:
-                # それ以外ならくるくる回る
+                # それ以外のロボットは適当な位置に移動する
+                if referee.can_enter_their_side:
+                    # 相手フィールドに入ってよし
+                    pass
+                elif referee.can_enter_center_circle:
+                    # センターフィールドに入ってよし
+                    pass
+                else:
+                    # 自チームのみに入ってよし
+                    pass
 
-                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
                 self._control_target.path = []
+                pose = Pose2D()
                 pose.x = self._my_pose.x
                 pose.y = self._my_pose.y
                 pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
                 self._control_target.path.append(pose)
-
-
-        else:
-            # 制御を停止する
-            self._control_target.control_enable = False
 
         return self._control_target
 
