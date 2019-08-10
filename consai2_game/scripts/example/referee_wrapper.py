@@ -144,24 +144,27 @@ class RefereeWrapper(object):
         decoded_msg.referee_text = REFEREE_TEXT.get(decoded_msg.referee_id, 'INVALID_COMMAND')
         decoded_msg.placement_position = msg.designated_position
 
+        # Default Settings
+        decoded_msg.can_move_robot = False
+        decoded_msg.speed_limit_of_robot = self._NO_LIMIT
+        decoded_msg.can_kick_ball = False
+        decoded_msg.can_enter_their_side = False
+        decoded_msg.can_enter_center_circle = False
+        decoded_msg.is_inplay = False
+        decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
+        decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
+
         # Decode restrictions
         if decoded_msg.referee_id == self._DECODE_ID["HALT"] \
                 or decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["GOAL"] \
                 or decoded_msg.referee_id == self._DECODE_ID["THEIR"] + self._DECODE_ID["GOAL"]:
             # Reference : Rule 2019, 5.1.2 Halt
-            decoded_msg.can_move_robot = False
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
-            decoded_msg.can_kick_ball = False
-            decoded_msg.can_enter_their_side = False
-            decoded_msg.can_enter_center_circle = False
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
-            decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
+            pass # Keep default settings
 
         elif decoded_msg.referee_id == self._DECODE_ID["STOP"]:
             # Reference : Rule 2019, 5.1.1 Stop
             decoded_msg.can_move_robot = True
             decoded_msg.speed_limit_of_robot = self._SPEED_LIMIT_OF_ROBOT
-            decoded_msg.can_kick_ball = False
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = self._KEEP_OUT_RADIUS_FROM_BALL
@@ -172,19 +175,14 @@ class RefereeWrapper(object):
             # Reference : Rule 2019, 5.3.5 Force Start
             # Reference : Rule 2019, 8.1.6 Ball Speed
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = True
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
-            decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
+            decoded_msg.is_inplay = True
 
         elif decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["KICKOFF_PREPARATION"]:
             # Reference : Rule 2019, 5.3.2 Kick-Off
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
-            decoded_msg.can_kick_ball = False
-            decoded_msg.can_enter_their_side = False
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = 0 # No limit but robot do not touch the ball
             decoded_msg.keep_out_distance_from_their_defense_area = \
@@ -194,45 +192,35 @@ class RefereeWrapper(object):
             # Reference : Rule 2019, 5.3.1 Normal Start
             # Reference : Rule 2019, 5.3.2 Kick-Off
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = True
-            decoded_msg.can_enter_their_side = False
             decoded_msg.can_enter_center_circle = True
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
             decoded_msg.keep_out_distance_from_their_defense_area = \
                     self._KEEP_OUT_DISTANCE_FROM_THEIR_DEFENSE_AREA
 
         elif decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["PENALTY_PREPARATION"]:
             # Reference : Rule 2019, 5.3.6 Penalty Kick
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = False
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = 0 # No limit but robot do not touch the ball
-            decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
 
         elif decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["PENALTY_START"]:
             # Reference : Rule 2019, 5.3.1 Normal Start
             # Reference : Rule 2019, 5.3.6 Penalty Kick
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = True
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
-            decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
 
         elif decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["DIRECT_FREE"] \
                 or decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["INDIRECT_FREE"]:
             # Reference : Rule 2019, 5.3.3 Direct Free Kick
             # Reference : Rule 2019, 5.3.6 Indirect Free Kick
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = True
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
             decoded_msg.keep_out_distance_from_their_defense_area = \
                     self._KEEP_OUT_DISTANCE_FROM_THEIR_DEFENSE_AREA
 
@@ -240,11 +228,9 @@ class RefereeWrapper(object):
             # Reference : Rule 2019, 5.2 Ball Placement
             # Reference : Rule 2019, 8.2.8 Robot Stop Speed
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
             decoded_msg.can_kick_ball = True
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
-            decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
             decoded_msg.keep_out_distance_from_their_defense_area = \
                     self._KEEP_OUT_DISTANCE_FROM_THEIR_DEFENSE_AREA
 
@@ -252,10 +238,6 @@ class RefereeWrapper(object):
                 or decoded_msg.referee_id == self._DECODE_ID["THEIR"] + self._DECODE_ID["KICKOFF_START"]:
             # Reference : Rule 2019, 5.3.2 Kick-Off
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
-            decoded_msg.can_kick_ball = False
-            decoded_msg.can_enter_their_side = False
-            decoded_msg.can_enter_center_circle = False
             decoded_msg.keep_out_radius_from_ball = self._KEEP_OUT_RADIUS_FROM_BALL
             decoded_msg.keep_out_distance_from_their_defense_area = \
                     self._KEEP_OUT_DISTANCE_FROM_THEIR_DEFENSE_AREA
@@ -264,8 +246,6 @@ class RefereeWrapper(object):
                 or decoded_msg.referee_id == self._DECODE_ID["THEIR"] + self._DECODE_ID["PENALTY_START"]:
             # Reference : Rule 2019, 5.3.6 Penalty Kick
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
-            decoded_msg.can_kick_ball = False
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = self._KEEP_OUT_RADIUS_FROM_BALL
@@ -279,8 +259,6 @@ class RefereeWrapper(object):
             # Reference : Rule 2019, 5.3.6 Indirect Free Kick
             # Reference : Rule 2019, 8.2.3 Ball Placement Interference
             decoded_msg.can_move_robot = True
-            decoded_msg.speed_limit_of_robot = self._NO_LIMIT
-            decoded_msg.can_kick_ball = False
             decoded_msg.can_enter_their_side = True
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = self._KEEP_OUT_RADIUS_FROM_BALL
@@ -349,6 +327,7 @@ class RefereeWrapper(object):
             decoded_msg.can_enter_center_circle = True
             decoded_msg.keep_out_radius_from_ball = self._NO_LIMIT
             decoded_msg.keep_out_distance_from_their_defense_area = self._NO_LIMIT
+            decoded_msg.is_inplay = True
 
             decoded_msg.referee_text += "(INPLAY)"
 
