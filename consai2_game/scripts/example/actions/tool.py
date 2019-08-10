@@ -51,7 +51,6 @@ def get_angle(from_pose, to_pose):
 
     return math.atan2(diff_pose.y, diff_pose.x)
 
-
 class Trans():
     # 座標系を移動、回転するクラス
     def __init__(self, center , theta):
