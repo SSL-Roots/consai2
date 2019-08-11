@@ -62,7 +62,6 @@ def interpose(my_pose, target_info, robot_info, control_target,
     # ---------------------------------------------------------
     # remake_path is Trueならpathを再生成する
     # pathを再生成すると衝突回避用に作られた経路もリセットされる
-    flag = None
     if remake_path:
         control_target.path = []
         # 移動経路上にロボットが居たら回避するパスを生成する
@@ -72,5 +71,5 @@ def interpose(my_pose, target_info, robot_info, control_target,
             control_target.path.append(avoid_pose)
         control_target.path.append(new_goal_pose)
 
-    return control_target
+    return control_target, remake_path
 

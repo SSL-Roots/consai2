@@ -50,6 +50,7 @@ class RobotNode(object):
     def get_action(self, referee, ball_info, robot_info=None):
         self._control_target.control_enable = True
 
+        reset_flag = True
         if referee.referee_id == ref.REFEREE_ID["HALT"] or \
                 ball_info.disappeared:
             # HALT or ボールの消失で制御を停止する
@@ -67,9 +68,12 @@ class RobotNode(object):
                 # アタッカーならボールに近づく
                 # self._control_target = defense.interpose(
                         # ball_info, self._control_target, dist_from_target=0.6)
-                self._control_target = test_path_avoid.interpose(
-                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
+                control_target, reset_flag = test_path_avoid.interpose(
+                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.3)
                 # rospy.loginfo(self._control_target)
+                
+                if reset_flag == True:
+                    self._control_target = control_target
             else:
                 # それ以外ならくるくる回る
 
@@ -80,12 +84,11 @@ class RobotNode(object):
                 pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
                 self._control_target.path.append(pose)
 
-
         else:
             # 制御を停止する
             self._control_target.control_enable = False
 
-        return self._control_target
+        return self._control_target, reset_flag
 
 
 class Game(object):
@@ -103,6 +106,9 @@ class Game(object):
         self._robot_node = []
         self._dist_to_ball = {} # ロボットからボールまでの距離
         self._attacker_id = 0 # アタッカーID
+        if self._attacker_id == self._GOALIE_ID:
+            self._attacker_id = 1 # アタッカーID
+
         for robot_id in range(self._MAX_ID + 1):
             self._robot_node.append(RobotNode(robot_id))
             # ゴーリーを割り当てる
@@ -208,6 +214,7 @@ class Game(object):
 
                 # ボールとの距離を初期化
                 self._dist_to_ball[robot_id] = self._FAR_DISTANCE
+                reset_flag = True
         
             else:
                 # アタッカー情報をセット
@@ -221,12 +228,12 @@ class Game(object):
                 # target = self._robot_node[robot_id].get_action(
                         # self._decoded_referee,
                         # self._ball_info)
-                target = self._robot_node[robot_id].get_action(
+                target, reset_flag = self._robot_node[robot_id].get_action(
                         self._decoded_referee,
                         self._ball_info,
                         self._robot_info)
-
-            self._pubs_control_target[robot_id].publish(target)
+            if reset_flag:
+                self._pubs_control_target[robot_id].publish(target)
 
 
 def main():
