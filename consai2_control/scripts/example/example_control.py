@@ -114,12 +114,12 @@ class Controller(object):
             # 経路がセットされていれば
             if len(control_target.path) != 0:
                 command, arrived  = self._path_tracking(color, robot_id, control_target.path)
-                # ゴールに到着したら
-                # キックやドリブルの制御をenableにする
+
+                command.kick_power = control_target.kick_power
+                command.chip_enable = control_target.chip_enable
+                command.dribble_power = control_target.dribble_power
+                
                 if arrived:
-                    command.kick_power = control_target.kick_power
-                    command.chip_enable = control_target.chip_enable
-                    command.dribble_power = control_target.dribble_power
                     # 到達したことをpublish
                     self._pubs_is_arrived[color][robot_id].publish(True)
                 else:

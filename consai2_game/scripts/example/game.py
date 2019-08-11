@@ -10,7 +10,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-from actions import tool, defense, goalie
+from actions import tool, defense, offense, goalie
 from actions import test_path_avoid
 from field import Field
 
@@ -84,9 +84,69 @@ class RobotNode(object):
                 pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
                 self._control_target.path.append(pose)
 
-        else:
-            # 制御を停止する
+        if referee.can_move_robot is False or ball_info.disappeared:
+            # 移動禁止 or ボールの消失で制御を停止する
             self._control_target.control_enable = False
+
+        elif referee.is_inplay:
+            rospy.logdebug("IN-PLAY")
+            pass
+        else:
+            if referee.referee_id == ref.REFEREE_ID["STOP"]:
+                rospy.logdebug("STOP")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_PREPARATION"]:
+                rospy.logdebug("OUR_KICKOFF_PREPARATION")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_START"]:
+                rospy.logdebug("OUR_KICKOFF_START")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_PREPARATION"]:
+                rospy.logdebug("OUR_PENALTY_PREPARATION")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_START"]:
+                rospy.logdebug("OUR_PENALTY_START")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_DIRECT_FREE"]:
+                rospy.logdebug("OUR_DIRECT_FREE")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_INDIRECT_FREE"]:
+                rospy.logdebug("OUR_INDIRECT_FREE")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_TIMEOUT"]:
+                rospy.logdebug("OUR_TIMEOUT")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["OUR_BALL_PLACEMENT"]:
+                rospy.logdebug("OUR_BALL_PLACEMENT")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_PREPARATION"] \
+                    or referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_START"]:
+                rospy.logdebug("THEIR_KICKOFF")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_PREPARATION"] \
+                    or referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_START"]:
+                rospy.logdebug("THEIR_PENALTY")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
+                rospy.logdebug("THEIR_DIRECT")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_INDIRECT_FREE"]:
+                rospy.logdebug("THEIR_INDIRECT")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_TIMEOUT"]:
+                rospy.logdebug("THEIR_TIMEOUT")
+                pass
+            elif referee.referee_id == ref.REFEREE_ID["THEIR_BALL_PLACEMENT"]:
+                rospy.logdebug("THEIR_BALL_PLACEMENT")
+                pass
+
+
+            self._control_target.path = []
+            pose = Pose2D()
+            pose.x = self._my_pose.x
+            pose.y = self._my_pose.y
+            pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+            self._control_target.path.append(pose)
 
         return self._control_target, reset_flag
 
