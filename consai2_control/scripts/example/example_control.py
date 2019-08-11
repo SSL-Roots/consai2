@@ -100,7 +100,6 @@ class Controller(object):
         # 経路追従を初期化する
         self._path_index[color][msg.robot_id] = 0 
 
-
     def _control_update(self, color, robot_id):
         # ロボットの走行制御を更新する
         # ControlTargetを受け取ってない場合は停止司令を生成する
@@ -162,8 +161,8 @@ class Controller(object):
             command = self._move_to_pose(color, robot_id, pose)
 
             # poseに近づいたか判定する
-
             if distance_2_poses(pose, robot_pose) < self._APPROACH_THRESH:
+
                 # 近づいたら次の経由位置へ向かう
                 self._path_index[color][robot_id] += 1
 
