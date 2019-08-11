@@ -13,6 +13,7 @@
 #include <sstream>
 #include <cmath>
 
+#include <world_observer/world_observer_ros.hpp>
 #include <world_observer/estimator.hpp>
 #include <world_observer/enemy_estimator.hpp>
 #include <world_observer/ball_estimator.hpp>
@@ -266,50 +267,32 @@ class BallObserver :public Observer
 };
 
 
+void UpdateHook(const WorldObserverROS* world_observer)
+{
+    ROS_INFO("hook function called!");
+}
+
+
 int main(int argc, char **argv)
 {
     const std::string node_name = "observer";
 
     ros::init(argc, argv, node_name);
     ros::NodeHandle nh;
+    ros::NodeHandle nh_private;
 
     // 起動時のnamespaceを取得
     std::string ai_name = "/";
     ros::param::get("ai_name", ai_name);
 
-    std::string observe_target;
-    if (!ros::param::get("~observe_target", observe_target)) {
-        ROS_ERROR("observe target is not set");
-        return 0;
-    }
-
-    int observe_target_id;
-    if (observe_target != "Ball") {
-        if (!ros::param::get("~observe_target_id", observe_target_id)) {
-            ROS_ERROR("observe target id is not set");
-            return 0;
-        }
-    }
-
-    Observer*  obs;
-    if (observe_target == "Ball") {
-        ros::NodeHandle nh_("~");
-        obs = new BallObserver(nh_, ai_name + "ball_vision_packet");
-    } else if (observe_target == "Friend") {
-        obs = new FriendObserver(nh, "vision_packet", observe_target_id);
-    } else {
-        obs = new EnemyObserver(nh, "vision_packet", observe_target_id);
-    }
-
-    ros::Rate loop_rate(60);
+    std::string vision_topic_name;
+    ros::param::param<std::string>("~vision_topic_name", vision_topic_name, "vision_receiver/raw_vision_detections");
 
 
-    while (ros::ok()) {
-        obs->update();
+    WorldObserverROS    ros_if(nh, vision_topic_name);
+    // ros_if.RegisterUpdateHook(UpdateHook);
 
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
+    ros::spin();
 
     return 0;
 
