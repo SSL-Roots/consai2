@@ -41,7 +41,7 @@ def basic_avoid(my_pose, ball_pose, goal_pose, robot_info, angle_to_goal):
             dist.append(tool.distance_2_poses(their_info.pose, my_pose))
 
             # 検出の幅
-            threshold_tr_y = 0.3
+            threshold_tr_y = 0.4
             margin_tr_x = 0.2
 
             # 進路上にロボットが居るか
@@ -63,7 +63,7 @@ def basic_avoid(my_pose, ball_pose, goal_pose, robot_info, angle_to_goal):
         # 一番近い敵ロボットの座標
         robot_pose = robot_info_their[min_dist_id].pose
         tr_robot_pose = trans.transform(robot_pose)
-        tr_robot_pose.x += 0.5
+        tr_robot_pose.x += 0.2
         tr_robot_pose.y -= 0.5
         avoid_pose = trans.inverted_transform(tr_robot_pose)
     else:

@@ -59,17 +59,34 @@ def interpose(my_pose, target_info, robot_info, control_target,
         if not tool.is_close(current_goal_pose, new_goal_pose, Pose2D(0.1, 0.1, math.radians(10))):
             remake_path = True
 
+    
+    # ---------------------------------------------------------
+    # 中間パスの生成(毎フレーム算出する)
+    avoid_pose = path_avoid.basic_avoid(my_pose, target_info.pose, new_goal_pose, robot_info, angle_to_goal)
+
+    # 現在のパスの長さ
+    l = len(control_target.path)
+    if 0 < l:
+        goal_pose = control_target.path[-1]
+        control_target.path = []
+        if avoid_pose is not None:
+            control_target.path.append(avoid_pose)
+            control_target.path.append(goal_pose)
+        else:
+            control_target.path.append(goal_pose)
+
     # ---------------------------------------------------------
     # remake_path is Trueならpathを再生成する
     # pathを再生成すると衝突回避用に作られた経路もリセットされる
     if remake_path:
         control_target.path = []
         # 移動経路上にロボットが居たら回避するパスを生成する
-        avoid_pose = path_avoid.basic_avoid(my_pose, target_info.pose, new_goal_pose, robot_info, angle_to_goal)
 
         if avoid_pose is not None:
             control_target.path.append(avoid_pose)
         control_target.path.append(new_goal_pose)
 
-    return control_target, remake_path
+    return control_target, True
+    # return control_target, remake_path
+
 

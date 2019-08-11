@@ -69,7 +69,7 @@ class RobotNode(object):
                 # self._control_target = defense.interpose(
                         # ball_info, self._control_target, dist_from_target=0.6)
                 control_target, reset_flag = test_path_avoid.interpose(
-                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.3)
+                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
                 # rospy.loginfo(self._control_target)
                 
                 if reset_flag == True:
