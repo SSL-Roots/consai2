@@ -46,9 +46,6 @@ class RobotNode(object):
         self._my_pose = pose
         self._my_velocity = velocity
 
-    def set_attacker(self, is_attacker):
-        self._is_attacker = is_attacker
-
     def set_goalie(self):
         self._is_goalie = True
 
@@ -169,16 +166,12 @@ class Game(object):
             self._THEIR_COLOR = 'blue'
 
         self._robot_node = []
-        self._dist_to_ball = {} # ロボットからボールまでの距離
-        self._attacker_id = 0 # アタッカーID
         for robot_id in range(self._MAX_ID + 1):
             self._robot_node.append(RobotNode(robot_id))
             # ゴーリーを割り当てる
             # ゴーリーはconsai2起動時のみにしか変更しない
             if robot_id == self._GOALIE_ID:
                 self._robot_node[robot_id].set_goalie()
-
-            self._dist_to_ball[robot_id] = self._FAR_DISTANCE
 
         self._roledecision = role.RoleDecision(self._robot_node, self._MAX_ID, self._GOALIE_ID)
 
@@ -241,33 +234,6 @@ class Game(object):
     def _callback_their_info(self, msg, robot_id):
         self._robot_info['their'][robot_id] = msg
 
-
-    def _i_am_attacker(self, robot_id, new_robot_pose):
-        # ロボットとボールの距離を計算して、一番ボールに近ければTrue
-        MARGIN = 0.5 # meter
-
-        # ロボットとボールの距離を計算
-        # ボールが消える可能性を考慮して、last_detection_poseを使う
-        dist = tool.distance_2_poses(new_robot_pose, 
-                self._ball_info.last_detection_pose)
-        # 距離の更新
-        self._dist_to_ball[robot_id] = dist
-
-        # アタッカーIDが自分自身であれば、他と比較せずにTrueを返す
-        if self._attacker_id == robot_id:
-            return True
-
-        # アタッカーのボールロボット間距離を取得
-        # マージンを設けて、アタッカーの切り替わりの発振を防ぐ
-        closest_dist = self._dist_to_ball[self._attacker_id] - MARGIN
-
-        if dist < closest_dist:
-            self._attacker_id = robot_id
-            return True
-        else:
-            return False
-
-
     def update(self):
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
         self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
@@ -279,15 +245,8 @@ class Game(object):
             if our_info.disappeared:
                 # ロボットが消えていたら停止
                 target = self._robot_node[robot_id].get_sleep()
-
-                # ボールとの距離を初期化
-                self._dist_to_ball[robot_id] = self._FAR_DISTANCE
         
             else:
-                # アタッカー情報をセット
-                self._robot_node[robot_id].set_attacker(
-                        self._i_am_attacker(robot_id, our_info.pose))
-
                 # ロボットの状態を更新
                 self._robot_node[robot_id].set_state(
                         our_info.pose, our_info.velocity)
