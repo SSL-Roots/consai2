@@ -36,7 +36,7 @@ include_directories(
 add_compile_options(-std=c++11)
 
 add_executable(consai2_world_observer
-  src/world_observer.cpp
+  src/main.cpp
   src/estimator/estimator.cpp
   src/estimator/enemy_estimator.cpp
   src/estimator/ball_estimator.cpp
