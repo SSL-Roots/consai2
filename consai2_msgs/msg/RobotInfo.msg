@@ -3,6 +3,7 @@
 uint8                robot_id
 geometry_msgs/Pose2D pose
 geometry_msgs/Pose2D velocity
+geometry_msgs/Twist  velocity_twist
 bool                 detected
 time                 detection_stamp
 
