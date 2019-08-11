@@ -70,10 +70,10 @@ class RobotNode(object):
                         # ball_info, self._control_target, dist_from_target=0.6)
                 control_target, reset_flag = test_path_avoid.interpose(
                     self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
-                # rospy.loginfo(self._control_target)
-                
                 if reset_flag == True:
                     self._control_target = control_target
+                
+                # rospy.loginfo(self._control_target)
             else:
                 # それ以外ならくるくる回る
 
@@ -107,7 +107,7 @@ class Game(object):
         self._dist_to_ball = {} # ロボットからボールまでの距離
         self._attacker_id = 0 # アタッカーID
         if self._attacker_id == self._GOALIE_ID:
-            self._attacker_id = 1 # アタッカーID
+            self._attacker_id = 3 # アタッカーID
 
         for robot_id in range(self._MAX_ID + 1):
             self._robot_node.append(RobotNode(robot_id))
@@ -203,6 +203,13 @@ class Game(object):
         else:
             return False
 
+    def test_i_am_attacker(self, robot_id):
+        # ロボットとボールの距離を計算し
+        if robot_id == 3:
+            self._attacker_id = robot_id
+            return True
+        else:
+            return False
 
     def update(self):
         for our_info in self._robot_info['our']:
@@ -218,8 +225,10 @@ class Game(object):
         
             else:
                 # アタッカー情報をセット
+                # self._robot_node[robot_id].set_attacker(
+                        # self._i_am_attacker(robot_id, our_info.pose))
                 self._robot_node[robot_id].set_attacker(
-                        self._i_am_attacker(robot_id, our_info.pose))
+                        self.test_i_am_attacker(robot_id))
 
                 # ロボットの状態を更新
                 self._robot_node[robot_id].set_state(
