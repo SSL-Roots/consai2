@@ -21,6 +21,7 @@ ROLE_DEFENCE_ZONE_1 = 4
 ROLE_DEFENCE_ZONE_2 = 5
 ROLE_DEFENCE_ZONE_3 = 6
 ROLE_DEFENCE_ZONE_4 = 7
+ROLE_NONE = 99
 
 class RobotNode(object):
     def __init__(self, robot_id):
@@ -137,16 +138,18 @@ class RobotNode(object):
                 pose.y = -1
             elif self._my_role == ROLE_DEFENCE_ZONE_1:
                 pose.x = -1
-                pose.y = 2
+                pose.y = 1
             elif self._my_role == ROLE_DEFENCE_ZONE_2:
                 pose.x = -1
-                pose.y = 1
+                pose.y = -1
             elif self._my_role == ROLE_DEFENCE_ZONE_3:
                 pose.x = -1
-                pose.y = -1
+                pose.y = 2
             elif self._my_role == ROLE_DEFENCE_ZONE_4:
                 pose.x = -1
                 pose.y = -2
+            elif self._my_role == ROLE_NONE:
+                pose.theta = self._my_pose.theta # まわらない
 
             self._control_target.path.append(pose)
 
