@@ -6,14 +6,13 @@ from actions import tool
 
 # Roleの計算をするクラス
 class RoleDecision(object):
-    def __init__(self, robot_node, max_id, goalie_id):
+    def __init__(self, max_id, goalie_id):
         self._ROLE_MAX = 8
         self._FAR_DISTANCE = 1e+10
         self._ROLE_IS_NONE = 99
 
         self._MAX_ID = max_id
         self._GOALIE_ID = goalie_id
-        self._robot_node = robot_node
 
         self._robot_disappeared = [False] * (max_id + 1)
         self._role_is_exist = [False] * (self._ROLE_MAX + 1)
@@ -42,7 +41,7 @@ class RoleDecision(object):
         self._robot_disappeared = our_disappeared
 
     def check_ball_dist(self, our_pose, ball_info):
-        # ロボットとボールの距離を計算して、一番ボールに近ければTrue
+        # ロボットとボールの距離を計算して、attackerを決める
         MARGIN = 0.5 # meter
         change_attacker_id = False
         attacker_id_pre = self._attacker_id
@@ -116,15 +115,15 @@ class RoleStocker(object):
         self._my_role = [self._role_is_none] * (max_robot + 1)
         self._role_is_exist = [False] * (max_role + 1)
 
-    def set_my_role(self, id, role_num):
-        if self._my_role[id] != self._role_is_none:
-            self._role_is_exist[self._my_role[id]] = False 
-        self._my_role[id] = role_num
+    def set_my_role(self, robot_id, role_num):
+        if self._my_role[robot_id] != self._role_is_none:
+            self._role_is_exist[self._my_role[robot_id]] = False 
+        self._my_role[robot_id] = role_num
         if role_num != self._role_is_none:
             self._role_is_exist[role_num] = True
 
-    def get_my_role(self, id):
-        return self._my_role[id]
+    def get_my_role(self, robot_id):
+        return self._my_role[robot_id]
 
     def get_role_exist(self, role_id):
         return self._role_is_exist[role_id]

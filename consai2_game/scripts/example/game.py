@@ -173,7 +173,7 @@ class Game(object):
             if robot_id == self._GOALIE_ID:
                 self._robot_node[robot_id].set_goalie()
 
-        self._roledecision = role.RoleDecision(self._robot_node, self._MAX_ID, self._GOALIE_ID)
+        self._roledecision = role.RoleDecision(self._MAX_ID, self._GOALIE_ID)
 
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry,
