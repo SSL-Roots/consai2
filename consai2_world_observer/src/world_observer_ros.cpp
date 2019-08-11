@@ -19,17 +19,20 @@ void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::Cons
 
         for (auto blue_observation : frame.robots_blue)
         {
-            this->blue_observations.push_back(blue_observation.pose);
+            geometry2d::Pose pose(blue_observation.pose);
+            this->blue_observations[blue_observation.robot_id].push_back(pose);
         }
 
         for (auto yellow_observation : frame.robots_yellow)
         {
-            this->yellow_observations.push_back(yellow_observation.pose);
+            geometry2d::Pose pose(yellow_observation.pose);
+            this->blue_observations[yellow_observation.robot_id].push_back(pose);
         }
 
         for (auto ball_observation : frame.balls)
         {
-            this->ball_observations.push_back(ball_observation.pose);
+            geometry2d::Pose pose(ball_observation.pose);
+            this->ball_observations.push_back(pose);
         }
     }
 
@@ -39,7 +42,7 @@ void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::Cons
     }
 }
 
-bool WorldObserverROS::RegisterUpdateHook(std::function<void(const WorldObserverROS* world_observer)> function)
+bool WorldObserverROS::RegisterUpdateHook(std::function<void(WorldObserverROS* world_observer)> function)
 {
     this->update_hook_ = function;
     return true;

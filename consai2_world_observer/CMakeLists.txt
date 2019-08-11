@@ -37,6 +37,7 @@ add_compile_options(-std=c++11)
 
 add_executable(consai2_world_observer
   src/main.cpp
+  src/geometry/geometry.cpp
   src/world_observer_ros.cpp
   src/estimator/estimator.cpp
   src/estimator/enemy_estimator.cpp

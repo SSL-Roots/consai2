@@ -267,9 +267,13 @@ class BallObserver :public Observer
 };
 
 
-void UpdateHook(const WorldObserverROS* world_observer)
+void UpdateHook(WorldObserverROS* world_observer)
 {
     ROS_INFO("hook function called!");
+
+    double x = world_observer->blue_observations[0][0].x;
+    double y = world_observer->blue_observations[0][0].y;
+    ROS_INFO("x: %3.2f, y:%3.2f", x, y);
 }
 
 
@@ -290,7 +294,7 @@ int main(int argc, char **argv)
 
 
     WorldObserverROS    ros_if(nh, vision_topic_name);
-    // ros_if.RegisterUpdateHook(UpdateHook);
+    ros_if.RegisterUpdateHook(UpdateHook);
 
     ros::spin();
 
