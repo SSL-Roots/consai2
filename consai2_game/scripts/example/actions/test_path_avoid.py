@@ -10,6 +10,7 @@ from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+import path_avoid
 
 sys.path.append(os.pardir)
 from field import Field
@@ -65,73 +66,11 @@ def interpose(my_pose, target_info, robot_info, control_target,
     if remake_path:
         control_target.path = []
         # 移動経路上にロボットが居たら回避するパスを生成する
-        avoid_pose = path_avoid(my_pose, target_info.pose, new_goal_pose, robot_info, angle_to_goal)
+        avoid_pose = path_avoid.basic_avoid(my_pose, target_info.pose, new_goal_pose, robot_info, angle_to_goal)
 
         if avoid_pose is not None:
             control_target.path.append(avoid_pose)
         control_target.path.append(new_goal_pose)
 
     return control_target
-
-# 回避用の関数
-def path_avoid(my_pose, ball_pose, goal_pose, robot_info, angle_to_goal):
-
-    # ロボットからボールの角度
-    angle_to_goal = tool.get_angle(my_pose, ball_pose)
-    # ロボットからみた座標系に変換する
-    trans = tool.Trans(my_pose, angle_to_goal)
-    tr_my_pose = trans.transform(my_pose)
-    tr_goal_pose = trans.transform(goal_pose)
-
-    # 自分と敵の距離を算出
-    dist = []
-    obstacle = []
-    tr_their_pose = []
-    obst_id = []
-    obst_dist = []
-    robot_info_their = robot_info['their']
-
-    for i, their_info in enumerate(robot_info_their):
-        # ロボットのID
-        tr_robot_pose = trans.transform(their_info.pose)
-        # ロボットの位置を変換
-        tr_their_pose.append(tr_robot_pose) 
-
-        # ロボットが検出できている場合
-        if their_info.detected:
-            # ロボット間の距離を算出
-            dist.append(tool.distance_2_poses(their_info.pose, my_pose))
-
-            # 進路上にロボットが居るか
-            if tr_my_pose.x < tr_robot_pose.x and tr_robot_pose.x < tr_goal_pose.x and \
-                    tr_my_pose.y - 0.4 < tr_robot_pose.y and tr_robot_pose.y < tr_my_pose.y + 0.4:
-                obstacle.append(True) 
-                obst_id.append(i)
-                obst_dist.append(dist[-1])
-            else:
-                obstacle.append(False) 
-        else:
-            dist.append(100)
-            obstacle.append(False) 
-
-    # 進路上に敵が居る
-    if 0 < len(obst_id):
-        
-        print obst_id
-        print dist
-
-        min_dist = min(dist)
-        min_dist_id = dist.index(min(dist))
-
-        print obst_id, min_dist_id
-
-        # 一番近い敵ロボットの座標
-        robot_pose = robot_info_their[min_dist_id].pose
-        tr_robot_pose = trans.transform(robot_pose)
-        tr_robot_pose.y -= 0.4
-        avoid_pose = trans.inverted_transform(tr_robot_pose)
-    else:
-        avoid_pose = None
-
-    return avoid_pose
 

@@ -11,7 +11,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 from actions import tool, defense, goalie
-from actions import defense_test
+from actions import test_path_avoid
 from field import Field
 
 
@@ -67,7 +67,7 @@ class RobotNode(object):
                 # アタッカーならボールに近づく
                 # self._control_target = defense.interpose(
                         # ball_info, self._control_target, dist_from_target=0.6)
-                self._control_target = defense_test.interpose(
+                self._control_target = test_path_avoid.interpose(
                     self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
                 # rospy.loginfo(self._control_target)
             else:
