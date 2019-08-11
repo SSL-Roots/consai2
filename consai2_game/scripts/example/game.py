@@ -51,13 +51,12 @@ class RobotNode(object):
         self._control_target.control_enable = True
 
         reset_flag = True
-        if referee.referee_id == ref.REFEREE_ID["HALT"] or \
-                ball_info.disappeared:
-            # HALT or ボールの消失で制御を停止する
+        if referee.can_move_robot is False or ball_info.disappeared:
+            # 移動禁止 or ボールの消失で制御を停止する
             self._control_target.control_enable = False
 
-        elif referee.referee_id == ref.REFEREE_ID["STOP"]:
-
+        elif referee.is_inplay:
+            rospy.logdebug("IN-PLAY")
             pose = Pose2D()
             if self._is_goalie:
                 self._control_target = goalie.interpose(
@@ -84,12 +83,7 @@ class RobotNode(object):
                 pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
                 self._control_target.path.append(pose)
 
-        if referee.can_move_robot is False or ball_info.disappeared:
-            # 移動禁止 or ボールの消失で制御を停止する
-            self._control_target.control_enable = False
 
-        elif referee.is_inplay:
-            rospy.logdebug("IN-PLAY")
             pass
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
