@@ -266,6 +266,9 @@ class Game(object):
 
 
     def update(self):
+        self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
+        self._roledecision.event_observer()
+
         for our_info in self._robot_info['our']:
             robot_id = our_info.robot_id
             target = ControlTarget()
