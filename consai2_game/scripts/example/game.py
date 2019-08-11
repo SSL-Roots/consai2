@@ -128,8 +128,8 @@ class RobotNode(object):
                 pose.x = -4
                 pose.y = 0
             elif self._my_role == ROLE_ATTACKER:
-                pose.x = 0
-                pose.y = 0
+                pose.x = ball_info.pose.x - 0.5
+                pose.y = ball_info.pose.y
             elif self._my_role == ROLE_DEFENCE_GOAL_1:
                 pose.x = -3.5
                 pose.y = 1
@@ -270,6 +270,7 @@ class Game(object):
 
     def update(self):
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
+        self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
 
         for our_info in self._robot_info['our']:
