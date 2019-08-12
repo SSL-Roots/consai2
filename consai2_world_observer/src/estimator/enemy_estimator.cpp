@@ -182,21 +182,17 @@ ColumnVector  EnemyEstimator::convertAccelMsgToInputVector(geometry_msgs::Accel 
 
 
 
-nav_msgs::Odometry  EnemyEstimator::convetEstimationToOdometry()
+geometry2d::Odometry EnemyEstimator::convetEstimationToOdometry()
 {
-    nav_msgs::Odometry odom;
+    geometry2d::Odometry odom;
 
-    odom.header.stamp = ros::Time::now();
-    odom.header.frame_id = "map";
+    odom.pose.x = this->last_estimation.val(1);
+    odom.pose.y = this->last_estimation.val(2);
+    odom.pose.theta = this->last_estimation.val(3);
 
-    odom.pose.pose.position.x = this->last_estimation.val(1);
-    odom.pose.pose.position.y = this->last_estimation.val(2);
-
-    odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(this->last_estimation.val(3));
-
-    odom.twist.twist.linear.x = this->last_estimation.val(4);
-    odom.twist.twist.linear.y = this->last_estimation.val(5);
-    odom.twist.twist.angular.z = this->last_estimation.val(6);
+    odom.velocity.x = this->last_estimation.val(4);
+    odom.velocity.y = this->last_estimation.val(5);
+    odom.velocity.theta = this->last_estimation.val(6);
 
     return  odom;
 }

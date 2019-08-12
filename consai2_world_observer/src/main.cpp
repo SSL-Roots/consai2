@@ -26,7 +26,13 @@ void UpdateHook(WorldObserverROS* world_observer)
 
     double x = world_observer->blue_observations[0][0].x;
     double y = world_observer->blue_observations[0][0].y;
-    ROS_INFO("x: %3.2f, y:%3.2f", x, y);
+
+    geometry2d::Odometry odom;
+    odom = enemy_estimator.estimate(world_observer->blue_observations[0]);
+
+    ROS_INFO("[RAW] x: %3.2f, y:%3.2f", x, y);
+    ROS_INFO("[FIL] x: %3.2f, y:%3.2f", odom.pose.x, odom.pose.y);
+    ROS_INFO("-----");
 }
 
 

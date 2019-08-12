@@ -141,18 +141,15 @@ ColumnVector  BallEstimator::convertAccelMsgToInputVector(geometry_msgs::Accel a
 
 
 
-nav_msgs::Odometry  BallEstimator::convetEstimationToOdometry()
+geometry2d::Odometry BallEstimator::convetEstimationToOdometry()
 {
-    nav_msgs::Odometry odom;
+    geometry2d::Odometry odom;
 
-    odom.header.stamp = ros::Time::now();
-    odom.header.frame_id = "map";
+    odom.pose.x = this->last_estimation.val(1);
+    odom.pose.y = this->last_estimation.val(2);
 
-    odom.pose.pose.position.x = this->last_estimation.val(1);
-    odom.pose.pose.position.y = this->last_estimation.val(2);
-
-    odom.twist.twist.linear.x = this->last_estimation.val(3);
-    odom.twist.twist.linear.y = this->last_estimation.val(4);
+    odom.velocity.x = this->last_estimation.val(3);
+    odom.velocity.y = this->last_estimation.val(4);
 
     return  odom;
 }

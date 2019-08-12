@@ -5,6 +5,8 @@
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Accel.h>
+#include <geometry_msgs/Quaternion.h>
+#include <nav_msgs/Odometry.h>
 
 #include <bfl/filter/extendedkalmanfilter.h>
 
@@ -27,6 +29,8 @@ public:
     Pose(geometry_msgs::Pose2D pose);
 
     MatrixWrapper::ColumnVector ToColumnVector();
+    geometry_msgs::Pose ToROSPose();
+    
 };
 
 class Velocity
@@ -37,6 +41,8 @@ public:
     Velocity();
     Velocity(double x, double y, double theta);
     Velocity(geometry_msgs::Twist twist);
+
+    geometry_msgs::Twist ToROSTwist();
 };
 
 class Accel
@@ -69,10 +75,13 @@ public:
 
     Odometry();
     Odometry(Pose pose, Velocity velocity);
+
+    nav_msgs::Odometry ToROSOdometry();
 };
 
 // Utility methods
 double YawFromQuaternion(double x, double y, double z, double w);
+geometry_msgs::Quaternion QuaternionFromYaw(double theta);
 double pi2pi(double rad);
 
 }

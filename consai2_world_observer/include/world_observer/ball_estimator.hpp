@@ -28,7 +28,7 @@ class BallEstimator : public Estimator
 
         ColumnVector  convertPoseMsgToMeasureVector(geometry_msgs::Pose pose);
         ColumnVector  convertAccelMsgToInputVector(geometry_msgs::Accel acc);
-        nav_msgs::Odometry  convetEstimationToOdometry();
+        geometry2d::Odometry convetEstimationToOdometry();
 
         bool isOutlier(ColumnVector measurement);
         double mahalanobisDistance(ColumnVector measurement);

@@ -40,6 +40,17 @@ MatrixWrapper::ColumnVector Pose::ToColumnVector()
     return  column_vector;
 }
 
+geometry_msgs::Pose Pose::ToROSPose()
+{
+    geometry_msgs::Pose msg;
+
+    msg.position.x = this->x;
+    msg.position.y = this->y;
+    msg.orientation = QuaternionFromYaw(this->theta);
+
+    return msg;
+}
+
 Velocity::Velocity()
 {
     this->x = 0.0;
@@ -62,6 +73,16 @@ Velocity::Velocity(geometry_msgs::Twist twist)
     this->theta = twist.angular.z;
 }
 
+geometry_msgs::Twist Velocity::ToROSTwist()
+{
+    geometry_msgs::Twist msg;
+
+    msg.linear.x = this->x;
+    msg.linear.y = this->y;
+    msg.angular.z = this->theta;
+
+    return msg;
+}
 
 Accel::Accel()
 {
@@ -106,6 +127,18 @@ Odometry::Odometry(Pose pose, Velocity velocity)
     this->velocity = velocity;
 }
 
+nav_msgs::Odometry Odometry::ToROSOdometry()
+{
+    nav_msgs::Odometry msg;
+
+    msg.header.stamp = ros::Time::now();
+
+    msg.pose.pose = this->pose.ToROSPose();
+    msg.twist.twist = this->velocity.ToROSTwist();
+
+    return msg;
+}
+
 double YawFromQuaternion(double x, double y, double z, double w)
 {
     double  roll, pitch, yaw;
@@ -115,6 +148,11 @@ double YawFromQuaternion(double x, double y, double z, double w)
     m.getRPY(roll, pitch, yaw);
 
     return yaw;
+}
+
+geometry_msgs::Quaternion QuaternionFromYaw(double theta)
+{
+    return tf::createQuaternionMsgFromYaw(theta);
 }
 
 double pi2pi(double rad)

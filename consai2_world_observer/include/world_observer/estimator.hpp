@@ -12,6 +12,8 @@
 #include <bfl/pdf/analyticconditionalgaussian.h>
 #include <bfl/pdf/linearanalyticconditionalgaussian.h>
 
+#include <world_observer/geometry/geometry.hpp>
+
 using namespace MatrixWrapper;
 using namespace BFL;
 using namespace std;
@@ -23,9 +25,9 @@ class Estimator
         Estimator();
         ~Estimator();
 
-        nav_msgs::Odometry  estimate();
-        nav_msgs::Odometry  estimate(const std::vector<geometry_msgs::Pose>& poses);
-        nav_msgs::Odometry  estimate(geometry_msgs::Accel acc, const std::vector<geometry_msgs::Pose>& poses);
+        geometry2d::Odometry estimate();
+        geometry2d::Odometry estimate(std::vector<geometry2d::Pose> observations);
+        geometry2d::Odometry estimate(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations);
 
     protected:
         class Estimation {
@@ -41,10 +43,8 @@ class Estimator
 
         virtual ColumnVector  convertPoseMsgToMeasureVector(geometry_msgs::Pose pose) = 0;
         virtual ColumnVector  convertAccelMsgToInputVector(geometry_msgs::Accel acc) = 0;
-        virtual nav_msgs::Odometry  convetEstimationToOdometry() = 0;
+        virtual geometry2d::Odometry convetEstimationToOdometry() = 0;
 
-        virtual bool isOutlier(ColumnVector measurement) = 0;
-        virtual double mahalanobisDistance(ColumnVector measurement) = 0;
 };
 
 

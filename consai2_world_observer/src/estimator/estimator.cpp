@@ -5,46 +5,45 @@
 
 
 Estimator::Estimator()
+{}
+
+geometry2d::Odometry Estimator::estimate()
 {
-}
-
-
-
-nav_msgs::Odometry  Estimator::estimate()
-{
-    std::vector<geometry_msgs::Pose> null_poses;
-
+    std::vector<geometry2d::Pose> null_poses;
     return  this->estimate(null_poses);
 }
 
-
-nav_msgs::Odometry  Estimator::estimate(const std::vector<geometry_msgs::Pose>& poses)
+geometry2d::Odometry Estimator::estimate(std::vector<geometry2d::Pose> observations)
 {
-    geometry_msgs::Accel  null_acc;
-
-    return  this->estimate(null_acc, poses);
+    geometry2d::Accel  null_acc;
+    return  this->estimate(null_acc, observations);
 }
 
-
-nav_msgs::Odometry  Estimator::estimate(geometry_msgs::Accel acc, const std::vector<geometry_msgs::Pose>& poses)
+geometry2d::Odometry Estimator::estimate(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations)
 {
     // System update by only system model with input
-    predict(convertAccelMsgToInputVector(acc));
+    predict(accel.ToColumnVector());
 
-    for (size_t i = 0; i < poses.size(); i++) {
-        ColumnVector  measurement = convertPoseMsgToMeasureVector(poses.at(i));
-
-        if (isOutlier(measurement)) {
-            continue;
-        }
-
-        update(measurement);
-    }
-
-    return  convetEstimationToOdometry();
-    }
-
-
-    Estimator::~Estimator()
+    for (auto observation : observations)
     {
+        ROS_INFO("observation x:%3.2f, y:%3.2f", observation.x, observation.y);
+        MatrixWrapper::ColumnVector observation_cv = observation.ToColumnVector();
+
+        // if (isOutlier(observation_cv)) {
+        //     continue;
+        // }
+
+        update(observation_cv);
     }
+
+    return convetEstimationToOdometry();
+}
+
+//
+// Private methods
+//
+
+
+Estimator::~Estimator()
+{
+}

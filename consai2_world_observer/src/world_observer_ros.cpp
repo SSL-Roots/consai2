@@ -26,7 +26,7 @@ void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::Cons
         for (auto yellow_observation : frame.robots_yellow)
         {
             geometry2d::Pose pose(yellow_observation.pose);
-            this->blue_observations[yellow_observation.robot_id].push_back(pose);
+            this->yellow_observations[yellow_observation.robot_id].push_back(pose);
         }
 
         for (auto ball_observation : frame.balls)
