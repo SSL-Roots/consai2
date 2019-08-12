@@ -10,7 +10,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-import path_avoid
+import avoidance
 from actions import tool, defense, offense, goalie
 import role
 from field import Field
@@ -57,7 +57,7 @@ class RobotNode(object):
         return self._control_target
 
 
-    def get_action(self, referee, ball_info, robot_info=None):
+    def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None):
         self._control_target.control_enable = True
 
         # reset_flag = True
@@ -73,13 +73,10 @@ class RobotNode(object):
                 self._control_target = goalie.interpose(
                         ball_info, robot_info, self._control_target)
             elif self._my_role == 1:
-            # elif self._is_attacker:
                 # アタッカーならボールに近づく
                 self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
-                self._control_target = path_avoid.basic_avoid(self._my_pose, self._control_target, ball_info, robot_info)
-                # if avoid_path is not None:
-                    # self._control_target.path.insert(0, avoid_path)
-
+                # 障害物位置を検出し、中間パスの生成と追加を行う
+                self._control_target.path = obstacle_avoidance.add_path(self._control_target.path, self._my_pose)
             else:
                 # それ以外ならくるくる回る
                 # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
@@ -238,6 +235,8 @@ class Game(object):
                     queue_size=1)
             self._pubs_control_target.append(pub_control_target)
 
+        # 障害物回避のためのクラス
+        self._obstacle_avoidance = avoidance.ObstacleAvoidance()
 
     def _callback_geometry(self, msg):
         Field.update(msg)
@@ -259,6 +258,8 @@ class Game(object):
         self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
 
+        self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
+
         for our_info in self._robot_info['our']:
             robot_id = our_info.robot_id
             target = ControlTarget()
@@ -272,6 +273,7 @@ class Game(object):
                 # 目標位置を生成
                 target = self._robot_node[robot_id].get_action(
                         self._decoded_referee,
+                        self._obstacle_avoidance,
                         self._ball_info,
                         self._robot_info)
 
