@@ -17,6 +17,7 @@ class Pose
 public:
     double x, y, theta;
 
+    Pose();
     Pose(geometry_msgs::Pose   pose);
     Pose(geometry_msgs::Pose2D pose);
 
@@ -25,10 +26,22 @@ public:
 
 class Velocity
 {
+public:
     double x, y, theta;
 
+    Velocity();
     Velocity(double x, double y, double theta);
     Velocity(geometry_msgs::Twist twist);
+};
+
+class Odometry
+{
+public:
+    Pose pose;
+    Velocity velocity;
+
+    Odometry();
+    Odometry(Pose pose, Velocity velocity);
 };
 
 class Point

@@ -6,6 +6,13 @@
 namespace geometry2d
 {
 
+Pose::Pose()
+{
+    this->x = 0.0;
+    this->y = 0.0;
+    this->theta = 0.0;
+}
+
 Pose::Pose(geometry_msgs::Pose   pose)
 {
     this->x = pose.position.x;
@@ -33,12 +40,20 @@ MatrixWrapper::ColumnVector Pose::ToColumnVector()
     return  measurement;
 }
 
+Velocity::Velocity()
+{
+    this->x = 0.0;
+    this->y = 0.0;
+    this->theta = 0.0;
+}
+
 Velocity::Velocity(double x, double y, double theta)
 {
     this->x = x;
     this->y = y;
     this->theta = theta;
 }
+
 
 Velocity::Velocity(geometry_msgs::Twist twist)
 {
@@ -47,7 +62,17 @@ Velocity::Velocity(geometry_msgs::Twist twist)
     this->theta = twist.angular.z;
 }
 
-};
+
+Odometry::Odometry()
+{
+}
+
+Odometry::Odometry(Pose pose, Velocity velocity)
+{
+    this->pose = pose;
+    this->velocity = velocity;
+}
+
 double YawFromQuaternion(double x, double y, double z, double w)
 {
     double  roll, pitch, yaw;
