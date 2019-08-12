@@ -11,8 +11,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 import avoidance
-from actions import tool, defense, offense, goalie
-import role
+from actions import tool, defense, offense, goalie, role
 from field import Field
 
 ROLE_GOALIE = 0
