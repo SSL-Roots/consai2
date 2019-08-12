@@ -101,8 +101,8 @@ class Controller(object):
         self._path_index[color][msg.robot_id] = 0 
 
 
-    def _control_update(self, color, robot_id):
-        # ロボットの走行制御を更新する
+    def _make_command(self, color, robot_id):
+        # ロボットの動作司令を生成する
         # ControlTargetを受け取ってない場合は停止司令を生成する
 
         command = RobotCommand()
@@ -110,25 +110,23 @@ class Controller(object):
 
         control_target = self._control_target[color][robot_id]
 
-        # 制御目標が有効であれば
-        if control_target.control_enable:
-            # 経路がセットされていれば
-            if len(control_target.path) != 0:
-                command, arrived  = self._path_tracking(color, robot_id, control_target.path)
+        # 経路がセットされていれば
+        if len(control_target.path) != 0:
+            command, arrived  = self._path_tracking(color, robot_id, control_target.path)
 
-                command.kick_power = control_target.kick_power
-                command.chip_enable = control_target.chip_enable
-                command.dribble_power = control_target.dribble_power
-                
-                if arrived:
-                    # 到達したことをpublish
-                    self._pubs_is_arrived[color][robot_id].publish(True)
-                else:
-                    # 到達してないことをpublish
-                    self._pubs_is_arrived[color][robot_id].publish(False)
+            command.kick_power = control_target.kick_power
+            command.chip_enable = control_target.chip_enable
+            command.dribble_power = control_target.dribble_power
+            
+            if arrived:
+                # 到達したことをpublish
+                self._pubs_is_arrived[color][robot_id].publish(True)
+            else:
+                # 到達してないことをpublish
+                self._pubs_is_arrived[color][robot_id].publish(False)
         else:
-            # 保存していた制御速度をリセットする
-            self._reset_control_velocity(color, robot_id)
+            rospy.logdebug("Velocity Control")
+            pass
 
         return command
 
@@ -272,13 +270,18 @@ class Controller(object):
                 robot_commands.is_yellow = True
 
             for robot_info in self._robot_info[color]:
-                # フィールド上にいるロボットのみを動かす
-                if robot_info.disappeared is False:
-                    # 動作司令を更新
-                    command = self._control_update(color, robot_info.robot_id)
+                # 制御が有効な場合のみ動作司令を生成する
+                if self._control_target[color][robot_info.robot_id].control_enable:
+                    # 動作司令を生成
+                    command = self._make_command(color, robot_info.robot_id)
                     robot_commands.commands.append(command)
+                else:
+                    # 保存していた制御速度をリセットする
+                    self._reset_control_velocity(color, robot_info.robot_id)
 
-            self._pub_commands.publish(robot_commands)
+            # 動作司令が無ければpublishしない
+            if len(robot_commands.commands) > 0:
+                self._pub_commands.publish(robot_commands)
 
 
 def main():
