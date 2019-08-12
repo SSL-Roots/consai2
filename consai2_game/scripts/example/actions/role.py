@@ -3,13 +3,23 @@
 
 from actions import tool
 
+ROLE_ID = {
+    "ROLE_GOALIE"         : 0,
+    "ROLE_ATTACKER"       : 1,
+    "ROLE_DEFENCE_GOAL_1" : 2,
+    "ROLE_DEFENCE_GOAL_2" : 3,
+    "ROLE_DEFENCE_ZONE_1" : 4,
+    "ROLE_DEFENCE_ZONE_2" : 5,
+    "ROLE_DEFENCE_ZONE_3" : 6,
+    "ROLE_DEFENCE_ZONE_4" : 7,
+    "ROLE_NONE"           : 99,
+}
 
 # Roleの計算をするクラス
 class RoleDecision(object):
     def __init__(self, max_id, goalie_id):
-        self._ROLE_MAX = 8
+        self._ROLE_MAX = len(ROLE_ID)
         self._FAR_DISTANCE = 1e+10
-        self._ROLE_IS_NONE = 99
 
         self._MAX_ID = max_id
         self._GOALIE_ID = goalie_id
@@ -20,10 +30,10 @@ class RoleDecision(object):
         self._event_closest_to_the_ball = False
         self._event_ball_side = False
         self._event_robot_has_disappeared = False
-        self._attacker_id = 1
-        self._attacker_id_pre = 1
+        self._attacker_id = ROLE_ID["ROLE_ATTACKER"]
+        self._attacker_id_pre = ROLE_ID["ROLE_ATTACKER"]
 
-        self._rolestocker = RoleStocker(max_id, self._ROLE_MAX, self._ROLE_IS_NONE)
+        self._rolestocker = RoleStocker(max_id, self._ROLE_MAX)
 
     def set_disappeared(self, our_disappeared):
         # 変化があった
@@ -32,9 +42,8 @@ class RoleDecision(object):
             for robot_id in range(self._MAX_ID + 1):
                 robot_role = self._rolestocker.get_my_role(robot_id)
                 if our_disappeared[robot_id] == True and \
-                        robot_role != self._ROLE_IS_NONE:
-                    # self._role_is_exist[robot_role] = False
-                    self._rolestocker.set_my_role(robot_id, self._ROLE_IS_NONE)
+                        robot_role != ROLE_ID["ROLE_NONE"]:
+                    self._rolestocker.set_my_role(robot_id, ROLE_ID["ROLE_NONE"])
         else:
             self._event_robot_has_disappeared = False
 
@@ -81,20 +90,20 @@ class RoleDecision(object):
 
     def update_role(self):
         # Goalie, Attaker 以外
-        defence_start_num = 2
+        defence_start_num = ROLE_ID["ROLE_DEFENCE_GOAL_1"]
 
         # Goalie
-        self._rolestocker.set_my_role(self._GOALIE_ID, 0)
+        self._rolestocker.set_my_role(self._GOALIE_ID, ROLE_ID["ROLE_GOALIE"])
         # Attaker
         if self._event_closest_to_the_ball:
-            self._rolestocker.set_my_role(self._attacker_id_pre, self._ROLE_IS_NONE)
-            self._rolestocker.set_my_role(self._attacker_id, 1)
+            self._rolestocker.set_my_role(self._attacker_id_pre, ROLE_ID["ROLE_NONE"])
+            self._rolestocker.set_my_role(self._attacker_id, ROLE_ID["ROLE_ATTACKER"])
 
         # Defence
         for role_id in range(defence_start_num, self._ROLE_MAX):
             if self._rolestocker.get_role_exist(role_id) == False:
                 role_set_robot_id = -1
-                role_before_set = self._ROLE_IS_NONE
+                role_before_set = ROLE_ID["ROLE_NONE"]
                 max_role_id = role_id
                 for robot_id in range(self._MAX_ID + 1):
                     # 生きているロボット
@@ -110,16 +119,15 @@ class RoleDecision(object):
 
 # Roleを保持するクラス。RobotNodeはこいつを参照する
 class RoleStocker(object):
-    def __init__(self, max_robot, max_role, role_is_none):
-        self._role_is_none = role_is_none
-        self._my_role = [self._role_is_none] * (max_robot + 1)
+    def __init__(self, max_robot, max_role):
+        self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_robot + 1)
         self._role_is_exist = [False] * (max_role + 1)
 
     def set_my_role(self, robot_id, role_num):
-        if self._my_role[robot_id] != self._role_is_none:
+        if self._my_role[robot_id] != ROLE_ID["ROLE_NONE"]:
             self._role_is_exist[self._my_role[robot_id]] = False 
         self._my_role[robot_id] = role_num
-        if role_num != self._role_is_none:
+        if role_num != ROLE_ID["ROLE_NONE"]:
             self._role_is_exist[role_num] = True
 
     def get_my_role(self, robot_id):
