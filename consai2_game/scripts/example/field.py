@@ -46,3 +46,8 @@ class Field(object):
     @classmethod
     def goal_pose(cls, team='our', position='center'):
         return Field._goal_pose[team][position]
+
+    @classmethod
+    def penalty_pose(cls, team='our', position='upper_front'):
+        return Field._penalty_pose[team][position]
+
