@@ -10,10 +10,20 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
+import path_avoid
 from actions import tool, defense, offense, goalie
-from actions import test_path_avoid
+import role
 from field import Field
 
+ROLE_GOALIE = 0
+ROLE_ATTACKER = 1
+ROLE_DEFENCE_GOAL_1 = 2
+ROLE_DEFENCE_GOAL_2 = 3
+ROLE_DEFENCE_ZONE_1 = 4
+ROLE_DEFENCE_ZONE_2 = 5
+ROLE_DEFENCE_ZONE_3 = 6
+ROLE_DEFENCE_ZONE_4 = 7
+ROLE_NONE = 99
 
 class RobotNode(object):
     def __init__(self, robot_id):
@@ -30,13 +40,13 @@ class RobotNode(object):
         self._is_attacker = False
         self._is_goalie = False
 
+        # 0 is goalie, 1 is attacker, 2~7 is defense
+        self._my_role = 1
+
 
     def set_state(self, pose, velocity):
         self._my_pose = pose
         self._my_velocity = velocity
-
-    def set_attacker(self, is_attacker):
-        self._is_attacker = is_attacker
 
     def set_goalie(self):
         self._is_goalie = True
@@ -50,7 +60,7 @@ class RobotNode(object):
     def get_action(self, referee, ball_info, robot_info=None):
         self._control_target.control_enable = True
 
-        reset_flag = True
+        # reset_flag = True
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
             self._control_target.control_enable = False
@@ -58,32 +68,23 @@ class RobotNode(object):
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
             pose = Pose2D()
-            if self._is_goalie:
+            # if self._is_goalie:
+            if self._my_role == 0:
                 self._control_target = goalie.interpose(
                         ball_info, robot_info, self._control_target)
-                # print self._control_target
-
-            elif self._is_attacker:
+            elif self._my_role == 1:
+            # elif self._is_attacker:
                 # アタッカーならボールに近づく
-                # self._control_target = defense.interpose(
-                        # ball_info, self._control_target, dist_from_target=0.6)
-                control_target, reset_flag = test_path_avoid.interpose(
-                    self._my_pose, ball_info, robot_info, self._control_target, dist_from_target=0.2)
-                if reset_flag == True:
-                    self._control_target = control_target
-                
-                # rospy.loginfo(self._control_target)
+                self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
+                self._control_target = path_avoid.basic_avoid(self._my_pose, self._control_target, ball_info, robot_info)
+                # if avoid_path is not None:
+                    # self._control_target.path.insert(0, avoid_path)
+
             else:
                 # それ以外ならくるくる回る
-
                 # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
                 self._control_target.path = []
-                pose.x = self._my_pose.x
-                pose.y = self._my_pose.y
-                pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
-                self._control_target.path.append(pose)
-
-
+            
             pass
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
@@ -140,10 +141,37 @@ class RobotNode(object):
             pose.x = self._my_pose.x
             pose.y = self._my_pose.y
             pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
+
+            if self._my_role == ROLE_GOALIE:
+                pose.x = -4
+                pose.y = 0
+            elif self._my_role == ROLE_ATTACKER:
+                pose.x = ball_info.pose.x - 0.5
+                pose.y = ball_info.pose.y
+            elif self._my_role == ROLE_DEFENCE_GOAL_1:
+                pose.x = -3.5
+                pose.y = 1
+            elif self._my_role == ROLE_DEFENCE_GOAL_2:
+                pose.x = -3.5
+                pose.y = -1
+            elif self._my_role == ROLE_DEFENCE_ZONE_1:
+                pose.x = -1
+                pose.y = 1
+            elif self._my_role == ROLE_DEFENCE_ZONE_2:
+                pose.x = -1
+                pose.y = -1
+            elif self._my_role == ROLE_DEFENCE_ZONE_3:
+                pose.x = -1
+                pose.y = 2
+            elif self._my_role == ROLE_DEFENCE_ZONE_4:
+                pose.x = -1
+                pose.y = -2
+            elif self._my_role == ROLE_NONE:
+                pose.theta = self._my_pose.theta # まわらない
+
             self._control_target.path.append(pose)
 
-        return self._control_target, reset_flag
-
+        return self._control_target
 
 class Game(object):
     def __init__(self):
@@ -158,11 +186,6 @@ class Game(object):
             self._THEIR_COLOR = 'blue'
 
         self._robot_node = []
-        self._dist_to_ball = {} # ロボットからボールまでの距離
-        self._attacker_id = 0 # アタッカーID
-        if self._attacker_id == self._GOALIE_ID:
-            self._attacker_id = 3 # アタッカーID
-
         for robot_id in range(self._MAX_ID + 1):
             self._robot_node.append(RobotNode(robot_id))
             # ゴーリーを割り当てる
@@ -170,7 +193,7 @@ class Game(object):
             if robot_id == self._GOALIE_ID:
                 self._robot_node[robot_id].set_goalie()
 
-            self._dist_to_ball[robot_id] = self._FAR_DISTANCE
+        self._roledecision = role.RoleDecision(self._MAX_ID, self._GOALIE_ID)
 
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry,
@@ -231,73 +254,30 @@ class Game(object):
     def _callback_their_info(self, msg, robot_id):
         self._robot_info['their'][robot_id] = msg
 
-
-    def _i_am_attacker(self, robot_id, new_robot_pose):
-        # ロボットとボールの距離を計算して、一番ボールに近ければTrue
-        MARGIN = 0.5 # meter
-
-        # ロボットとボールの距離を計算
-        # ボールが消える可能性を考慮して、last_detection_poseを使う
-        dist = tool.distance_2_poses(new_robot_pose, 
-                self._ball_info.last_detection_pose)
-        # 距離の更新
-        self._dist_to_ball[robot_id] = dist
-
-        # アタッカーIDが自分自身であれば、他と比較せずにTrueを返す
-        if self._attacker_id == robot_id:
-            return True
-
-        # アタッカーのボールロボット間距離を取得
-        # マージンを設けて、アタッカーの切り替わりの発振を防ぐ
-        closest_dist = self._dist_to_ball[self._attacker_id] - MARGIN
-
-        if dist < closest_dist:
-            self._attacker_id = robot_id
-            return True
-        else:
-            return False
-
-    def test_i_am_attacker(self, robot_id):
-        # ロボットとボールの距離を計算し
-        if robot_id == 3:
-            self._attacker_id = robot_id
-            return True
-        else:
-            return False
-
     def update(self):
+        self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
+        self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
+        self._roledecision.event_observer()
+
         for our_info in self._robot_info['our']:
             robot_id = our_info.robot_id
             target = ControlTarget()
             if our_info.disappeared:
                 # ロボットが消えていたら停止
                 target = self._robot_node[robot_id].get_sleep()
-
-                # ボールとの距離を初期化
-                self._dist_to_ball[robot_id] = self._FAR_DISTANCE
-                reset_flag = True
-        
             else:
-                # アタッカー情報をセット
-                # self._robot_node[robot_id].set_attacker(
-                        # self._i_am_attacker(robot_id, our_info.pose))
-                self._robot_node[robot_id].set_attacker(
-                        self.test_i_am_attacker(robot_id))
-
                 # ロボットの状態を更新
                 self._robot_node[robot_id].set_state(
                         our_info.pose, our_info.velocity)
                 # 目標位置を生成
-                # target = self._robot_node[robot_id].get_action(
-                        # self._decoded_referee,
-                        # self._ball_info)
-                target, reset_flag = self._robot_node[robot_id].get_action(
+                target = self._robot_node[robot_id].get_action(
                         self._decoded_referee,
                         self._ball_info,
                         self._robot_info)
-            if reset_flag:
-                self._pubs_control_target[robot_id].publish(target)
 
+            self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
+
+            self._pubs_control_target[robot_id].publish(target)
 
 def main():
     rospy.init_node('game')
