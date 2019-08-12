@@ -34,14 +34,14 @@ class Field(object):
         Field._goal_pose['their']['lower'] = Pose2D(half_length, -half_goal_width, 0)
 
         # ペナルティエリア座標の更新
-        Field._penalty_pose['our']['upper_front'] = [Pose2D(i.p2_x, i.p2_y,0) for i in geometry.field_lines if i.name == "LeftPenaltyStretch"]
-        Field._penalty_pose['our']['upper_back']  = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftFieldLeftPenaltyStretch"]
-        Field._penalty_pose['our']['lower_front'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftPenaltyStretch"]
-        Field._penalty_pose['our']['lower_back']  = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftFieldRightPenaltyStretch"]
-        Field._penalty_pose['their']['upper_front'] = [Pose2D(i.p2_x, i.p2_y,0) for i in geometry.field_lines if i.name == "RightPenaltyStretch"]
-        Field._penalty_pose['their']['upper_back'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightFieldRightPenaltyStretch"]
-        Field._penalty_pose['their']['lower_front'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightPenaltyStretch"]
-        Field._penalty_pose['their']['lower_back'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightFieldLeftPenaltyStretch"]
+        Field._penalty_pose['our']['upper_front'] = [Pose2D(i.p2_x, i.p2_y,0) for i in geometry.field_lines if i.name == "LeftPenaltyStretch"][0]
+        Field._penalty_pose['our']['upper_back']  = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftFieldLeftPenaltyStretch"][0]
+        Field._penalty_pose['our']['lower_front'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftPenaltyStretch"][0]
+        Field._penalty_pose['our']['lower_back']  = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "LeftFieldRightPenaltyStretch"][0]
+        Field._penalty_pose['their']['upper_front'] = [Pose2D(i.p2_x, i.p2_y,0) for i in geometry.field_lines if i.name == "RightPenaltyStretch"][0]
+        Field._penalty_pose['their']['upper_back'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightFieldRightPenaltyStretch"][0]
+        Field._penalty_pose['their']['lower_front'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightPenaltyStretch"][0]
+        Field._penalty_pose['their']['lower_back'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightFieldLeftPenaltyStretch"][0]
 
     @classmethod
     def goal_pose(cls, team='our', position='center'):
