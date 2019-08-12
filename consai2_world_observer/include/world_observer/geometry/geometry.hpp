@@ -51,16 +51,6 @@ public:
     MatrixWrapper::ColumnVector ToColumnVector();
 };
 
-class Velocity
-{
-public:
-    double x, y, theta;
-
-    Velocity();
-    Velocity(double x, double y, double theta);
-    Velocity(geometry_msgs::Twist twist);
-};
-
 
 class Point
 {

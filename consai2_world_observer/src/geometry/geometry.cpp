@@ -31,13 +31,13 @@ Pose::Pose(geometry_msgs::Pose2D pose)
 
 MatrixWrapper::ColumnVector Pose::ToColumnVector()
 {
-    MatrixWrapper::ColumnVector  measurement(3);
+    MatrixWrapper::ColumnVector  column_vector(3);
 
-    measurement(1) = this->x;
-    measurement(2) = this->y;
-    measurement(3) = this->theta;
+    column_vector(1) = this->x;
+    column_vector(2) = this->y;
+    column_vector(3) = this->theta;
 
-    return  measurement;
+    return  column_vector;
 }
 
 Velocity::Velocity()
@@ -87,13 +87,13 @@ Accel::Accel(geometry_msgs::Accel accel)
 
 MatrixWrapper::ColumnVector Accel::ToColumnVector()
 {
-    MatrixWrapper::ColumnVector  measurement(3);
+    MatrixWrapper::ColumnVector  column_vector(3);
 
-    measurement(1) = this->x;
-    measurement(2) = this->y;
-    measurement(3) = this->theta;
+    column_vector(1) = this->x;
+    column_vector(2) = this->y;
+    column_vector(3) = this->theta;
 
-    return  measurement;
+    return  column_vector;
 }
 
 Odometry::Odometry()
