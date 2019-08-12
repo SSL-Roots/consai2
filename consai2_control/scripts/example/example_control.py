@@ -213,7 +213,7 @@ class Controller(object):
         # thetaの加速度制限
         current_control_velocity.theta = self._acceleration_limit(
                 target_velocity.theta, current_control_velocity.theta,
-                self._MAX_ANGLE_ACCELERATION, is_angle=True)
+                self._MAX_ANGLE_ACCELERATION)
 
         # x方向の速度制限
         current_control_velocity.x = self._velocity_limit(
@@ -228,18 +228,12 @@ class Controller(object):
         return current_control_velocity
 
     
-    def _acceleration_limit(self, target_velocity, current_velocity, limit_value, is_angle=False):
+    def _acceleration_limit(self, target_velocity, current_velocity, limit_value):
         # 加速度制限をかけて目標速度を返す
         diff_velocity = target_velocity - current_velocity
 
-        if is_angle:
-            diff_velocity = angle_normalize(diff_velocity)
-
         if math.fabs(diff_velocity) > limit_value:
             target_velocity = current_velocity + math.copysign(limit_value, diff_velocity)
-
-            if is_angle:
-                target_velocity = angle_normalize(target_velocity)
 
         return target_velocity
 
