@@ -4,6 +4,7 @@ WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, std::string vision_topic
     sub_vision_(nh.subscribe(vision_topic_name, 10, &WorldObserverROS::VisionCallBack, this)),
     pub_odom_debug_(nh.advertise<nav_msgs::Odometry>("debug_odom", 1000))
 {
+    ros::param::param<int>("consai2_description/max_id", this->max_id, 15);
 }
 
 void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::ConstPtr& msg)

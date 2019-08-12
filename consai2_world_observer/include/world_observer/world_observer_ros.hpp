@@ -21,6 +21,7 @@ public:
 class WorldObserverROS
 {
     public:
+        int max_id;
         std::map<int, std::vector<geometry2d::Pose>> blue_observations;
         std::map<int, std::vector<geometry2d::Pose>> yellow_observations;
         std::vector<geometry2d::Pose>                ball_observations;
