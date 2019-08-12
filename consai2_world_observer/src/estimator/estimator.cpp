@@ -39,6 +39,12 @@ geometry2d::Odometry Estimator::estimate(geometry2d::Accel accel, std::vector<ge
     return convetEstimationToOdometry();
 }
 
+
+void Estimator::Reset()
+{
+    this->filter->Reset(this->prior);
+}
+
 //
 // Private methods
 //

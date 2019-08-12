@@ -77,6 +77,8 @@ public:
     Odometry(Pose pose, Velocity velocity);
 
     nav_msgs::Odometry ToROSOdometry();
+
+    void print();
 };
 
 // Utility methods

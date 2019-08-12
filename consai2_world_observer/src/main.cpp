@@ -23,11 +23,8 @@
 class ExistanceChecker
 {
 public:
-    ExistanceChecker()
+    ExistanceChecker(int max_id)
     {
-        int max_id;
-        ros::param::param<int>("consai2_description/max_id", max_id, 15);
-
         this->max_id_ = max_id;
         this->blue_existance_.assign(max_id, false);
         this->yellow_existance_.assign(max_id, false);
@@ -141,60 +138,107 @@ private:
 };
 
 
-// Observer クラス
+// ObserverFacade クラス
 //
-// ロボット / ボール単体の状態推定を行う。
-// 位置・速度の推定、存在判定
-class Observer
+// ロボット / ボールらの存在判定、位置・速度推定を実施するFacade
+class ObserverFacade
 {
 public:
-    ros::Duration DISAPPEARED_TIME_THRESH;
-    ros::Time latest_appeared_time;
-    EnemyEstimator estimator;
-    bool is_exist;
-
-    Observer() : 
-        DISAPPEARED_TIME_THRESH(3.0),
-        is_exist(true),
-        latest_appeared_time(ros::Time(0)),
-        estimator(0.016)
+    ObserverFacade(int max_id) :
+        existance_checker_(max_id),
+        ball_estimator_(0.016)
     {
+        this->blue_estimators_.assign(max_id, EnemyEstimator(0.016));
+        this->yellow_estimators_.assign(max_id, EnemyEstimator(0.016));
     }
 
-    void update()
+    void update(ObservationContainer observation_container)
     {
-        ros::Time now = ros::Time::now();
+        this->existance_checker_.update(observation_container);
 
-        if ((now - this->latest_appeared_time) > this->DISAPPEARED_TIME_THRESH)
+        // Blue robots
+        for (auto robot_id=0; robot_id < observation_container.blue_observations.size(); ++robot_id)
         {
-            this->is_exist = false;
+            geometry2d::Odometry odom;
+            
+            // if (!this->existance_checker_.IsBlueRobotExist(robot_id))
+            // {
+            //     this->blue_estimators_[robot_id].Reset();
+            //     continue;
+            // }
+
+            // if (observation_container.blue_observations[robot_id].size() == 0)
+            // {
+            //     // 観測なし
+            //     odom = this->blue_estimators_[robot_id].estimate();
+            // }
+            // else
+            // {
+            //     odom = this->blue_estimators_[robot_id].estimate(observation_container.blue_observations[robot_id]);
+            // }
+
+            odom.print();
         }
 
-        this->estimator.estimate();
+        // // Yellow robots
+        // for (auto robot_id=0; robot_id < observation_container.yellow_observations.size(); ++robot_id)
+        // {
+        //     if (!this->existance_checker_.IsYellowRobotExist(robot_id))
+        //     {
+        //         this->yellow_estimators_[robot_id].Reset();
+        //         continue;
+        //     }
+
+        //     if (observation_container.yellow_observations[robot_id].size() == 0)
+        //     {
+        //         // 観測なし
+        //         this->yellow_estimators_[robot_id].estimate();
+        //     }
+        //     else
+        //     {
+        //         this->yellow_estimators_[robot_id].estimate(observation_container.yellow_observations[robot_id]);
+        //     }
+        // }
+
+        // // balls
+        // if (!this->existance_checker_.IsBallExist())
+        // {
+        //     this->ball_estimator_.Reset();
+        // }
+        // else
+        // {
+        //     if (observation_container.ball_observations.size() == 0)
+        //     {
+        //         // 観測なし
+        //         this->ball_estimator_.estimate();
+        //     }
+        //     else
+        //     {
+        //         this->ball_estimator_.estimate(observation_container.ball_observations);
+        //     }
+        // }
+
+        // ROS_INFO("blue_0?: %d", this->existance_checker_.IsYellowRobotExist(0));
     }
 
-    void update(std::vector<geometry2d::Pose> vision_observations)
-    {
-        this->is_exist = true;
-        this->estimator.estimate(vision_observations);
-        this->latest_appeared_time = ros::Time::now();
-    }
+    
 
+private:
+    ExistanceChecker existance_checker_;
+
+    std::vector<EnemyEstimator> blue_estimators_;
+    std::vector<EnemyEstimator> yellow_estimators_;
+    EnemyEstimator ball_estimator_;
 };
 
 
-
-std::map<int, Observer> ours_observers;
-std::map<int, Observer> theirs_observers;
-Observer ball_observers;
-ExistanceChecker existance_checker;
+ObserverFacade* observer_facade;
 
 void UpdateHook(ObservationContainer observation_container)
 {
     ROS_INFO("hook function called!");
 
-    existance_checker.update(observation_container);
-    ROS_INFO("blue_0_exist?: %d", existance_checker.IsBlueRobotExist(0));
+    observer_facade->update(observation_container);
     // ROS_INFO("x:%3.2f, y:%3.2f", observation_container.blue_observations[0][0].x, observation_container.blue_observations[0][0].y);
     
 
@@ -227,6 +271,8 @@ int main(int argc, char **argv)
 
     WorldObserverROS    ros_if(nh, vision_topic_name);
     ros_if.RegisterUpdateHook(UpdateHook);
+
+    observer_facade = new ObserverFacade(ros_if.max_id);
 
     ros::spin();
 

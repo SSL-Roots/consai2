@@ -13,13 +13,6 @@ class EnemyEstimator : public Estimator
     protected:
         double  dt;
 
-        LinearAnalyticConditionalGaussian* sys_pdf;
-        LinearAnalyticSystemModelGaussianUncertainty* sys_model;
-        LinearAnalyticConditionalGaussian* meas_pdf;
-        LinearAnalyticMeasurementModelGaussianUncertainty* meas_model;
-        KalmanFilter* filter;
-        Gaussian* prior;
-
         void initSystemModel();
         void initMeasurementModel();
 

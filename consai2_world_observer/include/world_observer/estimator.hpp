@@ -28,6 +28,7 @@ class Estimator
         geometry2d::Odometry estimate();
         geometry2d::Odometry estimate(std::vector<geometry2d::Pose> observations);
         geometry2d::Odometry estimate(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations);
+        void Reset();
 
     protected:
         class Estimation {
@@ -35,6 +36,13 @@ class Estimator
                 ColumnVector  val;
                 SymmetricMatrix cov;
         };
+
+        LinearAnalyticConditionalGaussian* sys_pdf;
+        LinearAnalyticSystemModelGaussianUncertainty* sys_model;
+        LinearAnalyticConditionalGaussian* meas_pdf;
+        LinearAnalyticMeasurementModelGaussianUncertainty* meas_model;
+        KalmanFilter* filter;
+        Gaussian* prior;
 
         Estimation  last_estimation;
 
