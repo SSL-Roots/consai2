@@ -33,6 +33,21 @@ MatrixWrapper::ColumnVector Pose::ToColumnVector()
     return  measurement;
 }
 
+Velocity::Velocity(double x, double y, double theta)
+{
+    this->x = x;
+    this->y = y;
+    this->theta = theta;
+}
+
+Velocity::Velocity(geometry_msgs::Twist twist)
+{
+    this->x = twist.linear.x;
+    this->y = twist.linear.y;
+    this->theta = twist.angular.z;
+}
+
+};
 double YawFromQuaternion(double x, double y, double z, double w)
 {
     double  roll, pitch, yaw;

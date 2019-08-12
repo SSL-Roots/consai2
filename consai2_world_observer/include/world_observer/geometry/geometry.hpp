@@ -3,6 +3,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/Twist.h>
 
 #include <bfl/filter/extendedkalmanfilter.h>
 
@@ -20,6 +21,14 @@ public:
     Pose(geometry_msgs::Pose2D pose);
 
     MatrixWrapper::ColumnVector ToColumnVector();
+};
+
+class Velocity
+{
+    double x, y, theta;
+
+    Velocity(double x, double y, double theta);
+    Velocity(geometry_msgs::Twist twist);
 };
 
 class Point
