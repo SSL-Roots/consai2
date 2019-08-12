@@ -51,6 +51,26 @@ def get_angle(from_pose, to_pose):
 
     return math.atan2(diff_pose.y, diff_pose.x)
 
+def get_intersection(pose1, pose2, pose3, pose4):
+    # get intersection of line1(pose1, pose2) and line2(pose3, pose4)
+    # reference:http://imagingsolution.blog107.fc2.com/blog-entry-137.html
+
+    s1 = ((pose4.x - pose3.x) * (pose1.y - pose3.y) \
+            - (pose4.y - pose3.y) * (pose1.x - pose3.x)) / 2.0
+
+    s2 = ((pose4.x - pose3.x) * (pose3.y - pose2.y) \
+            - (pose4.y - pose3.y) * (pose3.x - pose2.x)) / 2.0
+
+    try:
+        coefficient = s1 / (s1 + s2)
+    except ZeroDivisionError:
+        return None
+
+    output = Pose2D(0,0,0)
+    output.x = pose1.x + (pose2.x - pose1.x) * coefficient
+    output.y = pose1.y + (pose2.y - pose1.y) * coefficient
+
+    return output
 
 class Trans():
     # 座標系を移動、回転するクラス
