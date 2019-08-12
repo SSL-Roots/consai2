@@ -1,5 +1,19 @@
 #include <world_observer/world_observer_ros.hpp>
 
+//
+// ObservationContainer クラス
+//
+ObservationContainer::ObservationContainer(int num_of_robot)
+{
+    std::vector<geometry2d::Pose>   null_poses;
+    this->blue_observations.assign(num_of_robot, null_poses);
+    this->yellow_observations.assign(num_of_robot, null_poses);
+}
+
+
+//
+// WorldObserverROS クラス
+//
 WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, std::string vision_topic_name) :
     sub_vision_(nh.subscribe(vision_topic_name, 10, &WorldObserverROS::VisionCallBack, this)),
     pub_odom_debug_(nh.advertise<nav_msgs::Odometry>("debug_odom", 1000))
@@ -9,7 +23,7 @@ WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, std::string vision_topic
 
 void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::ConstPtr& msg)
 {
-    ObservationContainer observation_container;
+    ObservationContainer observation_container(this->max_id);
 
     // 観測値をロボットIDごと、ボールごとに格納
     for (auto frame : msg->frames)

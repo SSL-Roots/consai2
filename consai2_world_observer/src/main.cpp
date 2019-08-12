@@ -45,17 +45,21 @@ public:
         ros::Time now = ros::Time::now();
 
         // blueの観測を取得して、最終出現時刻を更新
-        for( auto mp : observation_container.blue_observations)
+        for (auto robot_id=0; robot_id<observation_container.blue_observations.size(); ++robot_id)
         {
-            int robot_id = mp.first;
-            this->blue_latest_appeared_time_[robot_id]  = now;
+            if (observation_container.blue_observations[robot_id].size() > 0)
+            {
+                this->blue_latest_appeared_time_[robot_id] = now;
+            }
         }
 
         // yellowの観測を取得して、最終出現時刻を更新
-        for( auto mp : observation_container.yellow_observations)
+        for (auto robot_id=0; robot_id<observation_container.yellow_observations.size(); ++robot_id)
         {
-            int robot_id = mp.first;
-            this->yellow_latest_appeared_time_[robot_id]  = now;
+            if (observation_container.yellow_observations[robot_id].size() > 0)
+            {
+                this->yellow_latest_appeared_time_[robot_id] = now;
+            }
         }
 
         // ballの観測を取得して、最終出現時刻を更新
