@@ -10,8 +10,9 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
-from actions import tool, defense, offense, goalie, role
+from actions import tool, defense, offense, goalie
 from field import Field
+import role
 
 class RobotNode(object):
     def __init__(self, robot_id):
