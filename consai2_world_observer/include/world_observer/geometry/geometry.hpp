@@ -4,11 +4,16 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Accel.h>
 
 #include <bfl/filter/extendedkalmanfilter.h>
 
 namespace geometry2d
 {
+
+//
+// 単純型
+//
 
 // Poseクラス
 // 2次元の姿勢(x, y, theta) を表現します。
@@ -34,6 +39,36 @@ public:
     Velocity(geometry_msgs::Twist twist);
 };
 
+class Accel
+{
+public:
+    double x, y, theta;
+
+    Accel();
+    Accel(double x, double y, double theta);
+    Accel(geometry_msgs::Accel accel);
+};
+
+class Velocity
+{
+public:
+    double x, y, theta;
+
+    Velocity();
+    Velocity(double x, double y, double theta);
+    Velocity(geometry_msgs::Twist twist);
+};
+
+
+class Point
+{
+public:
+    double x, y;
+};
+
+//
+// 複合型
+//
 class Odometry
 {
 public:
@@ -44,12 +79,7 @@ public:
     Odometry(Pose pose, Velocity velocity);
 };
 
-class Point
-{
-public:
-    double x, y;
-};
-
+// Utility methods
 double YawFromQuaternion(double x, double y, double z, double w);
 double pi2pi(double rad);
 

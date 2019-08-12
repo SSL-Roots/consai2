@@ -63,6 +63,28 @@ Velocity::Velocity(geometry_msgs::Twist twist)
 }
 
 
+Accel::Accel()
+{
+    this->x = 0.0;
+    this->y = 0.0;
+    this->theta = 0.0;
+}
+
+Accel::Accel(double x, double y, double theta)
+{
+    this->x = x;
+    this->y = y;
+    this->theta = theta;
+}
+
+
+Accel::Accel(geometry_msgs::Accel accel)
+{
+    this->x = accel.linear.x;
+    this->y = accel.linear.y;
+    this->theta = accel.angular.z;
+}
+
 Odometry::Odometry()
 {
 }
