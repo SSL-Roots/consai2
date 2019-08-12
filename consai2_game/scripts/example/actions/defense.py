@@ -67,3 +67,26 @@ def interpose(target_info, control_target,
     return control_target
 
 
+def defence_goal(ball_info, control_target, my_role):
+    ball_pose = ball_info.pose
+
+    ball_is_center = False
+    ball_is_left = False
+    ball_is_right = False
+
+    # 到達姿勢の計算とcontrol_targetの更新(path以外)
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
+    left_penalty_corner = Field.penalty_pose('our', 'upper_front')
+    right_penelty_corner = Field.penalty_pose('our', 'lower_front')
+    goal_center = Field.goal_pose('our', 'center')
+
+    angle_to_left_penalty_corner =  tool.get_angle(goal_center, left_penalty_corner)
+    angle_to_right_penalty_corner = tool.get_angle(goal_center, right_penelty_corner)
+    
+    trans = tool.Trans(left_penalty_corner, angle_to_penalty_upper)
+    trans.inverted_transform()
+    
+    
+
