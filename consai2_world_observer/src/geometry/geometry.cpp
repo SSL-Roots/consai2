@@ -132,6 +132,7 @@ nav_msgs::Odometry Odometry::ToROSOdometry()
     nav_msgs::Odometry msg;
 
     msg.header.stamp = ros::Time::now();
+    msg.header.frame_id = "map";    // TODO: パラメータ化
 
     msg.pose.pose = this->pose.ToROSPose();
     msg.twist.twist = this->velocity.ToROSTwist();
