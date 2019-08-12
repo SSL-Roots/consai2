@@ -47,6 +47,8 @@ public:
     Accel();
     Accel(double x, double y, double theta);
     Accel(geometry_msgs::Accel accel);
+
+    MatrixWrapper::ColumnVector ToColumnVector();
 };
 
 class Velocity

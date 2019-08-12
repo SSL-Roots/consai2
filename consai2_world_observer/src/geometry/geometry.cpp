@@ -85,6 +85,17 @@ Accel::Accel(geometry_msgs::Accel accel)
     this->theta = accel.angular.z;
 }
 
+MatrixWrapper::ColumnVector Accel::ToColumnVector()
+{
+    MatrixWrapper::ColumnVector  measurement(3);
+
+    measurement(1) = this->x;
+    measurement(2) = this->y;
+    measurement(3) = this->theta;
+
+    return  measurement;
+}
+
 Odometry::Odometry()
 {
 }
