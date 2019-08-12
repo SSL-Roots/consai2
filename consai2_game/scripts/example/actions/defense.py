@@ -79,14 +79,31 @@ def defence_goal(ball_info, control_target, my_role):
     control_target.dribble_power = 0.0
 
     left_penalty_corner = Field.penalty_pose('our', 'upper_front')
-    right_penelty_corner = Field.penalty_pose('our', 'lower_front')
+    right_penalty_corner = Field.penalty_pose('our', 'lower_front')
     goal_center = Field.goal_pose('our', 'center')
 
     angle_to_left_penalty_corner =  tool.get_angle(goal_center, left_penalty_corner)
-    angle_to_right_penalty_corner = tool.get_angle(goal_center, right_penelty_corner)
+    angle_to_right_penalty_corner = tool.get_angle(goal_center, right_penalty_corner)
     
-    trans = tool.Trans(left_penalty_corner, angle_to_penalty_upper)
-    trans.inverted_transform()
+    # ゴールを背にした左コーナー中心の座標軸
+    trans_left = tool.Trans(left_penalty_corner, angle_to_left_penalty_corner)
+    tr_left_ball_pose = trans_left.transform(ball_pose)
+
+    # ゴールを背にした右コーナー中心の座標軸
+    trans_right = tool.Trans(right_penalty_corner, angle_to_right_penalty_corner)
+    tr_right_ball_pose = trans_right.transform(ball_pose)
+
+    # ボールの位置を判定
+    if tr_left_ball_pose.y > 0:
+        ball_is_left = True
+    elif tr_right_ball_pose.y < 0:
+        ball_is_right = True
+    else:
+        ball_is_center = True
+
+    
+
+
     
     
 
