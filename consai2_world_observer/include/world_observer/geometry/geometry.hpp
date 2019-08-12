@@ -1,5 +1,10 @@
+#ifndef _GEOMETRY_HPP_
+#define _GEOMETRY_HPP_
+
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Pose2D.h>
+
+#include <bfl/filter/extendedkalmanfilter.h>
 
 namespace geometry2d
 {
@@ -9,9 +14,12 @@ namespace geometry2d
 class Pose
 {
 public:
+    double x, y, theta;
+
     Pose(geometry_msgs::Pose   pose);
     Pose(geometry_msgs::Pose2D pose);
-    double x, y, theta;
+
+    MatrixWrapper::ColumnVector ToColumnVector();
 };
 
 class Point
@@ -21,5 +29,8 @@ public:
 };
 
 double YawFromQuaternion(double x, double y, double z, double w);
+double pi2pi(double rad);
 
 }
+
+#endif //_GEOMETRY_HPP_

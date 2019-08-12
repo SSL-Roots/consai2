@@ -37,7 +37,6 @@ class EnemyEstimator : public Estimator
 
         nav_msgs::Odometry  convetStateVectorToOdometry(ColumnVector state_vector);
         void collectAngleOverflow(ColumnVector& state, SymmetricMatrix& cov);
-        double  pi2pi(double angle);
 
 
 };
