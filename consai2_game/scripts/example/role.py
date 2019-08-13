@@ -119,8 +119,8 @@ class RoleDecision(object):
 
 # Roleを保持するクラス。RobotNodeはこいつを参照する
 class RoleStocker(object):
-    def __init__(self, max_robot, max_role):
-        self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_robot + 1)
+    def __init__(self, max_id, max_role):
+        self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_id + 1)
         self._role_is_exist = [False] * (max_role + 1)
 
     def set_my_role(self, robot_id, role_num):
