@@ -66,7 +66,7 @@ def interpose(target_info, control_target,
 
     return control_target
 
-
+# ゴール前ディフェンス
 def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     MARGIN_LINE = 0.1
     MARGIN_ROBOT = 0
