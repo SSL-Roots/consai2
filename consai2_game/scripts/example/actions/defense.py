@@ -70,7 +70,7 @@ def interpose(target_info, control_target,
 def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     MARGIN_LINE = 0.1
     MARGIN_ROBOT = 0
-    MARGIN_FOR_SPEED = 0.7
+    MARGIN_FOR_SPEED = 0.6
     if defence_num > 1:
         if my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
             MARGIN_ROBOT = 0.15
@@ -100,6 +100,7 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
 
     angle_to_left_penalty_corner =  tool.get_angle(goal_center, left_penalty_corner)
     angle_to_right_penalty_corner = tool.get_angle(goal_center, right_penalty_corner)
+    angle_to_ball = tool.get_angle(my_pose, ball_pose)
     
     # ゴールを背にした左コーナー中心の座標軸
     trans_left = tool.Trans(left_penalty_corner, angle_to_left_penalty_corner)
@@ -171,24 +172,8 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
             target_pose = Pose2D()
     if target_pose.x < goal_center.x:
         target_pose.x = goal_center.x
-
     
-    # # ---------------------------------------------------------
-    # remake_path = False
-    # # pathが設定されてなければpathを新規作成
-    # if control_target.path is None or len(control_target.path) == 0:
-    #     remake_path = True
-    # # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
-    # if remake_path is False:
-    #     current_goal_pose = control_target.path[-1]
-
-    #     if not tool.is_close(current_goal_pose, target_pose, Pose2D(0.1, 0.1, math.radians(10))):
-    #         remake_path = True
-    # # remake_path is Trueならpathを再生成する
-    # # pathを再生成すると衝突回避用に作られた経路もリセットされる
-    # if remake_path:
-    #     control_target.path = []
-    #     control_target.path.append(target_pose)
+    target_pose.theta = angle_to_ball
 
     return target_pose
     
