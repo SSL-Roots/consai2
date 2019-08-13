@@ -95,10 +95,13 @@ class ObstacleAvoidance(object):
             ball_avoid_pose = trans.inverted_transform(tr_avoid_pose)
             dist_robot2ball = tool.distance_2_poses(ball_pose, my_pose)
 
-            if avoid_pose is not None:
-                avoid_pose = ball_avoid_pose
-            elif dist_robot2ball < dist_robot2path:
-                avoid_pose = ball_avoid_pose
+            ball_detect_flag = self.detect_object_on_trajectory(trans, my_pose, goal_pose, ball_pose)
+
+            if ball_detect_flag == True:
+                if avoid_pose is None:
+                    avoid_pose = ball_avoid_pose
+                elif dist_robot2ball < dist_robot2path:
+                    avoid_pose = ball_avoid_pose
 
         return avoid_pose
 
@@ -133,6 +136,19 @@ class ObstacleAvoidance(object):
                 dist.append(100)
 
         return dist, obst_dist, obst_id
+
+    def detect_object_on_trajectory(self, trans, my_pose, goal_pose, object_pose):
+        
+        tr_my_pose = trans.transform(my_pose)
+        tr_object_pose = trans.transform(object_pose)
+        tr_goal_pose = trans.transform(goal_pose)
+
+        if tr_my_pose.x + self._range_tr_x < tr_object_pose.x and tr_object_pose.x < tr_goal_pose.x and \
+                tr_my_pose.y - self._range_tr_y < tr_object_pose.y and tr_object_pose.y < tr_my_pose.y + self._range_tr_y:
+            flag = True
+        else:
+            flag = False
+        return flag
 
     # 避ける位置を生成
     def gen_avoid_pose(self, trans, my_pose, robot_info_team, dist, obst_dist, obst_id):
