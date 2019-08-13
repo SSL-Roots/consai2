@@ -38,14 +38,15 @@ class ObstacleAvoidance(object):
     # 中間パスを生成してtarget.pathに追加する
     # ball_avoid_flagでボールも障害物にするか決める
     def add_path(self, target_path, my_pose, ball_avoid_flag=False):
+        goal_path = []
+        goal_path.append(target_path[-1]) 
         # 中間パスを生成
-        avoid_pose = self.basic_avoid(my_pose, target_path, ball_avoid_flag)
-
+        avoid_pose = self.basic_avoid(my_pose, goal_path, ball_avoid_flag)
         # パスに追加する
         if avoid_pose is not None:
-            target_path.insert(0, avoid_pose)
+            goal_path.insert(0, avoid_pose)
 
-        return target_path
+        return goal_path
 
     # 回避用の関数
     def basic_avoid(self, my_pose, target_path, ball_avoid_flag):
