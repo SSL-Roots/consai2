@@ -145,11 +145,17 @@ class ObserverFacade
 {
 public:
     ObserverFacade(int max_id) :
-        existance_checker_(max_id),
-        ball_estimator_(0.016)
+        existance_checker_(max_id)
     {
-        this->blue_estimators_.assign(max_id, EnemyEstimator(0.016));
-        this->yellow_estimators_.assign(max_id, EnemyEstimator(0.016));
+        this->blue_estimators_.resize(max_id);
+        this->yellow_estimators_.resize(max_id);
+        for (auto i=0; i<max_id; ++i)
+        {
+            this->blue_estimators_[i].Init(0.016);
+            this->yellow_estimators_[i].Init(0.016);
+        }
+
+        this->ball_estimator_.Init(0.016);
     }
 
     void update(ObservationContainer observation_container)
@@ -161,62 +167,62 @@ public:
         {
             geometry2d::Odometry odom;
             
-            // if (!this->existance_checker_.IsBlueRobotExist(robot_id))
-            // {
-            //     this->blue_estimators_[robot_id].Reset();
-            //     continue;
-            // }
+            if (!this->existance_checker_.IsBlueRobotExist(robot_id))
+            {
+                this->blue_estimators_[robot_id].Reset();
+                continue;
+            }
 
-            // if (observation_container.blue_observations[robot_id].size() == 0)
-            // {
-            //     // 観測なし
-            //     odom = this->blue_estimators_[robot_id].estimate();
-            // }
-            // else
-            // {
-            //     odom = this->blue_estimators_[robot_id].estimate(observation_container.blue_observations[robot_id]);
-            // }
+            if (observation_container.blue_observations[robot_id].size() == 0)
+            {
+                // 観測なし
+                odom = this->blue_estimators_[robot_id].estimate();
+            }
+            else
+            {
+                odom = this->blue_estimators_[robot_id].estimate(observation_container.blue_observations[robot_id]);
+            }
 
             odom.print();
         }
 
-        // // Yellow robots
-        // for (auto robot_id=0; robot_id < observation_container.yellow_observations.size(); ++robot_id)
-        // {
-        //     if (!this->existance_checker_.IsYellowRobotExist(robot_id))
-        //     {
-        //         this->yellow_estimators_[robot_id].Reset();
-        //         continue;
-        //     }
+        // Yellow robots
+        for (auto robot_id=0; robot_id < observation_container.yellow_observations.size(); ++robot_id)
+        {
+            if (!this->existance_checker_.IsYellowRobotExist(robot_id))
+            {
+                this->yellow_estimators_[robot_id].Reset();
+                continue;
+            }
 
-        //     if (observation_container.yellow_observations[robot_id].size() == 0)
-        //     {
-        //         // 観測なし
-        //         this->yellow_estimators_[robot_id].estimate();
-        //     }
-        //     else
-        //     {
-        //         this->yellow_estimators_[robot_id].estimate(observation_container.yellow_observations[robot_id]);
-        //     }
-        // }
+            if (observation_container.yellow_observations[robot_id].size() == 0)
+            {
+                // 観測なし
+                this->yellow_estimators_[robot_id].estimate();
+            }
+            else
+            {
+                this->yellow_estimators_[robot_id].estimate(observation_container.yellow_observations[robot_id]);
+            }
+        }
 
-        // // balls
-        // if (!this->existance_checker_.IsBallExist())
-        // {
-        //     this->ball_estimator_.Reset();
-        // }
-        // else
-        // {
-        //     if (observation_container.ball_observations.size() == 0)
-        //     {
-        //         // 観測なし
-        //         this->ball_estimator_.estimate();
-        //     }
-        //     else
-        //     {
-        //         this->ball_estimator_.estimate(observation_container.ball_observations);
-        //     }
-        // }
+        // balls
+        if (!this->existance_checker_.IsBallExist())
+        {
+            this->ball_estimator_.Reset();
+        }
+        else
+        {
+            if (observation_container.ball_observations.size() == 0)
+            {
+                // 観測なし
+                this->ball_estimator_.estimate();
+            }
+            else
+            {
+                this->ball_estimator_.estimate(observation_container.ball_observations);
+            }
+        }
 
         // ROS_INFO("blue_0?: %d", this->existance_checker_.IsYellowRobotExist(0));
     }
@@ -231,7 +237,6 @@ private:
     EnemyEstimator ball_estimator_;
 };
 
-
 ObserverFacade* observer_facade;
 
 void UpdateHook(ObservationContainer observation_container)
@@ -239,17 +244,6 @@ void UpdateHook(ObservationContainer observation_container)
     ROS_INFO("hook function called!");
 
     observer_facade->update(observation_container);
-    // ROS_INFO("x:%3.2f, y:%3.2f", observation_container.blue_observations[0][0].x, observation_container.blue_observations[0][0].y);
-    
-
-    // geometry2d::Odometry odom;
-    // odom = enemy_estimator.estimate(observation_container.blue_observations[0]);
-
-    // ROS_INFO("[RAW] x: %3.2f, y:%3.2f", x, y);
-    // ROS_INFO("[FIL] x: %3.2f, y:%3.2f", odom.pose.x, odom.pose.y);
-    // ROS_INFO("-----");
-
-    // world_observer->PublishDebugOdom(odom);
 }
 
 
