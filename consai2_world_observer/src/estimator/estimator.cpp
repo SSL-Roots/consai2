@@ -3,9 +3,27 @@
 #include <world_observer/estimator.hpp>
 
 
+// PoseKalmanFilterクラス
+// 二次元座標での位置と速度のカルマンフィルタ
 
 PoseKalmanFilter::PoseKalmanFilter()
-{}
+{
+}
+
+void PoseKalmanFilter::Init(double loop_time)
+{
+    this->dt = loop_time;
+
+    this->InitSystemModel(&(this->sys_pdf), &(this->sys_model));
+    this->InitMeasurementModel(&(this->meas_pdf), &(this->meas_model));
+    this->InitPrior(&(this->prior));
+
+    /****************************
+     * Linear prior DENSITY     *
+     ***************************/
+    // Continuous Gaussian prior (for Kalman filters)
+    this->filter = new ExtendedKalmanFilter(this->prior);
+}
 
 geometry2d::Odometry PoseKalmanFilter::estimate()
 {
@@ -44,53 +62,103 @@ void PoseKalmanFilter::Reset()
     this->filter->Reset(this->prior);
 }
 
-//
+
 // Private methods
 //
+
+void PoseKalmanFilter::collectAngleOverflow(ColumnVector& state, SymmetricMatrix& cov)
+{
+    if (state(3) < -M_PI || state(3) > M_PI) {
+        state(3) = EulerAngle::normalize(state(3));
+
+        this->prior->ExpectedValueSet(state);
+        this->prior->CovarianceSet(cov);
+
+        filter->Reset(prior);
+    }
+}
+
+PoseKalmanFilter::Estimation PoseKalmanFilter::getResult()
+{
+    Estimation  est;
+    Pdf<ColumnVector> * posterior = filter->PostGet();
+
+    est.val = posterior->ExpectedValueGet();
+    est.cov = posterior->CovarianceGet();
+
+    return  est;
+}
+
+
+void PoseKalmanFilter::predict(ColumnVector input)
+{
+    Estimation  est;
+
+    this->filter->Update(sys_model, input);
+    est = getResult();
+    collectAngleOverflow(est.val, est.cov);
+
+    this->last_estimation = est;
+}
+
+
+void PoseKalmanFilter::update(ColumnVector measurement)
+{
+    Estimation  est;
+
+    // collect angle continuity
+    measurement(3) = EulerAngle::normalize(measurement(3), this->last_estimation.val(3));
+
+    this->filter->Update(meas_model, measurement);
+    est = getResult();
+
+    collectAngleOverflow(est.val, est.cov);
+
+    this->last_estimation = est;
+}
+
+
+geometry2d::Odometry PoseKalmanFilter::convetEstimationToOdometry()
+{
+    geometry2d::Odometry odom;
+
+    odom.pose.x = this->last_estimation.val(1);
+    odom.pose.y = this->last_estimation.val(2);
+    odom.pose.theta = this->last_estimation.val(3);
+
+    odom.velocity.x = this->last_estimation.val(4);
+    odom.velocity.y = this->last_estimation.val(5);
+    odom.velocity.theta = this->last_estimation.val(6);
+
+    return  odom;
+}
+
+
+bool PoseKalmanFilter::isOutlier(ColumnVector measurement){
+    return false;
+}
+
+
+double PoseKalmanFilter::mahalanobisDistance(ColumnVector measurement){
+    return 0;
+}
 
 
 PoseKalmanFilter::~PoseKalmanFilter()
 {
+    delete  this->sys_pdf;
+    delete  this->sys_model;
+    delete  this->meas_pdf;
+    delete  this->meas_model;
+    delete  this->prior;
+    delete  this->filter;
 }
-
 
 
 // EnemyEstimatorクラス
 // 
-EnemyEstimator::EnemyEstimator()
-{
-}
 
-
-void EnemyEstimator::Init(double loop_time)
-{
-    this->dt = loop_time;
-
-    initSystemModel();
-    initMeasurementModel();
-
-    /****************************
-     * Linear prior DENSITY     *
-     ***************************/
-    // Continuous Gaussian prior (for Kalman filters)
-    ColumnVector prior_Mu(6);
-    prior_Mu = 0.0;
-
-    SymmetricMatrix prior_Cov(6);
-    prior_Cov = 0.0;
-    prior_Cov(1,1) = 100.0;
-    prior_Cov(2,2) = 100.0;
-    prior_Cov(3,3) = 100.0;
-    prior_Cov(4,4) = 100.0;
-    prior_Cov(5,5) = 100.0;
-    prior_Cov(6,6) = 100.0;
-
-    prior = new Gaussian (prior_Mu,prior_Cov);
-    filter = new ExtendedKalmanFilter(prior);
-}
-
-
-void EnemyEstimator::initSystemModel( )
+void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf, LinearAnalyticSystemModelGaussianUncertainty** sys_model)
 {
     // Create the matrices A and B for the linear system model
     Matrix A(6,6);
@@ -129,12 +197,12 @@ void EnemyEstimator::initSystemModel( )
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
 
     // create the model
-    this->sys_pdf = new LinearAnalyticConditionalGaussian(AB, system_Uncertainty);
-    this->sys_model = new  LinearAnalyticSystemModelGaussianUncertainty(this->sys_pdf);
+    *sys_pdf = new LinearAnalyticConditionalGaussian(AB, system_Uncertainty);
+    *sys_model = new  LinearAnalyticSystemModelGaussianUncertainty(*sys_pdf);
 }
 
-
-void EnemyEstimator::initMeasurementModel() {
+void EnemyEstimator::InitMeasurementModel(LinearAnalyticConditionalGaussian** meas_pdf, LinearAnalyticMeasurementModelGaussianUncertainty** meas_model)
+{
     // create matrix H for linear measurement model
     Matrix H(3,6);
     H = 0.0;
@@ -153,103 +221,26 @@ void EnemyEstimator::initMeasurementModel() {
     Gaussian measurement_Uncertainty(measNoise_Mu, measNoise_Cov);
 
     // create the model
-    meas_pdf = new LinearAnalyticConditionalGaussian(H, measurement_Uncertainty);
-    meas_model = new LinearAnalyticMeasurementModelGaussianUncertainty (meas_pdf);
+    *meas_pdf = new LinearAnalyticConditionalGaussian(H, measurement_Uncertainty);
+    *meas_model = new LinearAnalyticMeasurementModelGaussianUncertainty (*meas_pdf);
 }
 
-
-
-void EnemyEstimator::predict(ColumnVector input)
+void EnemyEstimator::InitPrior(Gaussian** prior)
 {
-    Estimation  est;
+    ColumnVector prior_Mu(6);
+    prior_Mu = 0.0;
 
-    this->filter->Update(sys_model, input);
-    est = getResult();
-    collectAngleOverflow(est.val, est.cov);
+    SymmetricMatrix prior_Cov(6);
+    prior_Cov = 0.0;
+    prior_Cov(1,1) = 100.0;
+    prior_Cov(2,2) = 100.0;
+    prior_Cov(3,3) = 100.0;
+    prior_Cov(4,4) = 100.0;
+    prior_Cov(5,5) = 100.0;
+    prior_Cov(6,6) = 100.0;
 
-    this->last_estimation = est;
+    *prior = new Gaussian (prior_Mu,prior_Cov);
 }
-
-
-void EnemyEstimator::update(ColumnVector measurement)
-{
-    Estimation  est;
-
-    // collect angle continuity
-    measurement(3) = EulerAngle::normalize(measurement(3), this->last_estimation.val(3));
-
-    this->filter->Update(meas_model, measurement);
-    est = getResult();
-
-    collectAngleOverflow(est.val, est.cov);
-
-    this->last_estimation = est;
-}
-
-
-EnemyEstimator::Estimation EnemyEstimator::getResult()
-{
-    Estimation  est;
-    Pdf<ColumnVector> * posterior = filter->PostGet();
-
-    est.val = posterior->ExpectedValueGet();
-    est.cov = posterior->CovarianceGet();
-
-    return  est;
-}
-
-
-void EnemyEstimator::collectAngleOverflow(ColumnVector& state, SymmetricMatrix& cov)
-{
-    if (state(3) < -M_PI || state(3) > M_PI) {
-        state(3) = EulerAngle::normalize(state(3));
-
-        this->prior->ExpectedValueSet(state);
-        this->prior->CovarianceSet(cov);
-
-        filter->Reset(prior);
-    }
-}
-
-
-
-geometry2d::Odometry EnemyEstimator::convetEstimationToOdometry()
-{
-    geometry2d::Odometry odom;
-
-    odom.pose.x = this->last_estimation.val(1);
-    odom.pose.y = this->last_estimation.val(2);
-    odom.pose.theta = this->last_estimation.val(3);
-
-    odom.velocity.x = this->last_estimation.val(4);
-    odom.velocity.y = this->last_estimation.val(5);
-    odom.velocity.theta = this->last_estimation.val(6);
-
-    return  odom;
-}
-
-
-bool EnemyEstimator::isOutlier(ColumnVector measurement){
-    return false;
-}
-
-
-double EnemyEstimator::mahalanobisDistance(ColumnVector measurement){
-    return 0;
-}
-
-
-EnemyEstimator::~EnemyEstimator()
-{
-    delete  this->sys_pdf;
-    delete  this->sys_model;
-    delete  this->meas_pdf;
-    delete  this->meas_model;
-    delete  this->prior;
-    delete  this->filter;
-}
-
-
 
 /**********************************************************
  * This is implementation of EulerAngle class
