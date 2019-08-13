@@ -10,6 +10,7 @@ from consai2_msgs.msg import DecodedReferee
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
+import avoidance
 from actions import tool, defense, offense, goalie
 from field import Field
 import role
@@ -45,16 +46,31 @@ class RobotNode(object):
         self._control_target.control_enable = False
         return self._control_target
 
-
-    def get_action(self, referee, ball_info, robot_info=None, defece_num=0):
+    def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None, defece_num=0):
         self._control_target.control_enable = True
 
+        # reset_flag = True
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
             self._control_target.control_enable = False
 
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
+            pose = Pose2D()
+            # if self._is_goalie:
+            if self._my_role == 0:
+                self._control_target = goalie.interpose(
+                        ball_info, robot_info, self._control_target)
+            elif self._my_role == 1:
+                # アタッカーならボールに近づく
+                self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
+                # 障害物位置を検出し、中間パスの生成と追加を行う
+                self._control_target.path = obstacle_avoidance.add_path(self._control_target.path, self._my_pose)
+            else:
+                # それ以外ならくるくる回る
+                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
+                self._control_target.path = []
+            
             pass
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
@@ -145,7 +161,6 @@ class RobotNode(object):
 
         return self._control_target
 
-
 class Game(object):
     def __init__(self):
         QUEUE_SIZE = 1
@@ -211,6 +226,8 @@ class Game(object):
                     queue_size=1)
             self._pubs_control_target.append(pub_control_target)
 
+        # 障害物回避のためのクラス
+        self._obstacle_avoidance = avoidance.ObstacleAvoidance()
 
     def _callback_geometry(self, msg):
         Field.update(msg)
@@ -233,23 +250,22 @@ class Game(object):
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
 
+        self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
+
         for our_info in self._robot_info['our']:
             robot_id = our_info.robot_id
             target = ControlTarget()
             if our_info.disappeared:
                 # ロボットが消えていたら停止
                 target = self._robot_node[robot_id].get_sleep()
-        
             else:
                 # ロボットの状態を更新
                 self._robot_node[robot_id].set_state(
                         our_info.pose, our_info.velocity)
                 # 目標位置を生成
-                # target = self._robot_node[robot_id].get_action(
-                        # self._decoded_referee,
-                        # self._ball_info)
                 target = self._robot_node[robot_id].get_action(
                         self._decoded_referee,
+                        self._obstacle_avoidance,
                         self._ball_info,
                         self._robot_info,
                         defense_num)
@@ -257,7 +273,6 @@ class Game(object):
             self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
 
             self._pubs_control_target[robot_id].publish(target)
-
 
 def main():
     rospy.init_node('game')
