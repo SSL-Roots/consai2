@@ -53,8 +53,14 @@ def interpose(ball_info, robot_info, control_target):
     OUR_GOAL_UPPER = Field.goal_pose('our', 'upper')
     OUR_GOAL_LOWER = Field.goal_pose('our', 'lower')
 
-    xr = OUR_GOAL_POSE.x + 0.1
-    # goalie_threshold_y = 1.5
+    # ゴールのx座標の符号
+    if OUR_GOAL_POSE.x < 0:
+        sign = -1
+    else:
+        sign = 1
+
+    # ゴールを守るx座標
+    xr = OUR_GOAL_POSE.x - sign * 0.1
 
     # 敵のロボットの情報
     robot_info_their = robot_info['their']
@@ -85,7 +91,9 @@ def interpose(ball_info, robot_info, control_target):
     # ボールの次の予測位置を取得
     ball_pose_next = Pose2D(ball_pose.x + dvx, ball_pose.y + dvy, 0) 
 
-    if dist[min_dist_id] < 0.15 and robot_pose.x < 0:
+    if dist[min_dist_id] < 0.20 and \
+            (sign < 0 and robot_pose.x < 0 or 0 < sign and 0 < robot_pose.x):
+        # 敵ロボットとボールの距離が近い場合
         rospy.logdebug('their')
         angle_their = robot_pose.theta
         if angle_their == 0:
@@ -93,10 +101,13 @@ def interpose(ball_info, robot_info, control_target):
         else:
             a = math.tan(angle_their)
         b = robot_pose.y - a * robot_pose.x 
-    elif 0.1 < v and dvx < 0:
+    elif 0.1 < v and \
+            (sign < 0 and robot_pose.x < 0 or 0 < sign and 0 < robot_pose.x):
+        # ボールの速度がある場合かつ近づいてくる場合
         rospy.logdebug('ball move')
         a, b = line_pram(ball_pose, ball_pose_next)
     else:
+        # その他はゴール中心とボールを結ぶ線上を守る
         rospy.logdebug('ball stop')
         a, b = line_pram(ball_pose, OUR_GOAL_POSE)
     
