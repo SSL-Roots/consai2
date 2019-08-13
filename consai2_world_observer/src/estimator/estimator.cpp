@@ -4,22 +4,22 @@
 
 
 
-Estimator::Estimator()
+PoseKalmanFilter::PoseKalmanFilter()
 {}
 
-geometry2d::Odometry Estimator::estimate()
+geometry2d::Odometry PoseKalmanFilter::estimate()
 {
     std::vector<geometry2d::Pose> null_poses;
     return  this->estimate(null_poses);
 }
 
-geometry2d::Odometry Estimator::estimate(std::vector<geometry2d::Pose> observations)
+geometry2d::Odometry PoseKalmanFilter::estimate(std::vector<geometry2d::Pose> observations)
 {
     geometry2d::Accel  null_acc;
     return  this->estimate(null_acc, observations);
 }
 
-geometry2d::Odometry Estimator::estimate(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations)
+geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations)
 {
     // System update by only system model with input
     predict(accel.ToColumnVector());
@@ -39,7 +39,7 @@ geometry2d::Odometry Estimator::estimate(geometry2d::Accel accel, std::vector<ge
 }
 
 
-void Estimator::Reset()
+void PoseKalmanFilter::Reset()
 {
     this->filter->Reset(this->prior);
 }
@@ -49,7 +49,7 @@ void Estimator::Reset()
 //
 
 
-Estimator::~Estimator()
+PoseKalmanFilter::~PoseKalmanFilter()
 {
 }
 

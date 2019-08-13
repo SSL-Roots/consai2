@@ -16,11 +16,11 @@ using namespace BFL;
 using namespace std;
 
 
-class Estimator
+class PoseKalmanFilter
 {
     public:
-        Estimator();
-        ~Estimator();
+        PoseKalmanFilter();
+        ~PoseKalmanFilter();
 
         geometry2d::Odometry estimate();
         geometry2d::Odometry estimate(std::vector<geometry2d::Pose> observations);
@@ -51,7 +51,7 @@ class Estimator
 };
 
 
-class EnemyEstimator : public Estimator
+class EnemyEstimator : public PoseKalmanFilter
 {
     public:
         // constructor
