@@ -72,10 +72,13 @@ class RobotNode(object):
                 self._control_target = goalie.interpose(
                         ball_info, robot_info, self._control_target)
             elif self._my_role == 1:
+                self._control_target.path = []
                 # アタッカーならボールに近づく
-                self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
+                # self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
+                self._control_target.path = []
+                self._control_target.path.append(Pose2D(0, 0, 0))
                 # 障害物位置を検出し、中間パスの生成と追加を行う
-                self._control_target.path = obstacle_avoidance.add_path(self._control_target.path, self._my_pose)
+                self._control_target.path = obstacle_avoidance.add_path(self._control_target.path, self._my_pose, ball_avoid_flag=True)
             else:
                 # それ以外ならくるくる回る
                 # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
