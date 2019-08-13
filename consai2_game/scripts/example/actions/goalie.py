@@ -43,31 +43,31 @@ def angle_2_poses(pose1, pose2):
 
 def interpose(ball_info, robot_info, control_target):
 
+    # ボールが動いていると判断するしきい値
+    MOVE_V_THRESHOLD = 0.5
+    # ロボットがボールを持っていると判断するしきい値
+    DIST_ROBOT2BALL_THRESHOLD = 0.2
+
     # ボールの位置
     ball_pose = ball_info.pose
     # ボールの速度
     ball_vel = ball_info.velocity
 
-    # ゴールの位置
+    # ゴールの位置(自陣のゴールのx座標は絶対負になる)
     OUR_GOAL_POSE = Field.goal_pose('our', 'center')
     OUR_GOAL_UPPER = Field.goal_pose('our', 'upper')
     OUR_GOAL_LOWER = Field.goal_pose('our', 'lower')
 
-    # ゴールのx座標の符号
-    if OUR_GOAL_POSE.x < 0:
-        sign = -1
-    else:
-        sign = 1
-
     # ゴールを守るx座標
-    xr = OUR_GOAL_POSE.x - sign * 0.1
+    xr = OUR_GOAL_POSE.x + 0.1
 
     # 敵のロボットの情報
     robot_info_their = robot_info['their']
     # 敵ロボットとボールの距離
     dist = []
     for their_info in robot_info_their:
-        if their_info.detected:
+
+        if their_info.disappeared is False:
             dist.append(tool.distance_2_poses(their_info.pose, ball_pose))
         else:
             dist.append(100)
@@ -91,8 +91,7 @@ def interpose(ball_info, robot_info, control_target):
     # ボールの次の予測位置を取得
     ball_pose_next = Pose2D(ball_pose.x + dvx, ball_pose.y + dvy, 0) 
 
-    if dist[min_dist_id] < 0.20 and \
-            (sign < 0 and robot_pose.x < 0 or 0 < sign and 0 < robot_pose.x):
+    if dist[min_dist_id] < DIST_ROBOT2BALL_THRESHOLD and robot_pose.x < 0:
         # 敵ロボットとボールの距離が近い場合
         rospy.logdebug('their')
         angle_their = robot_pose.theta
@@ -101,8 +100,7 @@ def interpose(ball_info, robot_info, control_target):
         else:
             a = math.tan(angle_their)
         b = robot_pose.y - a * robot_pose.x 
-    elif 0.1 < v and \
-            (sign < 0 and robot_pose.x < 0 or 0 < sign and 0 < robot_pose.x):
+    elif MOVE_V_THRESHOLD < v and dvx < 0:
         # ボールの速度がある場合かつ近づいてくる場合
         rospy.logdebug('ball move')
         a, b = line_pram(ball_pose, ball_pose_next)
