@@ -46,8 +46,7 @@ class RobotNode(object):
         self._control_target.control_enable = False
         return self._control_target
 
-
-    def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None):
+    def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None, defece_num=0):
         self._control_target.control_enable = True
 
         # reset_flag = True
@@ -138,9 +137,11 @@ class RobotNode(object):
             elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
                 pose.x = -3.5
                 pose.y = 1
+                pose = defense.defence_goal(self._my_pose, ball_info, self._control_target, self._my_role, defece_num)
             elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_2"]:
                 pose.x = -3.5
                 pose.y = -1
+                pose = defense.defence_goal(self._my_pose, ball_info, self._control_target, self._my_role, defece_num)
             elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
                 pose.x = -1
                 pose.y = 1
@@ -247,6 +248,7 @@ class Game(object):
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
         self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
+        defense_num = self._roledecision._rolestocker._defence_num
 
         self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
 
@@ -265,7 +267,8 @@ class Game(object):
                         self._decoded_referee,
                         self._obstacle_avoidance,
                         self._ball_info,
-                        self._robot_info)
+                        self._robot_info,
+                        defense_num)
 
             self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
 

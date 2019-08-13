@@ -13,7 +13,7 @@ import tool
 
 sys.path.append(os.pardir)
 from field import Field
-
+import role
 
 def interpose(target_info, control_target, 
         dist_from_goal=None, dist_from_target=None):
@@ -66,4 +66,121 @@ def interpose(target_info, control_target,
 
     return control_target
 
+
+def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
+    MARGIN_LINE = 0.1
+    MARGIN_ROBOT = 0
+    MARGIN_FOR_SPEED = 0.6
+    if defence_num > 1:
+        if my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
+            MARGIN_ROBOT = 0.15
+        else:
+            MARGIN_ROBOT = -0.15
+
+    ball_pose = ball_info.pose
+    
+    ball_is_center = False
+    ball_is_left = False
+    ball_is_right = False
+    my_pose_is_left = False
+    my_pose_is_right = False
+    target_is_center = False
+    target_is_left = False
+    target_is_right = False
+
+    # 到達姿勢の計算とcontrol_targetの更新(path以外)
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
+    left_penalty_corner = Field.penalty_pose('our', 'upper_front')
+    right_penalty_corner = Field.penalty_pose('our', 'lower_front')
+    left_penalty_goalside = Field.penalty_pose('our', 'upper_back')
+    right_penalty_goalside = Field.penalty_pose('our', 'lower_back')
+    goal_center = Field.goal_pose('our', 'center')
+
+    angle_to_left_penalty_corner =  tool.get_angle(goal_center, left_penalty_corner)
+    angle_to_right_penalty_corner = tool.get_angle(goal_center, right_penalty_corner)
+    angle_to_ball = tool.get_angle(my_pose, ball_pose)
+    
+    # ゴールを背にした左コーナー中心の座標軸
+    trans_left = tool.Trans(left_penalty_corner, angle_to_left_penalty_corner)
+    tr_left_ball_pose = trans_left.transform(ball_pose)
+
+    # ゴールを背にした右コーナー中心の座標軸
+    trans_right = tool.Trans(right_penalty_corner, angle_to_right_penalty_corner)
+    tr_right_ball_pose = trans_right.transform(ball_pose)
+
+    # ボールの位置を判定
+    if tr_left_ball_pose.y > 0:
+        ball_is_left = True
+    elif tr_right_ball_pose.y < 0:
+        ball_is_right = True
+    else:
+        ball_is_center = True
+
+    if my_pose.y > left_penalty_corner.y:
+        my_pose_is_left = True
+    elif my_pose.y < right_penalty_corner.y:
+        my_pose_is_right = True
+
+    if ball_is_center:
+        target_pose = tool.get_intersection(left_penalty_corner, right_penalty_corner,
+                goal_center, ball_pose)
+        if target_pose is not None:
+            target_pose.x += MARGIN_LINE
+            if my_pose.x < left_penalty_corner.x:
+                target_pose.x += MARGIN_FOR_SPEED
+                if my_pose.y > 0:
+                    target_pose.y = left_penalty_corner.y + MARGIN_LINE
+                else:
+                    target_pose.y = right_penalty_corner.y - MARGIN_LINE
+            else:
+                target_pose.y += MARGIN_ROBOT
+        else:
+            target_pose = Pose2D()
+    elif ball_is_left:
+        target_pose = tool.get_intersection(left_penalty_corner, left_penalty_goalside,
+                goal_center, ball_pose)
+        if target_pose is not None:
+            target_pose.y += MARGIN_LINE
+            if my_pose.y < left_penalty_corner.y:
+                if my_pose.x < left_penalty_corner.x:
+                    target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
+                    target_pose.y = right_penalty_corner.y - MARGIN_LINE
+                else:
+                    target_pose.x = left_penalty_corner.x + MARGIN_LINE
+                    target_pose.y += MARGIN_FOR_SPEED
+            else:
+                target_pose.x -= MARGIN_ROBOT
+        else:
+            target_pose = Pose2D()
+    elif ball_is_right:
+        target_pose = tool.get_intersection(right_penalty_corner, right_penalty_goalside,
+                goal_center, ball_pose)
+        if target_pose is not None:
+            target_pose.y -= MARGIN_LINE
+            if my_pose.y > right_penalty_corner.y:
+                if my_pose.x < left_penalty_corner.x:
+                    target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
+                    target_pose.y = left_penalty_corner.y + MARGIN_LINE
+                else:
+                    target_pose.x = right_penalty_corner.x + MARGIN_LINE
+                    target_pose.y -= MARGIN_FOR_SPEED
+            else:
+                target_pose.x += MARGIN_ROBOT
+        else:
+            target_pose = Pose2D()
+    if target_pose.x < goal_center.x:
+        target_pose.x = goal_center.x
+    
+    target_pose.theta = angle_to_ball
+
+    return target_pose
+    
+
+    
+
+
+    
+    
 
