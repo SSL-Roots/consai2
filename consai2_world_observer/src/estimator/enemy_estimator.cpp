@@ -120,6 +120,9 @@ void EnemyEstimator::update(ColumnVector measurement)
 {
     Estimation  est;
 
+    // collect angle continuity
+    measurement(3) = EulerAngle::normalize(measurement(3), this->last_estimation.val(3));
+
     this->filter->Update(meas_model, measurement);
     est = getResult();
 
