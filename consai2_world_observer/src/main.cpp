@@ -7,6 +7,8 @@
 #include <nav_msgs/Odometry.h>
 #include <consai_msgs/VisionPacket.h>
 #include <consai_msgs/VisionData.h>
+#include <consai2_msgs/RobotInfo.h>
+#include <consai2_msgs/BallInfo.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 #include <sensor_msgs/PointCloud.h>
@@ -18,125 +20,139 @@
 #include <world_observer/enemy_estimator.hpp>
 #include <world_observer/ball_estimator.hpp>
 
-// ExistanceCheckerクラス
-// ロボット,ボールの存在判定を行うクラス
-class ExistanceChecker
+// ObserverBase クラス
+// ロボットまたはボールの位置および速度推定・存在判定を担うクラスのベースクラス
+class ObserverBase
 {
 public:
-    ExistanceChecker(int max_id)
+    ObserverBase() : 
+        DISAPPEAR_THREASHOLD_TIME(3.0),
+        latest_observed_time_(ros::Time(0))
     {
-        this->max_id_ = max_id;
-        this->blue_existance_.assign(max_id, false);
-        this->yellow_existance_.assign(max_id, false);
-        this->blue_latest_appeared_time_.assign(max_id, ros::Time(0));
-        this->yellow_latest_appeared_time_.assign(max_id, ros::Time(0));
-        
-        this->ball_existance_ = false;
-        this->ball_latest_appeared_time_ = ros::Time(0);
-
-        this->disapper_threshold_time_ = ros::Duration(3.0);
+        this->estimator_.Init(0.016);
     }
 
-    void update(ObservationContainer observation_container)
+    ObserverBase (const ObserverBase& obj):
+        DISAPPEAR_THREASHOLD_TIME(obj.DISAPPEAR_THREASHOLD_TIME),
+        latest_observed_time_(obj.latest_observed_time_)
     {
-        ros::Time now = ros::Time::now();
+    }
 
-        // blueの観測を取得して、最終出現時刻を更新
-        for (auto robot_id=0; robot_id<observation_container.blue_observations.size(); ++robot_id)
-        {
-            if (observation_container.blue_observations[robot_id].size() > 0)
-            {
-                this->blue_latest_appeared_time_[robot_id] = now;
-            }
-        }
+    void update()
+    {
+        this->detected_ = false;
 
-        // yellowの観測を取得して、最終出現時刻を更新
-        for (auto robot_id=0; robot_id<observation_container.yellow_observations.size(); ++robot_id)
+        if (this->DoesDisappeared())
         {
-            if (observation_container.yellow_observations[robot_id].size() > 0)
-            {
-                this->yellow_latest_appeared_time_[robot_id] = now;
-            }
-        }
-
-        // ballの観測を取得して、最終出現時刻を更新
-        if (observation_container.ball_observations.size() > 0)
-        {
-            this->ball_latest_appeared_time_ = now;
-        }
-
-        // 存在を更新
-        for (auto i=0; i < this->max_id_; ++i)
-        {
-            ros::Time   latest_appeared_time = blue_latest_appeared_time_[i];
-            if ((now - latest_appeared_time) > this->disapper_threshold_time_ ) 
-            {
-                blue_existance_[i] = false;
-            }
-            else
-            {
-                blue_existance_[i] = true;
-            }
-        }
-
-        for (auto i=0; i < this->max_id_; ++i)
-        {
-            ros::Time   latest_appeared_time = yellow_latest_appeared_time_[i];
-            if ((now - latest_appeared_time) > this->disapper_threshold_time_ ) 
-            {
-                yellow_existance_[i] = false;
-            }
-            else
-            {
-                yellow_existance_[i] = true;
-            }
-        }
-
-        ros::Time   latest_appeared_time = ball_latest_appeared_time_;
-        if ((now - latest_appeared_time) > this->disapper_threshold_time_ ) 
-        {
-            ball_existance_ = false;
+            this->disappeared_ = true;
+            this->estimator_.Reset();
         }
         else
         {
-            ball_existance_ = true;
+            this->odom_ = this->estimator_.estimate();
+        }
+    }
+
+    void update(std::vector<geometry2d::Pose> observations)
+    {
+        if (observations.size() == 0)
+        {
+            this->update();
+            return;
         }
 
+        this->detected_ = true;
+        this->latest_observed_time_ = ros::Time::now();
+        this->odom_ = this->estimator_.estimate(observations);
+
+        // consai2_msgs/RobotInfoへの変換用に保存
+        this->last_detection_pose = observations[0];
     }
 
-    bool IsBlueRobotExist(int robot_id)
+protected:
+    geometry2d::Odometry odom_;
+    bool detected_;
+    bool disappeared_;
+    geometry2d::Pose last_detection_pose;
+
+    EnemyEstimator estimator_;
+
+    ros::Duration DISAPPEAR_THREASHOLD_TIME;
+    ros::Time latest_observed_time_;
+
+    bool DoesDisappeared()
     {
-        if (robot_id > this->max_id_) {
-            return false;
+        if ((ros::Time::now() - this->latest_observed_time_) > this->DISAPPEAR_THREASHOLD_TIME)
+        {
+            return true;
         }
-        return this->blue_existance_[robot_id];
+        return false;
     }
-
-    bool IsYellowRobotExist(int robot_id)
-    {
-        if (robot_id > this->max_id_) {
-            return false;
-        }
-        return this->yellow_existance_[robot_id];
-    }
-
-    bool IsBallExist()
-    {
-        return this->ball_existance_;
-    }
-
-
-private:
-    ros::Duration   disapper_threshold_time_;
-    int max_id_;
-    std::vector<bool> blue_existance_;
-    std::vector<bool> yellow_existance_;
-    bool              ball_existance_;
-    std::vector<ros::Time> blue_latest_appeared_time_;
-    std::vector<ros::Time> yellow_latest_appeared_time_;
-    ros::Time              ball_latest_appeared_time_;
 };
 
+// RobotObserver クラス
+//
+// ロボット単体の位置及び速度推定・存在判定を担うクラス
+class RobotObserver : public ObserverBase
+{
+public:
+    RobotObserver(int robot_id) :
+        robot_id_(robot_id)
+    {}
+
+    RobotObserver(const RobotObserver& obj) :
+        robot_id_(obj.robot_id_)
+    {}
+
+    consai2_msgs::RobotInfo ToRosMsg()
+    {
+        consai2_msgs::RobotInfo msg;
+
+        msg.robot_id = this->robot_id_;
+        msg.pose = this->odom_.pose.ToROSPose2D();
+
+        msg.velocity.x = this->odom_.velocity.x;
+        msg.velocity.y = this->odom_.velocity.y;
+        msg.velocity.theta = this->odom_.velocity.theta;
+
+        msg.velocity_twist = this->odom_.velocity.ToROSTwist();
+
+        msg.detected = this->detected_;
+        msg.detection_stamp = this->latest_observed_time_;
+        msg.disappeared = this->disappeared_;
+
+        msg.last_detection_pose = this->last_detection_pose.ToROSPose2D();
+    }
+
+private:
+    int robot_id_;
+};
+
+// BallObserver クラス
+//
+// ボール単体の位置及び速度推定・存在判定を担うクラス
+class BallObserver : public ObserverBase
+{
+public:
+    consai2_msgs::BallInfo ToRosMsg()
+    {
+        consai2_msgs::BallInfo msg;
+
+        msg.pose = this->odom_.pose.ToROSPose2D();
+
+        msg.velocity.x = this->odom_.velocity.x;
+        msg.velocity.y = this->odom_.velocity.y;
+        msg.velocity.theta = this->odom_.velocity.theta;
+
+        msg.velocity_twist = this->odom_.velocity.ToROSTwist();
+
+        msg.detected = this->detected_;
+        msg.detection_stamp = this->latest_observed_time_;
+        msg.disappeared = this->disappeared_;
+
+        msg.last_detection_pose = this->last_detection_pose.ToROSPose2D();
+    }
+};
 
 // ObserverFacade クラス
 //
@@ -145,96 +161,30 @@ class ObserverFacade
 {
 public:
     ObserverFacade(int max_id) :
-        existance_checker_(max_id)
+        max_id_(max_id)
     {
-        this->blue_estimators_.resize(max_id);
-        this->yellow_estimators_.resize(max_id);
-        for (auto i=0; i<max_id; ++i)
+        for (auto robot_id=0; robot_id < max_id; ++robot_id)
         {
-            this->blue_estimators_[i].Init(0.016);
-            this->yellow_estimators_[i].Init(0.016);
+            blue_observers_.push_back(RobotObserver(robot_id));
+            yellow_observers_.push_back(RobotObserver(robot_id));
         }
-
-        this->ball_estimator_.Init(0.016);
     }
 
     void update(ObservationContainer observation_container)
     {
-        this->existance_checker_.update(observation_container);
-
-        // Blue robots
-        for (auto robot_id=0; robot_id < observation_container.blue_observations.size(); ++robot_id)
+        for (auto robot_id=0; robot_id < this->max_id_; ++robot_id)
         {
-            geometry2d::Odometry odom;
-            
-            if (!this->existance_checker_.IsBlueRobotExist(robot_id))
-            {
-                this->blue_estimators_[robot_id].Reset();
-                continue;
-            }
-
-            if (observation_container.blue_observations[robot_id].size() == 0)
-            {
-                // 観測なし
-                odom = this->blue_estimators_[robot_id].estimate();
-            }
-            else
-            {
-                odom = this->blue_estimators_[robot_id].estimate(observation_container.blue_observations[robot_id]);
-            }
-
-            odom.print();
+            this->blue_observers_[robot_id].update(observation_container.blue_observations[robot_id]);
+            this->yellow_observers_[robot_id].update(observation_container.yellow_observations[robot_id]);
         }
-
-        // Yellow robots
-        for (auto robot_id=0; robot_id < observation_container.yellow_observations.size(); ++robot_id)
-        {
-            if (!this->existance_checker_.IsYellowRobotExist(robot_id))
-            {
-                this->yellow_estimators_[robot_id].Reset();
-                continue;
-            }
-
-            if (observation_container.yellow_observations[robot_id].size() == 0)
-            {
-                // 観測なし
-                this->yellow_estimators_[robot_id].estimate();
-            }
-            else
-            {
-                this->yellow_estimators_[robot_id].estimate(observation_container.yellow_observations[robot_id]);
-            }
-        }
-
-        // balls
-        if (!this->existance_checker_.IsBallExist())
-        {
-            this->ball_estimator_.Reset();
-        }
-        else
-        {
-            if (observation_container.ball_observations.size() == 0)
-            {
-                // 観測なし
-                this->ball_estimator_.estimate();
-            }
-            else
-            {
-                this->ball_estimator_.estimate(observation_container.ball_observations);
-            }
-        }
-
-        // ROS_INFO("blue_0?: %d", this->existance_checker_.IsYellowRobotExist(0));
+        this->ball_observer_.update(observation_container.ball_observations);
     }
 
-    
-
 private:
-    ExistanceChecker existance_checker_;
-
-    std::vector<EnemyEstimator> blue_estimators_;
-    std::vector<EnemyEstimator> yellow_estimators_;
-    EnemyEstimator ball_estimator_;
+    std::vector<RobotObserver> blue_observers_;
+    std::vector<RobotObserver> yellow_observers_;
+    BallObserver ball_observer_;
+    int max_id_;
 };
 
 ObserverFacade* observer_facade;
