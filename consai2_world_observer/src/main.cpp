@@ -5,7 +5,6 @@
 #include <world_observer/world_observer_ros.hpp>
 #include <world_observer/estimator.hpp>
 #include <world_observer/enemy_estimator.hpp>
-#include <world_observer/ball_estimator.hpp>
 
 // AppearanceMonitor　クラス
 // ロボットまたはボールの出現、および消失をモニタリングするクラス

@@ -41,7 +41,6 @@ add_executable(consai2_world_observer
   src/world_observer_ros.cpp
   src/estimator/estimator.cpp
   src/estimator/enemy_estimator.cpp
-  src/estimator/ball_estimator.cpp
 )
 
 target_link_libraries(consai2_world_observer
