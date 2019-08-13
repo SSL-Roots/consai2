@@ -11,18 +11,9 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 import avoidance
-from actions import tool, defense, offense, goalie, role
+from actions import tool, defense, offense, goalie
 from field import Field
-
-ROLE_GOALIE = 0
-ROLE_ATTACKER = 1
-ROLE_DEFENCE_GOAL_1 = 2
-ROLE_DEFENCE_GOAL_2 = 3
-ROLE_DEFENCE_ZONE_1 = 4
-ROLE_DEFENCE_ZONE_2 = 5
-ROLE_DEFENCE_ZONE_3 = 6
-ROLE_DEFENCE_ZONE_4 = 7
-ROLE_NONE = 99
+import role
 
 class RobotNode(object):
     def __init__(self, robot_id):
@@ -138,31 +129,31 @@ class RobotNode(object):
             pose.y = self._my_pose.y
             pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
 
-            if self._my_role == ROLE_GOALIE:
+            if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                 pose.x = -4
                 pose.y = 0
-            elif self._my_role == ROLE_ATTACKER:
+            elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                 pose.x = ball_info.pose.x - 0.5
                 pose.y = ball_info.pose.y
-            elif self._my_role == ROLE_DEFENCE_GOAL_1:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
                 pose.x = -3.5
                 pose.y = 1
-            elif self._my_role == ROLE_DEFENCE_GOAL_2:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_2"]:
                 pose.x = -3.5
                 pose.y = -1
-            elif self._my_role == ROLE_DEFENCE_ZONE_1:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
                 pose.x = -1
                 pose.y = 1
-            elif self._my_role == ROLE_DEFENCE_ZONE_2:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_2"]:
                 pose.x = -1
                 pose.y = -1
-            elif self._my_role == ROLE_DEFENCE_ZONE_3:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_3"]:
                 pose.x = -1
                 pose.y = 2
-            elif self._my_role == ROLE_DEFENCE_ZONE_4:
+            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_4"]:
                 pose.x = -1
                 pose.y = -2
-            elif self._my_role == ROLE_NONE:
+            elif self._my_role == role.ROLE_ID["ROLE_NONE"]:
                 pose.theta = self._my_pose.theta # まわらない
 
             self._control_target.path.append(pose)
