@@ -2,9 +2,15 @@
 
 #include  <tf/transform_datatypes.h>
 
-EnemyEstimator::EnemyEstimator(double loop_time) :
-    dt(loop_time)
+EnemyEstimator::EnemyEstimator()
 {
+}
+
+
+void EnemyEstimator::Init(double loop_time)
+{
+    this->dt = loop_time;
+
     initSystemModel();
     initMeasurementModel();
 

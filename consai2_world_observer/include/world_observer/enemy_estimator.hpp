@@ -7,7 +7,10 @@ class EnemyEstimator : public Estimator
 {
     public:
         // constructor
-        EnemyEstimator(double loop_time);
+        EnemyEstimator();
+
+        void Init(double loop_time);
+
         ~EnemyEstimator();
 
     protected:
