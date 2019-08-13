@@ -44,8 +44,11 @@ class RefereeReceiver(object):
                     0)
 
         if packet_referee.HasField('gameEvent'):
-            referee.game_event = packet_referee.gameEvent
-        
+            referee.game_event.game_event_type = packet_referee.gameEvent.gameEventType
+            referee.game_event.originator_team = packet_referee.gameEvent.originator.team
+            referee.game_event.originator_bot_id = packet_referee.gameEvent.originator.botId
+            referee.game_event.message = packet_referee.gameEvent.message
+
         self._pub_referee.publish(referee)
 
 
