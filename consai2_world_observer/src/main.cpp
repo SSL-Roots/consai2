@@ -7,31 +7,74 @@
 #include <world_observer/enemy_estimator.hpp>
 #include <world_observer/ball_estimator.hpp>
 
+// AppearanceMonitor　クラス
+// ロボットまたはボールの出現、および消失をモニタリングするクラス
+class AppearanceMonitor
+{
+public:
+    ros::Duration   APPEAR_THRESHOLD_TIME_;
+    ros::Duration  DISAPPEAR_THRESHOLD_TIME_;
+    ros::Time latest_appeared_time_;
+    ros::Time latest_disappeared_time_;
+    bool is_appear_;
+
+    AppearanceMonitor() :
+        APPEAR_THRESHOLD_TIME_(0.5),
+        DISAPPEAR_THRESHOLD_TIME_(3.0),
+        latest_appeared_time_(ros::Time(0)),
+        latest_disappeared_time_(ros::Time(0)),
+        is_appear_(false)
+    {}
+
+
+    void update(bool is_observed)
+    {
+        if (is_observed)
+        {
+            this->latest_appeared_time_ = ros::Time::now();
+        }
+        else
+        {
+            this->latest_disappeared_time_ = ros::Time::now();
+        }
+
+        if (this->is_appear_)
+        {
+            if ((this->latest_disappeared_time_ - this->latest_appeared_time_) > this->DISAPPEAR_THRESHOLD_TIME_)
+            {
+                this->is_appear_ = false;
+            }
+        }
+        else
+        {
+            if ((this->latest_appeared_time_ - this->latest_disappeared_time_) > this->APPEAR_THRESHOLD_TIME_)
+            {
+                this->is_appear_ = true;
+            }
+        }
+    }
+};
+
 // ObserverBase クラス
 // ロボットまたはボールの位置および速度推定・存在判定を担うクラスのベースクラス
 class ObserverBase
 {
 public:
-    ObserverBase() : 
-        DISAPPEAR_THREASHOLD_TIME(3.0),
-        latest_observed_time_(ros::Time(0))
+    ObserverBase()
     {
         this->estimator_.Init(0.016);
     }
 
-    ObserverBase (const ObserverBase& obj):
-        DISAPPEAR_THREASHOLD_TIME(obj.DISAPPEAR_THREASHOLD_TIME),
-        latest_observed_time_(obj.latest_observed_time_)
+    ObserverBase (const ObserverBase& obj)
     {
     }
 
     void update()
     {
+        this->appearance_monitor_.update(false);
         this->detected_ = false;
-
-        if (this->DoesDisappeared())
+        if (!(this->appearance_monitor_.is_appear_))
         {
-            this->disappeared_ = true;
             this->estimator_.Reset();
         }
         else
@@ -48,10 +91,17 @@ public:
             return;
         }
 
-        this->disappeared_ = false;
+        this->appearance_monitor_.update(true);
         this->detected_ = true;
-        this->latest_observed_time_ = ros::Time::now();
-        this->odom_ = this->estimator_.estimate(observations);
+
+        if (!(this->appearance_monitor_.is_appear_))
+        {
+            this->estimator_.Reset();
+        }
+        else
+        {
+            this->odom_ = this->estimator_.estimate(observations);
+        }
 
         // consai2_msgs/RobotInfoへの変換用に保存
         this->last_detection_pose = observations[0];
@@ -59,24 +109,13 @@ public:
 
 
 protected:
+    EnemyEstimator estimator_;
+    AppearanceMonitor appearance_monitor_;
     geometry2d::Odometry odom_;
+
     bool detected_;
-    bool disappeared_;
     geometry2d::Pose last_detection_pose;
 
-    EnemyEstimator estimator_;
-
-    ros::Duration DISAPPEAR_THREASHOLD_TIME;
-    ros::Time latest_observed_time_;
-
-    bool DoesDisappeared()
-    {
-        if ((ros::Time::now() - this->latest_observed_time_) > this->DISAPPEAR_THREASHOLD_TIME)
-        {
-            return true;
-        }
-        return false;
-    }
 };
 
 // RobotObserver クラス
@@ -95,7 +134,7 @@ public:
 
     RobotInfo GetInfo()
     {
-        RobotInfo info(this->robot_id_, this->odom_, this->detected_, this->disappeared_, this->last_detection_pose, this->latest_observed_time_);
+        RobotInfo info(this->robot_id_, this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
 
         return info;
     }
@@ -112,7 +151,7 @@ class BallObserver : public ObserverBase
 public:
     BallInfo GetInfo()
     {
-        BallInfo info(this->odom_, this->detected_, this->disappeared_, this->last_detection_pose, this->latest_observed_time_);
+        BallInfo info(this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
         return info;
     }
 };
