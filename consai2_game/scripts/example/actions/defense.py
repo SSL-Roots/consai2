@@ -66,11 +66,11 @@ def interpose(target_info, control_target,
 
     return control_target
 
-
+# ゴール前ディフェンス
 def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     MARGIN_LINE = 0.1
     MARGIN_ROBOT = 0
-    MARGIN_FOR_SPEED = 0.6
+    MARGIN_FOR_SPEED = 0.5
     if defence_num > 1:
         if my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
             MARGIN_ROBOT = 0.15
@@ -118,18 +118,16 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     else:
         ball_is_center = True
 
-    if my_pose.y > left_penalty_corner.y:
-        my_pose_is_left = True
-    elif my_pose.y < right_penalty_corner.y:
-        my_pose_is_right = True
-
+    # ボールは真ん中にある
     if ball_is_center:
         target_pose = tool.get_intersection(left_penalty_corner, right_penalty_corner,
                 goal_center, ball_pose)
         if target_pose is not None:
             target_pose.x += MARGIN_LINE
+            # ロボットが後ろにいる
             if my_pose.x < left_penalty_corner.x:
                 target_pose.x += MARGIN_FOR_SPEED
+                # ペナルティエリアを沿って移動
                 if my_pose.y > 0:
                     target_pose.y = left_penalty_corner.y + MARGIN_LINE
                 else:
@@ -138,15 +136,19 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
                 target_pose.y += MARGIN_ROBOT
         else:
             target_pose = Pose2D()
+    # ボールは左側にある
     elif ball_is_left:
         target_pose = tool.get_intersection(left_penalty_corner, left_penalty_goalside,
                 goal_center, ball_pose)
         if target_pose is not None:
             target_pose.y += MARGIN_LINE
+            # ロボットが左側にいない
             if my_pose.y < left_penalty_corner.y:
+                # 左側にいないかつ後ろにいる場合は右側を沿う
                 if my_pose.x < left_penalty_corner.x:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
                     target_pose.y = right_penalty_corner.y - MARGIN_LINE
+                # 左側にダッシュで移動
                 else:
                     target_pose.x = left_penalty_corner.x + MARGIN_LINE
                     target_pose.y += MARGIN_FOR_SPEED
@@ -154,15 +156,19 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
                 target_pose.x -= MARGIN_ROBOT
         else:
             target_pose = Pose2D()
+    # ボールは右側にある
     elif ball_is_right:
         target_pose = tool.get_intersection(right_penalty_corner, right_penalty_goalside,
                 goal_center, ball_pose)
         if target_pose is not None:
             target_pose.y -= MARGIN_LINE
+            # ロボットが右側にいない
             if my_pose.y > right_penalty_corner.y:
+                # 右側にいないかつ後ろにいる場合は左側を沿う
                 if my_pose.x < left_penalty_corner.x:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
                     target_pose.y = left_penalty_corner.y + MARGIN_LINE
+                # 右側にダッシュで移動
                 else:
                     target_pose.x = right_penalty_corner.x + MARGIN_LINE
                     target_pose.y -= MARGIN_FOR_SPEED
@@ -170,17 +176,78 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
                 target_pose.x += MARGIN_ROBOT
         else:
             target_pose = Pose2D()
+    # フィールドから出ないように
     if target_pose.x < goal_center.x:
         target_pose.x = goal_center.x
-    
+    # 向きはボールの方向
     target_pose.theta = angle_to_ball
 
     return target_pose
     
 
-    
+# ゾーンディフェンス
+def defence_zone(my_pose, ball_info, control_target, my_role, defence_num):
+    ROLE_MAX = 7
+    GOAL_DEFENCE_NUM = 2
+    ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
 
+    ball_pose = ball_info.pose
+
+    field_width = Field.field('width')
+    half_field_width = float(field_width) / 2
+    field_length = Field.field('length')
+    half_our_field_length = -float(field_length) / 4
+    goal_center = Field.goal_pose('our', 'center')
+
+    angle_to_ball = tool.get_angle(my_pose, ball_pose)
+    angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
+
+    target_pose = Pose2D()
+
+    if ZONE_DEFENCE_NUM > 0:
+        step = float(field_width) / (ZONE_DEFENCE_NUM * 2)
+        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2 + 1))]
+        # 今のディフェンス数からゾーンの区切りを変える
+        split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
+                if i % 2 != 0]
+        # FIXME 賢くしたい
+        # ロボットが死んだ瞬間数がおかしくなるのでエラー処理（応急処置的）
+        try:
+            zone_id = my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
+            target_pose.y = split_field_center[zone_id]
+            # ボールが自分のゾーンの中に入っている
+            if(ball_pose.x < 0 and \
+                    split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
+                trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
+                target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
+                #target_pose = ball_pose
+            else:
+                target_pose.x = half_our_field_length
+        except IndexError:
+            target_pose = my_pose
+        target_pose.theta = angle_to_ball
+        #return target_pose
+    else:
+        pass
+        #return target_pose
+
+    # ---------------------------------------------------------
+    remake_path = False
+    # pathが設定されてなければpathを新規作成
+    if control_target.path is None or len(control_target.path) == 0:
+        remake_path = True
+    # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
+    if remake_path is False:
+        current_goal_pose = control_target.path[-1]
+
+        if not tool.is_close(current_goal_pose, target_pose, Pose2D(0.1, 0.1, math.radians(10))):
+            remake_path = True
+    # remake_path is Trueならpathを再生成する
+    # pathを再生成すると衝突回避用に作られた経路もリセットされる
+    if remake_path:
+        control_target.path = []
+        control_target.path.append(target_pose)
+
+    return control_target
 
     
-    
-
