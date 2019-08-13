@@ -22,8 +22,6 @@ class EnemyEstimator : public Estimator
         void  predict(ColumnVector input);
         void  update(ColumnVector measurement);
 
-        ColumnVector  convertPoseMsgToMeasureVector(geometry_msgs::Pose pose);
-        ColumnVector  convertAccelMsgToInputVector(geometry_msgs::Accel acc);
         geometry2d::Odometry convetEstimationToOdometry();
 
         bool isOutlier(ColumnVector measurement);
@@ -31,10 +29,7 @@ class EnemyEstimator : public Estimator
 
         Estimation getResult();
 
-        nav_msgs::Odometry  convetStateVectorToOdometry(ColumnVector state_vector);
         void collectAngleOverflow(ColumnVector& state, SymmetricMatrix& cov);
-
-
 };
 
 

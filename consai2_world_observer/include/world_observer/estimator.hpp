@@ -49,8 +49,6 @@ class Estimator
         virtual void  predict(ColumnVector input) = 0;
         virtual void  update(ColumnVector measurement) = 0;
 
-        virtual ColumnVector  convertPoseMsgToMeasureVector(geometry_msgs::Pose pose) = 0;
-        virtual ColumnVector  convertAccelMsgToInputVector(geometry_msgs::Accel acc) = 0;
         virtual geometry2d::Odometry convetEstimationToOdometry() = 0;
 
 };

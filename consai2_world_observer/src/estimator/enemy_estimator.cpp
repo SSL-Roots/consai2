@@ -154,39 +154,6 @@ void EnemyEstimator::collectAngleOverflow(ColumnVector& state, SymmetricMatrix& 
 }
 
 
-ColumnVector  EnemyEstimator::convertPoseMsgToMeasureVector(geometry_msgs::Pose pose)
-{
-    ColumnVector  measurement(3);
-    double  roll, pitch, yaw;
-
-    tf::Quaternion  q(pose.orientation.x, pose.orientation.y,pose.orientation.z, pose.orientation.w);
-    tf::Matrix3x3 m(q);
-
-    m.getRPY(roll, pitch, yaw);
-
-    measurement(1) = pose.position.x;
-    measurement(2) = pose.position.y;
-    measurement(3) = yaw;
-
-    // collect angle continuity
-    measurement(3) = EulerAngle::normalize(measurement(3), this->last_estimation.val(3));
-
-    return  measurement;
-}
-
-
-ColumnVector  EnemyEstimator::convertAccelMsgToInputVector(geometry_msgs::Accel acc)
-{
-    ColumnVector  vec(3);
-
-    vec(1) = acc.linear.x;
-    vec(2) = acc.linear.y;
-    vec(3) = acc.angular.z;
-
-    return  vec;
-}
-
-
 
 geometry2d::Odometry EnemyEstimator::convetEstimationToOdometry()
 {
@@ -199,26 +166,6 @@ geometry2d::Odometry EnemyEstimator::convetEstimationToOdometry()
     odom.velocity.x = this->last_estimation.val(4);
     odom.velocity.y = this->last_estimation.val(5);
     odom.velocity.theta = this->last_estimation.val(6);
-
-    return  odom;
-}
-
-
-nav_msgs::Odometry  EnemyEstimator::convetStateVectorToOdometry(ColumnVector state_vector)
-{
-    nav_msgs::Odometry odom;
-
-    odom.header.stamp = ros::Time::now();
-    odom.header.frame_id = "map";
-
-    odom.pose.pose.position.x = state_vector(1);
-    odom.pose.pose.position.y = state_vector(2);
-
-    odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(state_vector(3));
-
-    odom.twist.twist.linear.x = state_vector(4);
-    odom.twist.twist.linear.y = state_vector(5);
-    odom.twist.twist.angular.z = state_vector(6);
 
     return  odom;
 }
