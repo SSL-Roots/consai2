@@ -2,9 +2,6 @@
 #define _ESTIMATOR_HPP_
 
 #include  "ros/ros.h"
-#include  <geometry_msgs/Pose.h>
-#include  <geometry_msgs/Accel.h>
-#include  <nav_msgs/Odometry.h>
 
 #include <bfl/filter/extendedkalmanfilter.h>
 #include <bfl/model/linearanalyticsystemmodel_gaussianuncertainty.h>
