@@ -187,12 +187,12 @@ void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf
 
     SymmetricMatrix sysNoise_Cov(6);
     sysNoise_Cov = 0.0;
-    sysNoise_Cov(1,1) = pow(0.01, 2);
+    sysNoise_Cov(1,1) = pow(0.01, 2); 
     sysNoise_Cov(2,2) = pow(0.01, 2);
     sysNoise_Cov(3,3) = pow(0.01, 2);
-    sysNoise_Cov(4,4) = pow(0.01, 2);
-    sysNoise_Cov(5,5) = pow(0.01, 2);
-    sysNoise_Cov(6,6) = pow(0.01, 2);
+    sysNoise_Cov(4,4) = pow(6.0*dt,  2); //敵ロボットの最高加速度を 6[m/s^2]と仮定
+    sysNoise_Cov(5,5) = pow(6.0*dt,  2);
+    sysNoise_Cov(6,6) = pow(6.28*dt, 2); // 敵ロボットの最高各加速度を2pi[rad/s^2]と仮定
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
 
@@ -215,9 +215,9 @@ void EnemyEstimator::InitMeasurementModel(LinearAnalyticConditionalGaussian** me
     measNoise_Mu = 0.0;
 
     SymmetricMatrix measNoise_Cov(3);
-    measNoise_Cov(1,1) = pow(0.01, 2);
+    measNoise_Cov(1,1) = pow(0.01, 2);   // 観測ノイズを標準偏差 0.01[m] と仮定
     measNoise_Cov(2,2) = pow(0.01, 2);
-    measNoise_Cov(3,3) = pow(0.01, 2);
+    measNoise_Cov(3,3) = pow(0.05, 2);   // 観測ノイズを標準偏差 0.05[rad]と仮定
     Gaussian measurement_Uncertainty(measNoise_Mu, measNoise_Cov);
 
     // create the model
