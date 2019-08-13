@@ -190,7 +190,7 @@ void UpdateHook(ObservationContainer observation_container)
 
 int main(int argc, char **argv)
 {
-    const std::string node_name = "observer";
+    const std::string node_name = "consai2_world_observer";
 
     ros::init(argc, argv, node_name);
     ros::NodeHandle nh;
