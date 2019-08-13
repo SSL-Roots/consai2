@@ -1,17 +1,4 @@
 #include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <std_msgs/Float64.h>
-#include <geometry_msgs/PoseArray.h>
-#include <geometry_msgs/Accel.h>
-#include <geometry_msgs/Pose.h>
-#include <nav_msgs/Odometry.h>
-#include <consai_msgs/VisionPacket.h>
-#include <consai_msgs/VisionData.h>
-#include <consai2_msgs/RobotInfo.h>
-#include <consai2_msgs/BallInfo.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_broadcaster.h>
-#include <sensor_msgs/PointCloud.h>
 #include <sstream>
 #include <cmath>
 
