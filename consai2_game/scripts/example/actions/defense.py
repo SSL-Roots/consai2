@@ -185,9 +185,51 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     return target_pose
     
 
-    
+# ゾーンディフェンス
+def defence_zone(my_pose, ball_info, control_target, my_role, defence_num):
+    ROLE_MAX = 7
+    GOAL_DEFENCE_NUM = 2
+    ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
 
+    field_width = Field.field('width')
+    half_field_width = float(field_width) / 2
+    field_length = Field.field('length')
+    half_our_field_length = -float(field_length) / 4
+
+    target_pose = Pose2D()
+
+    if ZONE_DEFENCE_NUM > 0:
+        step = float(field_width) / (ZONE_DEFENCE_NUM * 2)
+        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
+                if i % 2 != 0]
+        #print(ZONE_DEFENCE_NUM, my_role)
+        try:
+            target_pose.y = split_field[my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]]
+        except IndexError:
+            target_pose.y = my_pose.y
+        target_pose.x = half_our_field_length
+        #return target_pose
+    else:
+        pass
+        #return target_pose
+
+    # ---------------------------------------------------------
+    remake_path = False
+    # pathが設定されてなければpathを新規作成
+    if control_target.path is None or len(control_target.path) == 0:
+        remake_path = True
+    # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
+    if remake_path is False:
+        current_goal_pose = control_target.path[-1]
+
+        if not tool.is_close(current_goal_pose, target_pose, Pose2D(0.1, 0.1, math.radians(10))):
+            remake_path = True
+    # remake_path is Trueならpathを再生成する
+    # pathを再生成すると衝突回避用に作られた経路もリセットされる
+    if remake_path:
+        control_target.path = []
+        control_target.path.append(target_pose)
+
+    return control_target
 
     
-    
-
