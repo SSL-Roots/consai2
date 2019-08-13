@@ -15,8 +15,16 @@ from field import Field
 
 class ObstacleAvoidance(object):
     def __init__(self):
+
+        # ボール情報の初期化
         self._ball_info = BallInfo()
+        # ロボット情報の初期化
         self._robot_info = RobotInfo()
+
+        # 検出の幅
+        self._range_tr_y = 0.4
+        self._range_tr_x = 0.2
+
         
     # フィールドのボールとロボットの情報を更新
     def update_obstacles(self, ball_info, robot_info):
@@ -52,19 +60,21 @@ class ObstacleAvoidance(object):
         dist_their, obst_dist_their, obst_id_their = self.detect_dist_and_id(
                                     trans, my_pose, goal_pose, self._robot_info['their'])
 
-        # 進路上の障害物から避ける経路を生成
-        avoid_pose_our, min_dist_our = self.gen_avoid_pose(
-                trans, my_pose, self._robot_info['our'], dist_our, obst_dist_our, obst_id_our)
-        avoid_pose_their, min_dist_their = self.gen_avoid_pose(
-                trans, my_pose, self._robot_info['their'], dist_their, obst_dist_their, obst_id_their)
-        
-        # 敵と味方それぞれどちらが近い障害物か比較して近い方を優先する
-        if min_dist_our == min_dist_their:
+        # 進路上のロボットの存在をチェックし、経路を生成する
+        if len(obst_id_our) == 0 and len(obst_id_their) == 0:
             avoid_pose = None
-        elif min_dist_our < min_dist_their:
-            avoid_pose = avoid_pose_our
         else:
-            avoid_pose = avoid_pose_their
+            # 進路上の障害物から避ける経路を生成
+            avoid_pose_our, min_dist_our = self.gen_avoid_pose(
+                    trans, my_pose, self._robot_info['our'], dist_our, obst_dist_our, obst_id_our)
+            avoid_pose_their, min_dist_their = self.gen_avoid_pose(
+                    trans, my_pose, self._robot_info['their'], dist_their, obst_dist_their, obst_id_their)
+
+           # 敵と味方どちらが近い障害物か比較して近い方を優先する
+            if min_dist_our < min_dist_their:
+                avoid_pose = avoid_pose_our
+            else:
+                avoid_pose = avoid_pose_their
 
         return avoid_pose
 
@@ -83,17 +93,14 @@ class ObstacleAvoidance(object):
             tr_robot_pose = trans.transform(info.pose)
 
             # ロボットが検出できている場合
-            if info.detected:
+            if info.disappeared is False:
                 # ロボット間の距離を算出
                 dist.append(tool.distance_2_poses(info.pose, my_pose))
 
-                # 検出の幅
-                threshold_tr_y = 0.4
-                margin_tr_x = 0.2
 
                 # 進路上にロボットが居るか
-                if tr_my_pose.x + margin_tr_x < tr_robot_pose.x and tr_robot_pose.x < tr_goal_pose.x and \
-                        tr_my_pose.y - threshold_tr_y < tr_robot_pose.y and tr_robot_pose.y < tr_my_pose.y + threshold_tr_y:
+                if tr_my_pose.x + self._range_tr_x < tr_robot_pose.x and tr_robot_pose.x < tr_goal_pose.x and \
+                        tr_my_pose.y - self._range_tr_y < tr_robot_pose.y and tr_robot_pose.y < tr_my_pose.y + self._range_tr_y:
 
                     # 障害物になるロボットの番号
                     obst_id.append(i)
