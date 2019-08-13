@@ -25,6 +25,10 @@ class ObstacleAvoidance(object):
         self._range_tr_y = 0.4
         self._range_tr_x = 0.2
 
+        # 経路生成時の相対的に移動する位置(ロボットから見た座標系)
+        self._tr_move_x = 0.2
+        self._tr_move_y = 0.5
+
         
     # フィールドのボールとロボットの情報を更新
     def update_obstacles(self, ball_info, robot_info):
@@ -119,10 +123,10 @@ class ObstacleAvoidance(object):
 
             robot_pose = robot_info_team[min_dist_id].pose
 
-            # 一番近い敵ロボットの座標
+            # 一番近い敵ロボットの座標の横にパスを生成
             tr_robot_pose = trans.transform(robot_pose)
-            tr_robot_pose.x += 0.2
-            tr_robot_pose.y -= 0.5
+            tr_robot_pose.x += self._tr_move_x
+            tr_robot_pose.y -= self._tr_move_y
             avoid_pose = trans.inverted_transform(tr_robot_pose)
         else:
             avoid_pose = Pose2D(100, 100, 0)
