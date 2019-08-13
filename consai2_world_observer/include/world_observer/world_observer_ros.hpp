@@ -62,14 +62,16 @@ class WorldObserverROS
 public:
     int max_id;
 
-    WorldObserverROS(ros::NodeHandle& nh, std::string vision_topic_name);
+    WorldObserverROS(ros::NodeHandle& nh, ros::NodeHandle& nh_private, std::string vision_topic_name);
     void VisionCallBack(const consai2_msgs::VisionDetections::ConstPtr& msg);
     bool RegisterUpdateHook(std::function<void(ObservationContainer observation_container)> function);
 
     void PublishDebugOdom(geometry2d::Odometry odom);
+    void PublishBallInfo(BallInfo info);
 
 private:
     ros::Subscriber sub_vision_;
+    ros::Publisher  pub_ball_info_;
     ros::Publisher  pub_odom_debug_;
     std::function<void(ObservationContainer observation_container)> update_hook_;
 };

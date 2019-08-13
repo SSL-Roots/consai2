@@ -178,6 +178,7 @@ private:
 };
 
 ObserverFacade* observer_facade;
+std::unique_ptr<WorldObserverROS> world_observer_ros;
 
 void UpdateHook(ObservationContainer observation_container)
 {
@@ -187,6 +188,9 @@ void UpdateHook(ObservationContainer observation_container)
     BallInfo info = observer_facade->GetBallInfo();
 
     ROS_INFO("Ball: x:%3.2f, y:%3.2f", info.odom_.pose.x, info.odom_.pose.y);
+
+    world_observer_ros->PublishBallInfo(info);
+
 }
 
 
@@ -196,7 +200,7 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, node_name);
     ros::NodeHandle nh;
-    ros::NodeHandle nh_private;
+    ros::NodeHandle nh_private("~");
 
     // 起動時のnamespaceを取得
     std::string ai_name = "/";
@@ -205,11 +209,10 @@ int main(int argc, char **argv)
     std::string vision_topic_name;
     ros::param::param<std::string>("~vision_topic_name", vision_topic_name, "vision_receiver/raw_vision_detections");
 
+    world_observer_ros.reset(new WorldObserverROS(nh, nh_private, vision_topic_name));
+    world_observer_ros->RegisterUpdateHook(UpdateHook);
 
-    WorldObserverROS    ros_if(nh, vision_topic_name);
-    ros_if.RegisterUpdateHook(UpdateHook);
-
-    observer_facade = new ObserverFacade(ros_if.max_id);
+    observer_facade = new ObserverFacade(world_observer_ros->max_id);
 
     ros::spin();
 
