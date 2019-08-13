@@ -22,7 +22,7 @@ class ObstacleAvoidance(object):
         self._robot_info = RobotInfo()
 
         # 検出の幅
-        self._range_tr_y = 0.4
+        self._range_tr_y = 0.5
         self._range_tr_x = 0.2
 
         # 経路生成時の相対的に移動する位置(ロボットから見た座標系)
@@ -60,7 +60,6 @@ class ObstacleAvoidance(object):
         trans = tool.Trans(my_pose, angle_to_goal)
         tr_my_pose = trans.transform(my_pose)
         tr_goal_pose = trans.transform(goal_pose)
-        tr_ball_pose = trans.transform(ball_pose)
 
         # 自分と敵の距離を算出
         dist_our, obst_dist_our, obst_id_our = self.detect_dist_and_id(
@@ -89,11 +88,26 @@ class ObstacleAvoidance(object):
 
         # ボールを避けるフラグがTureのときにavoid_poseと比較する
         if ball_avoid_flag:
-            tr_avoid_pose = tr_ball_pose
-            tr_avoid_pose.x += self._tr_move_x
-            tr_avoid_pose.y -= self._tr_move_y
-            ball_avoid_pose = trans.inverted_transform(tr_avoid_pose)
             dist_robot2ball = tool.distance_2_poses(ball_pose, my_pose)
+
+            # 障害物の左右に中間パスを生成
+            tr_avoid_pose_right = trans.transform(ball_pose)
+            tr_avoid_pose_left = trans.transform(ball_pose)
+            tr_avoid_pose_right.x += self._tr_move_x
+            tr_avoid_pose_right.y -= self._tr_move_y
+            tr_avoid_pose_left.x += self._tr_move_x
+            tr_avoid_pose_left.y += self._tr_move_y
+            # 生成したパスとの距離を算出
+            dist_right = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_right)
+            dist_left = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_left)
+    
+            # 一番近い敵ロボットの座標の横にパスを生成
+            if dist_left < dist_right:
+                tr_avoid_pose = tr_avoid_pose_left
+            else:
+                tr_avoid_pose = tr_avoid_pose_right
+           
+            ball_avoid_pose = trans.inverted_transform(tr_avoid_pose)
 
             ball_detect_flag = self.detect_object_on_trajectory(trans, my_pose, goal_pose, ball_pose)
 
@@ -162,22 +176,21 @@ class ObstacleAvoidance(object):
             # 障害物の左右に中間パスを生成
             robot_pose = robot_info_team[min_dist_id].pose
             tr_robot_pose = trans.transform(robot_pose)
-            tr_avoid_pose_right = tr_robot_pose
+            tr_avoid_pose_right = trans.transform(robot_pose)
+            tr_avoid_pose_left = trans.transform(robot_pose)
             tr_avoid_pose_right.x += self._tr_move_x
             tr_avoid_pose_right.y -= self._tr_move_y
-            # tr_avoid_pose_left = tr_robot_pose
-            # tr_avoid_pose_left.x += self._tr_move_x
-            # tr_avoid_pose_left.y += self._tr_move_y
+            tr_avoid_pose_left.x += self._tr_move_x
+            tr_avoid_pose_left.y += self._tr_move_y
             # 生成したパスとの距離を算出
-            # dist_right = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_right)
-            # dist_left = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_left)
+            dist_right = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_right)
+            dist_left = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_left)
     
             # 一番近い敵ロボットの座標の横にパスを生成
-            # if dist_left < dist_right:
-                # tr_avoid_pose = tr_avoid_pose_left
-            # else:
-                # tr_avoid_pose = tr_avoid_pose_right
-            tr_avoid_pose = tr_avoid_pose_right
+            if dist_left < dist_right:
+                tr_avoid_pose = tr_avoid_pose_left
+            else:
+                tr_avoid_pose = tr_avoid_pose_right
            
             avoid_pose = trans.inverted_transform(tr_avoid_pose)
         else:
