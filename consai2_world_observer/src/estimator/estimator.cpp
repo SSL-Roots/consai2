@@ -26,7 +26,6 @@ geometry2d::Odometry Estimator::estimate(geometry2d::Accel accel, std::vector<ge
 
     for (auto observation : observations)
     {
-        ROS_INFO("observation x:%3.2f, y:%3.2f", observation.x, observation.y);
         MatrixWrapper::ColumnVector observation_cv = observation.ToColumnVector();
 
         // if (isOutlier(observation_cv)) {

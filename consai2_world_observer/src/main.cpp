@@ -185,12 +185,8 @@ std::unique_ptr<WorldObserverROS> world_observer_ros;
 
 void UpdateHook(ObservationContainer observation_container)
 {
-    ROS_INFO("hook function called!");
-
     observer_facade->update(observation_container);
     BallInfo info = observer_facade->GetBallInfo();
-
-    ROS_INFO("Ball: x:%3.2f, y:%3.2f", info.odom_.pose.x, info.odom_.pose.y);
 
     world_observer_ros->PublishBallInfo(info);
 
@@ -201,8 +197,6 @@ void UpdateHook(ObservationContainer observation_container)
 
         RobotInfo yellow_info = observer_facade->GetYellowInfo(robot_id);
         world_observer_ros->PublishYellowInfo(robot_id, yellow_info);
-
-        ROS_INFO("pub id:%d", robot_id);
     }
 }
 
