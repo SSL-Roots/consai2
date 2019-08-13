@@ -191,23 +191,41 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num):
     GOAL_DEFENCE_NUM = 2
     ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
 
+    ball_pose = ball_info.pose
+
     field_width = Field.field('width')
     half_field_width = float(field_width) / 2
     field_length = Field.field('length')
     half_our_field_length = -float(field_length) / 4
+    goal_center = Field.goal_pose('our', 'center')
+
+    angle_to_ball = tool.get_angle(my_pose, ball_pose)
+    angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
 
     target_pose = Pose2D()
 
     if ZONE_DEFENCE_NUM > 0:
         step = float(field_width) / (ZONE_DEFENCE_NUM * 2)
-        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
+        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2 + 1))]
+        # 今のディフェンス数からゾーンの区切りを変える
+        split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
                 if i % 2 != 0]
-        #print(ZONE_DEFENCE_NUM, my_role)
+        # FIXME 賢くしたい
+        # ロボットが死んだ瞬間数がおかしくなるのでエラー処理（応急処置的）
         try:
-            target_pose.y = split_field[my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]]
+            zone_id = my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
+            target_pose.y = split_field_center[zone_id]
+            # ボールが自分のゾーンの中に入っている
+            if(ball_pose.x < 0 and \
+                    split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
+                trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
+                target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
+                #target_pose = ball_pose
+            else:
+                target_pose.x = half_our_field_length
         except IndexError:
-            target_pose.y = my_pose.y
-        target_pose.x = half_our_field_length
+            target_pose = my_pose
+        target_pose.theta = angle_to_ball
         #return target_pose
     else:
         pass
