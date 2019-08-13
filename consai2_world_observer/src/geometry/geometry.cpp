@@ -51,6 +51,17 @@ geometry_msgs::Pose Pose::ToROSPose()
     return msg;
 }
 
+geometry_msgs::Pose2D Pose::ToROSPose2D()
+{
+    geometry_msgs::Pose2D msg;
+
+    msg.x = this->x;
+    msg.y = this->y;
+    msg.theta = this->theta;
+
+    return msg;
+}
+
 Velocity::Velocity()
 {
     this->x = 0.0;

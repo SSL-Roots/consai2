@@ -30,6 +30,7 @@ public:
 
     MatrixWrapper::ColumnVector ToColumnVector();
     geometry_msgs::Pose ToROSPose();
+    geometry_msgs::Pose2D ToROSPose2D();
     
 };
 
