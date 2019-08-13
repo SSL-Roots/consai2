@@ -53,11 +53,12 @@ class CollectiveController(object):
 
 
     def halt(self):
-        # 全てのロボットの制御を切る
+        # 全てのロボットの速度を０にする
         for robot_id in range(self._ID_NUM):
             control_target = ControlTarget()
             control_target.robot_id = robot_id
-            control_target.control_enable = False
+            control_target.control_enable = True
+            control_target.goal_velocity = Pose2D(0, 0, 0)
 
             self._pubs_control_target[robot_id].publish(control_target)
 

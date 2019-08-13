@@ -29,6 +29,17 @@ roslaunch consai2_examples control_example.launch sim:=false
 roslaunch consai2_examples control_example.launch sim:=true
 ```
 
+その他、パラメータを変更することで制御対象・制御方式を変更できます。
+
+```sh
+# 制御対象のロボットID、チームカラーの変更
+roslaunch consai2_examples control_example.launch id:=2 color:=yellow
+
+# 速度制御のサンプル
+roslaunch consai2_examples control_example.launch velocity_control:=true
+
+```
+
 複数のロボットを動かす場合は、次のコマンドを実行します。
 
 このサンプルではRefereeのSTOP信号でロボットが動作します。
