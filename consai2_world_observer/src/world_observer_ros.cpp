@@ -109,7 +109,7 @@ WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, ros::NodeHandle& nh_priv
 
 void WorldObserverROS::VisionCallBack(const consai2_msgs::VisionDetections::ConstPtr& msg)
 {
-    ObservationContainer observation_container(this->max_id);
+    ObservationContainer observation_container(this->max_id + 1);
 
     // 観測値をロボットIDごと、ボールごとに格納
     for (auto frame : msg->frames)
