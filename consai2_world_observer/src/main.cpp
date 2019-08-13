@@ -48,6 +48,7 @@ public:
             return;
         }
 
+        this->disappeared_ = false;
         this->detected_ = true;
         this->latest_observed_time_ = ros::Time::now();
         this->odom_ = this->estimator_.estimate(observations);
