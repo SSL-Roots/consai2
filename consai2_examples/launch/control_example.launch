@@ -44,5 +44,6 @@
   <node name="rqt_plot" pkg="rqt_plot" type="rqt_plot" required="true" 
     args="
     vision_wrapper/robot_info_$(arg color)_$(arg id)/velocity 
-    consai2_game/control_target_$(arg color)_$(arg id)/goal_velocity" />
+    consai2_game/control_target_$(arg color)_$(arg id)/goal_velocity
+    consai2_control/command_velocity_$(arg color)_$(arg id)" />
 </launch>
