@@ -1,5 +1,74 @@
 #include <world_observer/world_observer_ros.hpp>
 
+// InfoBaseクラス
+// consai2_msgs/RobotInfo　及び consai2_msgs/BallInfoに対応するクラスのベースクラス
+InfoBase::InfoBase(geometry2d::Odometry odom, bool detected, bool disappeared, geometry2d::Pose last_detection_pose, ros::Time detection_stamp)
+{
+    this->odom_ = odom;
+    this->detected_ = detected;
+    this->disappeared_ = disappeared;
+    this->last_detection_pose_ = last_detection_pose;
+    this->detection_stamp_ = detection_stamp;
+}
+
+// RobotInfoクラス
+// consai2_msgs/RobotInfoに対応するクラス
+RobotInfo::RobotInfo(int robot_id, geometry2d::Odometry odom, bool detected, bool disappeared, geometry2d::Pose last_detection_pose, ros::Time detection_stamp) :
+    InfoBase(odom, detected, disappeared, last_detection_pose, detection_stamp),
+    robot_id_(robot_id)
+{
+}
+
+consai2_msgs::RobotInfo RobotInfo::ToROSMsg()
+{
+    consai2_msgs::RobotInfo msg;
+
+    msg.robot_id = this->robot_id_;
+    msg.pose = this->odom_.pose.ToROSPose2D();
+
+    msg.velocity.x = this->odom_.velocity.x;
+    msg.velocity.y = this->odom_.velocity.y;
+    msg.velocity.theta = this->odom_.velocity.theta;
+
+    msg.velocity_twist = this->odom_.velocity.ToROSTwist();
+
+    msg.detected = this->detected_;
+    msg.detection_stamp = this->detection_stamp_;
+    msg.disappeared = this->disappeared_;
+
+    msg.last_detection_pose = this->last_detection_pose_.ToROSPose2D();
+
+    return msg;
+}
+
+// BallInfoクラス
+// consai2_msgs/BallInfoに対応するクラス
+BallInfo::BallInfo(geometry2d::Odometry odom, bool detected, bool disappeared, geometry2d::Pose last_detection_pose, ros::Time detection_stamp) :
+    InfoBase(odom, detected, disappeared, last_detection_pose, detection_stamp)
+{
+}
+
+consai2_msgs::BallInfo BallInfo::ToROSMsg()
+{
+    consai2_msgs::BallInfo msg;
+
+    msg.pose = this->odom_.pose.ToROSPose2D();
+
+    msg.velocity.x = this->odom_.velocity.x;
+    msg.velocity.y = this->odom_.velocity.y;
+    msg.velocity.theta = this->odom_.velocity.theta;
+
+    msg.velocity_twist = this->odom_.velocity.ToROSTwist();
+
+    msg.detected = this->detected_;
+    msg.detection_stamp = this->detection_stamp_;
+    msg.disappeared = this->disappeared_;
+
+    msg.last_detection_pose = this->last_detection_pose_.ToROSPose2D();
+
+    return msg;
+}
+
 //
 // ObservationContainer クラス
 //

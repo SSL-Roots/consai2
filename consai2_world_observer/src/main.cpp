@@ -69,6 +69,7 @@ public:
         this->last_detection_pose = observations[0];
     }
 
+
 protected:
     geometry2d::Odometry odom_;
     bool detected_;
@@ -104,24 +105,11 @@ public:
         robot_id_(obj.robot_id_)
     {}
 
-    consai2_msgs::RobotInfo ToRosMsg()
+    RobotInfo GetInfo()
     {
-        consai2_msgs::RobotInfo msg;
+        RobotInfo info(this->robot_id_, this->odom_, this->detected_, this->disappeared_, this->last_detection_pose, this->latest_observed_time_);
 
-        msg.robot_id = this->robot_id_;
-        msg.pose = this->odom_.pose.ToROSPose2D();
-
-        msg.velocity.x = this->odom_.velocity.x;
-        msg.velocity.y = this->odom_.velocity.y;
-        msg.velocity.theta = this->odom_.velocity.theta;
-
-        msg.velocity_twist = this->odom_.velocity.ToROSTwist();
-
-        msg.detected = this->detected_;
-        msg.detection_stamp = this->latest_observed_time_;
-        msg.disappeared = this->disappeared_;
-
-        msg.last_detection_pose = this->last_detection_pose.ToROSPose2D();
+        return info;
     }
 
 private:
@@ -134,23 +122,10 @@ private:
 class BallObserver : public ObserverBase
 {
 public:
-    consai2_msgs::BallInfo ToRosMsg()
+    BallInfo GetInfo()
     {
-        consai2_msgs::BallInfo msg;
-
-        msg.pose = this->odom_.pose.ToROSPose2D();
-
-        msg.velocity.x = this->odom_.velocity.x;
-        msg.velocity.y = this->odom_.velocity.y;
-        msg.velocity.theta = this->odom_.velocity.theta;
-
-        msg.velocity_twist = this->odom_.velocity.ToROSTwist();
-
-        msg.detected = this->detected_;
-        msg.detection_stamp = this->latest_observed_time_;
-        msg.disappeared = this->disappeared_;
-
-        msg.last_detection_pose = this->last_detection_pose.ToROSPose2D();
+        BallInfo info(this->odom_, this->detected_, this->disappeared_, this->last_detection_pose, this->latest_observed_time_);
+        return info;
     }
 };
 
@@ -180,6 +155,21 @@ public:
         this->ball_observer_.update(observation_container.ball_observations);
     }
 
+    RobotInfo GetBlueInfo(int robot_id)
+    {
+        return this->blue_observers_[robot_id].GetInfo();
+    }
+
+    RobotInfo GetYellowInfo(int robot_id)
+    {
+        return this->yellow_observers_[robot_id].GetInfo();
+    }
+
+    BallInfo GetBallInfo()
+    {
+        return this->ball_observer_.GetInfo();
+    }
+
 private:
     std::vector<RobotObserver> blue_observers_;
     std::vector<RobotObserver> yellow_observers_;
@@ -194,6 +184,9 @@ void UpdateHook(ObservationContainer observation_container)
     ROS_INFO("hook function called!");
 
     observer_facade->update(observation_container);
+    BallInfo info = observer_facade->GetBallInfo();
+
+    ROS_INFO("Ball: x:%3.2f, y:%3.2f", info.odom_.pose.x, info.odom_.pose.y);
 }
 
 
