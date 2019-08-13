@@ -152,22 +152,38 @@ class ObstacleAvoidance(object):
 
     # 避ける位置を生成
     def gen_avoid_pose(self, trans, my_pose, robot_info_team, dist, obst_dist, obst_id):
-
+    
         if 0 < len(obst_id):
             min_dist = min(obst_dist)
             min_dist_id = dist.index(min_dist)
-
+    
+            tr_my_pose = trans.transform(my_pose)
+    
+            # 障害物の左右に中間パスを生成
             robot_pose = robot_info_team[min_dist_id].pose
-
-            # 一番近い敵ロボットの座標の横にパスを生成
             tr_robot_pose = trans.transform(robot_pose)
-            tr_robot_pose.x += self._tr_move_x
-            tr_robot_pose.y -= self._tr_move_y
-            avoid_pose = trans.inverted_transform(tr_robot_pose)
+            tr_avoid_pose_right = tr_robot_pose
+            tr_avoid_pose_right.x += self._tr_move_x
+            tr_avoid_pose_right.y -= self._tr_move_y
+            # tr_avoid_pose_left = tr_robot_pose
+            # tr_avoid_pose_left.x += self._tr_move_x
+            # tr_avoid_pose_left.y += self._tr_move_y
+            # 生成したパスとの距離を算出
+            # dist_right = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_right)
+            # dist_left = tool.distance_2_poses(tr_my_pose, tr_avoid_pose_left)
+    
+            # 一番近い敵ロボットの座標の横にパスを生成
+            # if dist_left < dist_right:
+                # tr_avoid_pose = tr_avoid_pose_left
+            # else:
+                # tr_avoid_pose = tr_avoid_pose_right
+            tr_avoid_pose = tr_avoid_pose_right
+           
+            avoid_pose = trans.inverted_transform(tr_avoid_pose)
         else:
             avoid_pose = Pose2D(100, 100, 0)
             min_dist = (tool.distance_2_poses(avoid_pose, my_pose))
-
+    
         return avoid_pose, min_dist
-
-
+    
+    
