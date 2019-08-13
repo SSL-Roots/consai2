@@ -18,6 +18,9 @@ class Field(object):
     _penalty_pose = {
             'our': copy.deepcopy(_penalty_dict), 
             'their': copy.deepcopy(_penalty_dict)}
+    _field = {
+            'length' : 0,
+            'width' : 0}
 
     @classmethod
     def update(cls, geometry):
@@ -43,6 +46,10 @@ class Field(object):
         Field._penalty_pose['their']['lower_front'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightPenaltyStretch"][0]
         Field._penalty_pose['their']['lower_back'] = [Pose2D(i.p1_x, i.p1_y,0) for i in geometry.field_lines if i.name == "RightFieldLeftPenaltyStretch"][0]
 
+        # フィールドサイズ取得
+        Field._field['length'] = geometry.field_length
+        Field._field['width'] = geometry.field_width
+
     @classmethod
     def goal_pose(cls, team='our', position='center'):
         return Field._goal_pose[team][position]
@@ -50,4 +57,8 @@ class Field(object):
     @classmethod
     def penalty_pose(cls, team='our', position='upper_front'):
         return Field._penalty_pose[team][position]
+
+    @classmethod
+    def field(cls, param='length'):
+        return Field._field[param]
 
