@@ -140,7 +140,7 @@ public:
     ObserverFacade(int max_id) :
         max_id_(max_id)
     {
-        for (auto robot_id=0; robot_id < max_id; ++robot_id)
+        for (auto robot_id=0; robot_id <= max_id; ++robot_id)
         {
             blue_observers_.push_back(RobotObserver(robot_id));
             yellow_observers_.push_back(RobotObserver(robot_id));
@@ -149,7 +149,7 @@ public:
 
     void update(ObservationContainer observation_container)
     {
-        for (auto robot_id=0; robot_id < this->max_id_; ++robot_id)
+        for (auto robot_id=0; robot_id <= this->max_id_; ++robot_id)
         {
             this->blue_observers_[robot_id].update(observation_container.blue_observations[robot_id]);
             this->yellow_observers_[robot_id].update(observation_container.yellow_observations[robot_id]);
