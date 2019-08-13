@@ -31,6 +31,57 @@ def angle_normalize(angle):
 
     return angle
 
+class PIDGain(object):
+    def __init__(self, KP, KI ,KD):
+        self._KP = KP
+        self._KI = KI
+        self._KD = KD
+
+    def KP(self):
+        return self._KP
+    def KI(self):
+        return self._KI
+    def KD(self):
+        return self._KD
+
+class PIDController(object):
+    class inner_PIDController(object):
+        def __init__(self, pid_gain):
+            self._pid_gain = pid_gain
+
+            self._error1 = 0
+            self._error2 = 0
+            self._output = 0
+
+        def update(self, error):
+            delta_output = self._pid_gain.KP() * (error - self._error1) \
+                    + self._pid_gain.KI() * (error) \
+                    + self._pid_gain.KD() * (error - 2*self._error1 + self._error2)
+            self._output += delta_output
+
+            # 誤差の更新
+            self._error2 = self._error1
+            self._error1 = error
+            return self._output
+
+    def __init__(self, pid_gain_x, pid_gain_y, pid_gain_theta):
+        self._pid_controller = {
+                "x": self.inner_PIDController(pid_gain_x),
+                "y": self.inner_PIDController(pid_gain_y),
+                "theta": self.inner_PIDController(pid_gain_theta)
+                }
+
+        self._output = Pose2D()
+
+
+    def update(self, error_pose):
+        self._output.x = self._pid_controller["x"].update(error_pose.x)
+        self._output.y = self._pid_controller["y"].update(error_pose.y)
+        self._output.theta = self._pid_controller["theta"].update(error_pose.theta)
+
+        return self._output
+
+
 
 class Controller(object):
     def __init__(self):
@@ -41,19 +92,28 @@ class Controller(object):
         self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
         self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
         self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
-        self._POSE_P_GAIN = 1.0
-        self._VELOCITY_P_GAIN = {'x':2.0, 'y':2.0, 'theta':0.5}
         self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
         self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
+        self._PID_GAIN = { # 位置制御のPIDゲイン
+                "x":PIDGain(1.0, 0.0, 0.0),
+                "y":PIDGain(1.0, 0.0, 0.0),
+                "theta":PIDGain(1.0, 0.0, 0.0)
+                }
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
         # フィールド座標系の制御速度
         # PID制御のため、前回の制御速度を保存する
         self._control_velocity = {'blue':[],'yellow':[]}
+        self._pid_controller = {'blue':[], 'yellow':[]}
         for color in self._COLORS:
             for robot_id in range(self._MAX_ID +1):
                 self._control_velocity[color].append(Pose2D())
+                self._pid_controller[color].append(
+                        PIDController(
+                            self._PID_GAIN["x"], 
+                            self._PID_GAIN["y"], 
+                            self._PID_GAIN["theta"]))
 
         # 経路追従のためのインデックス
         self._path_index = {'blue':[],'yellow':[]}
@@ -223,17 +283,15 @@ class Controller(object):
     
     def _pid_pose_control(self, color, robot_id, robot_pose, goal_pose, current_control_velocity):
         # 現在姿勢と目標姿勢の差分から、field座標系での動作速度を求める
-        diff_pose = Pose2D()
+        pose_error = Pose2D()
         target_velocity = Pose2D()
 
-        diff_pose.x = goal_pose.x - robot_pose.x
-        diff_pose.y = goal_pose.y - robot_pose.y
-        diff_pose.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
+        pose_error.x = goal_pose.x - robot_pose.x
+        pose_error.y = goal_pose.y - robot_pose.y
+        pose_error.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
 
         # 目標動作速度を求める
-        target_velocity.x = self._POSE_P_GAIN * diff_pose.x
-        target_velocity.y = self._POSE_P_GAIN * diff_pose.y
-        target_velocity.theta = self._POSE_P_GAIN * diff_pose.theta
+        target_velocity = self._pid_controller[color][robot_id].update(pose_error)
 
         new_control_velocity = self._velocity_control(target_velocity, current_control_velocity)
 
