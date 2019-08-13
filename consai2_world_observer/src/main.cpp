@@ -135,6 +135,8 @@ public:
 class ObserverFacade
 {
 public:
+    int max_id_;
+
     ObserverFacade(int max_id) :
         max_id_(max_id)
     {
@@ -170,11 +172,12 @@ public:
         return this->ball_observer_.GetInfo();
     }
 
+    
+
 private:
     std::vector<RobotObserver> blue_observers_;
     std::vector<RobotObserver> yellow_observers_;
     BallObserver ball_observer_;
-    int max_id_;
 };
 
 ObserverFacade* observer_facade;
@@ -191,6 +194,16 @@ void UpdateHook(ObservationContainer observation_container)
 
     world_observer_ros->PublishBallInfo(info);
 
+    for (auto robot_id=0; robot_id<=observer_facade->max_id_; ++robot_id)
+    {
+        RobotInfo blue_info = observer_facade->GetBlueInfo(robot_id);
+        world_observer_ros->PublishBlueInfo(robot_id, blue_info);
+
+        RobotInfo yellow_info = observer_facade->GetYellowInfo(robot_id);
+        world_observer_ros->PublishYellowInfo(robot_id, yellow_info);
+
+        ROS_INFO("pub id:%d", robot_id);
+    }
 }
 
 
