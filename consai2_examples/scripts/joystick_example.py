@@ -219,7 +219,11 @@ class JoyWrapper(object):
         if self._joy_msg is None:
             return 
 
+        # ID・Color変更用の変数
         color_or_id_changed = False
+        prev_id = copy.deepcopy(self._robot_id)
+        prev_is_yellow = copy.deepcopy(self._is_yellow)
+
         current_joy_pose = self._joy_target.path[-1]
 
         # シャットダウン
@@ -327,20 +331,21 @@ class JoyWrapper(object):
         # Color, ID変更ボタンを押すことで操縦を停止できる
         if self._indirect_control_enable is False:
             stop_target = ControlTarget()
-            stop_target.robot_id = self._robot_id
-            stop_target.control_enable = False
+            stop_target.control_enable = True
+            stop_target.goal_velocity = Pose2D(0,0,0)
 
+            stop_target.robot_id = prev_id
             color = 'blue'
-            if self._is_yellow:
+            if prev_is_yellow:
                 color = 'yellow'
 
             # 末尾に16進数の文字列をつける
-            topic_id = hex(self._robot_id)[2:]
+            topic_id = hex(prev_id)[2:]
             topic_name = 'consai2_game/control_target_' + color +'_' + topic_id
             pub_control_target = rospy.Publisher(
                     topic_name, ControlTarget, queue_size=1)
 
-            pub_control_target.publish()
+            pub_control_target.publish(stop_target)
 
 
         self._pub_joy_target.publish(self._joy_target)
