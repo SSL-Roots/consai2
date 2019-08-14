@@ -66,7 +66,6 @@ public:
     void VisionCallBack(const consai2_msgs::VisionDetections::ConstPtr& msg);
     bool RegisterUpdateHook(std::function<void(ObservationContainer observation_container)> function);
 
-    void PublishDebugOdom(geometry2d::Odometry odom);
     void PublishBlueInfo(int robot_id, RobotInfo info);
     void PublishYellowInfo(int robot_id, RobotInfo info);
     void PublishBallInfo(BallInfo info);
@@ -78,7 +77,6 @@ private:
     ros::Publisher  pub_ball_info_;
     std::vector<ros::Publisher*> p_pub_blue_info_;
     std::vector<ros::Publisher*> p_pub_yellow_info_;
-    ros::Publisher  pub_odom_debug_;
     std::function<void(ObservationContainer observation_container)> update_hook_;
 };
 

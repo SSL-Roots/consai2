@@ -88,8 +88,7 @@ ObservationContainer::ObservationContainer(int num_of_robot)
 //
 WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, ros::NodeHandle& nh_private, std::string vision_topic_name) :
     sub_vision_(nh.subscribe(vision_topic_name, 10, &WorldObserverROS::VisionCallBack, this)),
-    pub_ball_info_(nh_private.advertise<consai2_msgs::BallInfo>("ball_info", 1000)),
-    pub_odom_debug_(nh.advertise<nav_msgs::Odometry>("debug_odom", 1000))
+    pub_ball_info_(nh_private.advertise<consai2_msgs::BallInfo>("ball_info", 1000))
 {
     ros::param::param<int>("consai2_description/max_id", this->max_id, 15);
 
@@ -161,14 +160,6 @@ void WorldObserverROS::PublishYellowInfo(int robot_id, RobotInfo info)
 void WorldObserverROS::PublishBallInfo(BallInfo info)
 {
     this->pub_ball_info_.publish(info.ToROSMsg());
-}
-
-void WorldObserverROS::PublishDebugOdom(geometry2d::Odometry odom)
-{
-    nav_msgs::Odometry msg;
-    msg = odom.ToROSOdometry();
-
-    this->pub_odom_debug_.publish(msg);
 }
 
 bool WorldObserverROS::RegisterUpdateHook(std::function<void(ObservationContainer observation_container)> function)
