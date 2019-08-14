@@ -95,12 +95,12 @@ WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, ros::NodeHandle& nh_priv
     for (auto robot_id=0; robot_id <= max_id; ++robot_id)
     {
         std::ostringstream topic_name_blue;
-        topic_name_blue << "robot_info_blue_" << robot_id;
+        topic_name_blue << "robot_info_blue_" << std::hex << robot_id;
         this->p_pub_blue_info_.push_back(new ros::Publisher);
         *(this->p_pub_blue_info_.back()) = nh_private.advertise<consai2_msgs::RobotInfo>(topic_name_blue.str(), 1000);
 
         std::ostringstream topic_name_yellow;
-        topic_name_yellow << "robot_info_yellow_" << robot_id;
+        topic_name_yellow << "robot_info_yellow_" << std::hex << robot_id;
         this->p_pub_yellow_info_.push_back(new ros::Publisher);
         *(this->p_pub_yellow_info_.back()) = nh_private.advertise<consai2_msgs::RobotInfo>(topic_name_yellow.str(), 1000);
     }
