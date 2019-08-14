@@ -1,9 +1,9 @@
 <launch>
 
   <!-- Visualizer用のパラメータ -->
-  <arg name="publish_ball" default="true" />
-  <arg name="publish_blue" default="true" />
-  <arg name="publish_yellow" default="true" />
+  <!-- <arg name="publish_ball" default="true" />   -->
+  <!-- <arg name="publish_blue" default="true" />   -->
+  <!-- <arg name="publish_yellow" default="true" /> -->
   <!-- grSimのロボットを動かす場合はtrue -->
   <arg name="sim" default="false" />
   <!-- 速度制御の場合はTrue -->
@@ -17,9 +17,9 @@
 
   <!-- ビジュアライザの起動 -->
   <include file="$(find consai2_examples)/launch/visualizer.launch">
-    <arg name="publish_ball" default="$(arg publish_ball)" />
-    <arg name="publish_blue" default="$(arg publish_blue)" />
-    <arg name="publish_yellow" default="$(arg publish_yellow)" />
+    <!-- <arg name="publish_ball" default="$(arg publish_ball)" />     -->
+    <!-- <arg name="publish_blue" default="$(arg publish_blue)" />     -->
+    <!-- <arg name="publish_yellow" default="$(arg publish_yellow)" /> -->
   </include>
 
   <include file="$(find consai2_sender)/launch/sender.launch">

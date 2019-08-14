@@ -1,8 +1,8 @@
 <launch>
   <!-- game用のパラメータ -->
-  <arg name="publish_ball" default="true" />
-  <arg name="publish_blue" default="true" />
-  <arg name="publish_yellow" default="true" />
+  <!-- <arg name="publish_ball" default="true" />   -->
+  <!-- <arg name="publish_blue" default="true" />   -->
+  <!-- <arg name="publish_yellow" default="true" /> -->
   <!-- その他パラメータの読み込み -->
   <include file="$(find consai2_description)/launch/description.launch"/>
 
@@ -10,14 +10,15 @@
     <arg name="load_description" value="false" />
   </include>
 
-  <node name="vision_wrapper" pkg="consai2_game" type="vision_wrapper.py" required="true" output="screen" >
-    <param name="publish_ball" value="$(arg publish_ball)" />
-    <param name="publish_blue" value="$(arg publish_blue)" />
-    <param name="publish_yellow" value="$(arg publish_yellow)" />
-  </node>
+  <!-- <node name="vision_wrapper" pkg="consai2_game" type="vision_wrapper.py" required="true" output="screen" > -->
+  <!--   <param name="publish_ball" value="$(arg publish_ball)" />                                               -->
+  <!--   <param name="publish_blue" value="$(arg publish_blue)" />                                               -->
+  <!--   <param name="publish_yellow" value="$(arg publish_yellow)" />                                           -->
+  <!-- </node>                                                                                                   -->
 
-  <node name="referee_wrapper" pkg="consai2_game" type="referee_wrapper.py" required="true" output="screen" >
-  </node>
+  <node name="vision_wrapper" pkg="consai2_world_observer" type="consai2_world_observer" required="true" output="screen" />
+
+  <node name="referee_wrapper" pkg="consai2_game" type="referee_wrapper.py" required="true" output="screen" />
 
   <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" />
 
