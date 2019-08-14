@@ -26,6 +26,11 @@ sudo apt-get install python-pip
 sudo pip2 install protobuf
 ```
 
+### 依存パッケージのインストール
+```zsh
+sudo apt-get install ros-$ROS_DISTRO-navigation ros-$ROS_DISTRO-bfl -y
+```
+
 ### consai2のビルド
 
 ```zsh
