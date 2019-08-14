@@ -186,7 +186,7 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     
 
 # ゾーンディフェンス
-def defence_zone(my_pose, ball_info, control_target, my_role, defence_num):
+def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their_robot_info):
     ROLE_MAX = 7
     GOAL_DEFENCE_NUM = 2
     ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
@@ -215,12 +215,23 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num):
         try:
             zone_id = my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
             target_pose.y = split_field_center[zone_id]
+            # 自分のゾーンに入っている敵チェック
+            invader_pose = [i.pose for i in their_robot_info \
+                    if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
+                    i.pose.x < 0]
+            print(invader_pose)
             # ボールが自分のゾーンの中に入っている
             if(ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
                 target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
                 #target_pose = ball_pose
+            # 自分のゾーンにボールはないけど敵がいる場合は割り込む
+            elif invader_pose != []:
+                # 敵とボールの間に割り込む
+                angle_to_ball_from_invader = tool.get_angle(invader_pose[0], ball_pose)
+                trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)
+                target_pose = trans.inverted_transform(Pose2D(0.5, 0, 0))
             else:
                 target_pose.x = half_our_field_length
         except IndexError:
