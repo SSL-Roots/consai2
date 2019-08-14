@@ -11,7 +11,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 import avoidance
-from actions import tool, defense, offense, goalie
+from actions import tool, defense, offense, goalie, normal
 from field import Field
 import role
 
@@ -48,119 +48,87 @@ class RobotNode(object):
 
     def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None, defece_num=0):
         self._control_target.control_enable = True
+        remake_path = False # 経路再生成のフラグ
+        avoid_obstacle = True # 障害物回避の経路追加フラグ
 
-        # reset_flag = True
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
-            self._control_target.control_enable = False
+            rospy.logdebug("HALT")
+            self._control_target, remake_path= normal.stop(self._control_target)
+            avoid_obstacle = False # 障害物回避しない
 
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
-            pose = Pose2D()
-            # if self._is_goalie:
-            if self._my_role == 0:
-                self._control_target = goalie.interpose(
-                        ball_info, robot_info, self._control_target)
-            elif self._my_role == 1:
-                self._control_target.path = []
-                # アタッカーならボールに近づく
-                # self._control_target = offense.simple_kick(self._my_pose, ball_info, self._control_target, kick_power=0.5)
-                self._control_target.path = []
-                self._control_target.path.append(Pose2D(0, 0, 0))
-                # 障害物位置を検出し、中間パスの生成と追加を行う
-                self._control_target.path = obstacle_avoidance.add_path(self._control_target.path, self._my_pose, ball_avoid_flag=True)
-            else:
-                # それ以外ならくるくる回る
-                # パスを初期化 (あくまでテスト用、本来はパスは消すべきではない)
-                self._control_target.path = []
-            
-            pass
+            self._control_target, remake_path= normal.make_line(self._my_role, ball_info, self._control_target)
+
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
                 rospy.logdebug("STOP")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_PREPARATION"]:
                 rospy.logdebug("OUR_KICKOFF_PREPARATION")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_START"]:
                 rospy.logdebug("OUR_KICKOFF_START")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_PREPARATION"]:
                 rospy.logdebug("OUR_PENALTY_PREPARATION")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_START"]:
                 rospy.logdebug("OUR_PENALTY_START")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_DIRECT_FREE"]:
                 rospy.logdebug("OUR_DIRECT_FREE")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_INDIRECT_FREE"]:
                 rospy.logdebug("OUR_INDIRECT_FREE")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_TIMEOUT"]:
                 rospy.logdebug("OUR_TIMEOUT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_BALL_PLACEMENT"]:
                 rospy.logdebug("OUR_BALL_PLACEMENT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_PREPARATION"] \
                     or referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_START"]:
                 rospy.logdebug("THEIR_KICKOFF")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_PREPARATION"] \
                     or referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_START"]:
                 rospy.logdebug("THEIR_PENALTY")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
                 rospy.logdebug("THEIR_DIRECT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_INDIRECT_FREE"]:
                 rospy.logdebug("THEIR_INDIRECT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_TIMEOUT"]:
                 rospy.logdebug("THEIR_TIMEOUT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
             elif referee.referee_id == ref.REFEREE_ID["THEIR_BALL_PLACEMENT"]:
                 rospy.logdebug("THEIR_BALL_PLACEMENT")
+                avoid_obstacle = False # 障害物回避しない
                 pass
 
-
-            self._control_target.path = []
-            pose = Pose2D()
-            pose.x = self._my_pose.x
-            pose.y = self._my_pose.y
-            pose.theta = self._my_pose.theta + math.radians(30) # くるくる回る
-
-            if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                pose.x = -4
-                pose.y = 0
-            elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                pose.x = ball_info.pose.x - 0.5
-                pose.y = ball_info.pose.y
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
-                pose.x = -3.5
-                pose.y = 1
-                pose = defense.defence_goal(self._my_pose, ball_info, self._control_target, self._my_role, defece_num)
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_2"]:
-                pose.x = -3.5
-                pose.y = -1
-                pose = defense.defence_goal(self._my_pose, ball_info, self._control_target, self._my_role, defece_num)
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
-                pose.x = -1
-                pose.y = 1
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_2"]:
-                pose.x = -1
-                pose.y = -1
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_3"]:
-                pose.x = -1
-                pose.y = 2
-            elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_4"]:
-                pose.x = -1
-                pose.y = -2
-            elif self._my_role == role.ROLE_ID["ROLE_NONE"]:
-                pose.theta = self._my_pose.theta # まわらない
-
-            self._control_target.path.append(pose)
+        # 障害物回避の経路作成
+        if avoid_obstacle:
+            self._control_target.path = obstacle_avoidance.add_path(
+                    self._control_target.path, self._my_pose)
 
         return self._control_target
 
