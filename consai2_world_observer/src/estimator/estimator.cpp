@@ -169,10 +169,8 @@ PoseKalmanFilter::~PoseKalmanFilter()
     delete  this->filter;
 }
 
-
 // EnemyEstimatorクラス
-// 
-
+// ボールの位置・速度推定を担当
 void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf, LinearAnalyticSystemModelGaussianUncertainty** sys_model)
 {
     // Create the matrices A and B for the linear system model
@@ -200,14 +198,23 @@ void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf
     ColumnVector sysNoise_Mu(6);
     sysNoise_Mu = 0.0;
 
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 5.0;
+    const double MAX_ANGULAR_ACC_RADPS = 2*M_PI;
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_ANGULAR_MOVEMENT_IN_DT = MAX_ANGULAR_ACC_RADPS / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+    const double MAX_ANGULAR_ACCEL_IN_DT    = MAX_ANGULAR_ACC_RADPS * dt;
+
     SymmetricMatrix sysNoise_Cov(6);
     sysNoise_Cov = 0.0;
-    sysNoise_Cov(1,1) = pow(0.01, 2); 
-    sysNoise_Cov(2,2) = pow(0.01, 2);
-    sysNoise_Cov(3,3) = pow(0.01, 2);
-    sysNoise_Cov(4,4) = pow(6.0,  2); //敵ロボットの最高加速度を 6[m/s^2]と仮定
-    sysNoise_Cov(5,5) = pow(6.0,  2);
-    sysNoise_Cov(6,6) = pow(6.28, 2); // 敵ロボットの最高各加速度を2pi[rad/s^2]と仮定
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(3,3) = pow(MAX_ANGULAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
+    sysNoise_Cov(6,6) = pow(MAX_ANGULAR_ACCEL_IN_DT, 2);
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
 
@@ -230,9 +237,9 @@ void EnemyEstimator::InitMeasurementModel(LinearAnalyticConditionalGaussian** me
     measNoise_Mu = 0.0;
 
     SymmetricMatrix measNoise_Cov(3);
-    measNoise_Cov(1,1) = pow(0.01, 2);   // 観測ノイズを標準偏差 0.01[m] と仮定
-    measNoise_Cov(2,2) = pow(0.01, 2);
-    measNoise_Cov(3,3) = pow(0.05, 2);   // 観測ノイズを標準偏差 0.05[rad]と仮定
+    measNoise_Cov(1,1) = pow(0.02, 2);   // 観測ノイズを標準偏差 0.02[m] と仮定
+    measNoise_Cov(2,2) = pow(0.02, 2);
+    measNoise_Cov(3,3) = pow(0.02, 2);
     Gaussian measurement_Uncertainty(measNoise_Mu, measNoise_Cov);
 
     // create the model
@@ -286,14 +293,19 @@ void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf,
     ColumnVector sysNoise_Mu(6);
     sysNoise_Mu = 0.0;
 
-    // ボールの位置、速度変化はノイズとして表現
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 500.0;    // 6.5[m/s] / 16[ms] = 500
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+
     SymmetricMatrix sysNoise_Cov(6);
     sysNoise_Cov = 0.0;
-    sysNoise_Cov(1,1) = pow(8.0, 2);     // ボールの最高速度を 8.0[m/s]　と仮定
-    sysNoise_Cov(2,2) = pow(8.0, 2);
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(3,3) = 1e9;
-    sysNoise_Cov(4,4) = pow(10.0,  2);   // ボールの最高加速度を 10.0[m/s^2] と仮定
-    sysNoise_Cov(5,5) = pow(10.0,  2);
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
     sysNoise_Cov(6,6) = 1e9;
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
@@ -317,8 +329,8 @@ void BallEstimator::InitMeasurementModel(LinearAnalyticConditionalGaussian** mea
     measNoise_Mu = 0.0;
 
     SymmetricMatrix measNoise_Cov(3);
-    measNoise_Cov(1,1) = pow(0.01, 2);   // 観測ノイズを標準偏差 0.01[m] と仮定
-    measNoise_Cov(2,2) = pow(0.01, 2);
+    measNoise_Cov(1,1) = pow(0.05, 2);   // 観測ノイズを標準偏差 0.02[m] と仮定
+    measNoise_Cov(2,2) = pow(0.05, 2);
     measNoise_Cov(3,3) = 1e9;
     Gaussian measurement_Uncertainty(measNoise_Mu, measNoise_Cov);
 
