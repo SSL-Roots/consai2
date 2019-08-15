@@ -10,6 +10,7 @@ from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+from observer import Observer
 
 sys.path.append(os.pardir)
 from field import Field
@@ -237,13 +238,8 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             # ボールが自分のゾーンの中に入っている
             if(ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
-                # でもペナルティエリアの中
-                if((left_penalty_corner.x + 0.5 > ball_pose.x > right_penalty_corner.x - 0.5) and \
-                        ball_pose.y < left_penalty_corner.y + 0.5):
-                    target_pose.x = half_our_field_length
-                else:
-                    trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
-                    target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
+                trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
+                target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
             elif invader_pose != []:
                 # 敵とボールの間に割り込む
@@ -253,16 +249,75 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             else:
                 target_pose.x = half_our_field_length
         except IndexError:
+            zone_id = None
             target_pose = my_pose
         target_pose.theta = angle_to_ball
         #return target_pose
     else:
         pass
         #return target_pose
+    if zone_id != None:
+        receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, zone_id)
+        if receive_ball_result:
+            target_pose = receive_target_pose
+
+    # ペナルティエリアには入らない
+    if((left_penalty_corner.x + 0.1 > target_pose.x > right_penalty_corner.x - 0.1) and \
+                target_pose.y < left_penalty_corner.y + 0.1):
+        target_pose.x = half_our_field_length
 
     control_target.path = []
     control_target.path.append(target_pose)
 
     return control_target
 
-    
+class Receiving(object):
+    _recenving = [False] * role.ZONE_DEFENCE_NUM
+
+    @classmethod
+    def update_receiving(cls, zone_id, param):
+        Receiving._recenving[zone_id] = param
+    @classmethod
+    def receiving(cls, zone_id):
+        return Receiving._recenving[zone_id]
+
+
+def update_receive_ball(ball_info, my_pose, zone_id):
+    ball_pose = ball_info.pose
+    ball_vel = ball_info.velocity
+    _can_receive_dist = 1.0
+    _can_receive_hysteresis = 0.3
+
+    result = False
+
+    target_pose = Pose2D()
+
+    if Observer.ball_is_moving():
+        angle_velocity = tool.get_angle_from_center(ball_vel)
+        trans = tool.Trans(ball_pose, angle_velocity)
+
+        tr_pose = trans.transform(my_pose)
+
+        fabs_y = math.fabs(tr_pose.y)
+
+        if Receiving.receiving(zone_id) == False and \
+                fabs_y < _can_receive_dist - _can_receive_hysteresis:
+            Receiving.update_receiving(zone_id, True)
+
+        elif Receiving.receiving(zone_id) == True and \
+                fabs_y > _can_receive_dist + _can_receive_hysteresis:
+            Receiving.update_receiving(zone_id, False)
+
+        if Receiving.receiving(zone_id) and tr_pose.x > 0.0:
+            # ボール軌道上に乗ったらボールに近づく
+            # if math.fabs(tr_pose.y) < 0.3:
+            #     tr_pose.x *= 0.9
+
+            tr_pose.y = 0.0
+            inv_pose = trans.inverted_transform(tr_pose)
+            angle_to_ball = tool.get_angle(inv_pose, ball_pose)
+            target_pose = Pose2D(inv_pose.x, inv_pose.y, angle_to_ball)
+            result = True
+
+    return result, target_pose
+
