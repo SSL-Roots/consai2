@@ -65,8 +65,8 @@ def inplay_shoot(my_pose, ball_info, control_target):
 
     KICK_POWER = 1.0
     IS_TOUCH_DIST = 0.2 # meters
-    IS_TOUCH_ANGLE = 160 # degrees
-    IS_LOOK_TARGET_ANGLE = 30 # degrees
+    IS_TOUCH_ANGLE = 170 # degrees
+    IS_LOOK_TARGET_ANGLE = 45 # degrees
     CAN_SHOOT_ANGLE = 5 # degrees
     SHOOT_TARGET = Field.goal_pose('their', 'center')
 
@@ -124,10 +124,11 @@ def inplay_shoot(my_pose, ball_info, control_target):
         # 狙いが定まったらシュート
         if math.fabs(tr_robot_angle_BtoT) < math.radians(CAN_SHOOT_ANGLE):
             control_target.kick_power = KICK_POWER
+            control_target.dribble_power = 1.0
         else:
             control_target.kick_power = 0.0
+            control_target.dribble_power = 1.0
 
-        control_target.dribble_power = 0.0
 
 
     # パスを追加

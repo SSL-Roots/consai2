@@ -88,7 +88,7 @@ class Controller(object):
         QUEUE_SIZE = 10
         self._COLORS = ['blue', 'yellow']
 
-        self._MAX_VELOCITY = 4.0 # m/s
+        self._MAX_VELOCITY = 2.0 # m/s
         self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
         self._MAX_ACCELERATION = 2.0 / 60.0 # m/s^2 / frame
         self._MAX_ANGLE_ACCELERATION = 2.0 * math.pi / 60.0 # rad/s^2 / frame

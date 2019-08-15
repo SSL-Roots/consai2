@@ -87,7 +87,7 @@ ObservationContainer::ObservationContainer(int num_of_robot)
 // WorldObserverROS クラス
 //
 WorldObserverROS::WorldObserverROS(ros::NodeHandle& nh, ros::NodeHandle& nh_private, std::string vision_topic_name) :
-    sub_vision_(nh.subscribe(vision_topic_name, 10, &WorldObserverROS::VisionCallBack, this)),
+    sub_vision_(nh.subscribe(vision_topic_name, 10, &WorldObserverROS::VisionCallBack, this, ros::TransportHints().reliable().tcpNoDelay(true))),
     pub_ball_info_(nh_private.advertise<consai2_msgs::BallInfo>("ball_info", 1000))
 {
     ros::param::param<int>("consai2_description/max_id", this->max_id, 15);
