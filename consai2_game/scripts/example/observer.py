@@ -21,7 +21,7 @@ class Observer(object):
     @classmethod
     def update_ball_is_moving(cls, ball_info):
         velocity = ball_info.velocity
-        ball_speed = tool.getSizeFromCenter(velocity)
+        ball_speed = tool.get_size_from_center(velocity)
 
         if Observer._ball_is_moving == False and \
                 ball_speed > Observer._moving_speed_threshold + Observer._moving_speed_hysteresis:

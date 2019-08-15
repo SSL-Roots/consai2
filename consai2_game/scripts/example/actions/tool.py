@@ -78,7 +78,7 @@ def get_intersection(pose1, pose2, pose3, pose4):
     return output
 
 
-def getSizeFromCenter(pose):
+def get_size_from_center(pose):
     return math.hypot(pose.x, pose.y)
 
 
