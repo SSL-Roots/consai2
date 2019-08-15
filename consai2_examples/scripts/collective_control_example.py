@@ -83,9 +83,9 @@ class CollectiveController(object):
 
 
     def _publish_line_positions(self, move_forward=True):
-        START_X = -2.0
-        MARGIN = 0.4
-        TARGET_Y = 2.0
+        START_X = 1.0
+        MARGIN = 0.6
+        TARGET_Y = 4.0
         THETA = math.pi * 0.5
 
         # 横一直線の目標位置を送信する
