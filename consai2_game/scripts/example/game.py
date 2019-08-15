@@ -13,6 +13,7 @@ import referee_wrapper as ref
 import avoidance
 from actions import tool, defense, offense, goalie, normal
 from field import Field
+from observer import Observer
 import role
 
 class RobotNode(object):
@@ -387,6 +388,7 @@ class Game(object):
         self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
+        Observer.update_ball_is_moving(self._ball_info)
 
         self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
 
