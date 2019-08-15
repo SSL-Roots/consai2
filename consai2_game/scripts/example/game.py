@@ -405,6 +405,9 @@ class Game(object):
             self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
+        # ロールの更新
+        self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
+
 
         self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
 
@@ -425,8 +428,6 @@ class Game(object):
                         self._ball_info,
                         self._robot_info,
                         defense_num)
-
-            self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
 
             self._pubs_control_target[robot_id].publish(target)
 
