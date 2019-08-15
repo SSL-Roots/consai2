@@ -58,13 +58,15 @@ public:
 class ObserverBase
 {
 public:
-    ObserverBase()
+    ObserverBase(PoseKalmanFilter* p_estimator) : 
+        p_estimator_(p_estimator)
     {
-        this->estimator_.Init(0.016);
+        this->p_estimator_->Init(0.016);
     }
 
-    ObserverBase (const ObserverBase& obj)
+    ~ObserverBase()
     {
+        delete this->p_estimator_;
     }
 
     void update()
@@ -73,11 +75,11 @@ public:
         this->detected_ = false;
         if (!(this->appearance_monitor_.is_appear_))
         {
-            this->estimator_.Reset();
+            this->p_estimator_->Reset();
         }
         else
         {
-            this->odom_ = this->estimator_.estimate();
+            this->odom_ = this->p_estimator_->estimate();
         }
     }
 
@@ -94,11 +96,11 @@ public:
 
         if (!(this->appearance_monitor_.is_appear_))
         {
-            this->estimator_.Reset();
+            this->p_estimator_->Reset();
         }
         else
         {
-            this->odom_ = this->estimator_.estimate(observations);
+            this->odom_ = this->p_estimator_->estimate(observations);
         }
 
         // consai2_msgs/RobotInfoへの変換用に保存
@@ -107,7 +109,7 @@ public:
 
 
 protected:
-    EnemyEstimator estimator_;
+    PoseKalmanFilter* p_estimator_;
     AppearanceMonitor appearance_monitor_;
     geometry2d::Odometry odom_;
 
@@ -123,10 +125,14 @@ class RobotObserver : public ObserverBase
 {
 public:
     RobotObserver(int robot_id) :
+        ObserverBase(new EnemyEstimator()),
         robot_id_(robot_id)
     {}
 
+    // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
+    // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     RobotObserver(const RobotObserver& obj) :
+        ObserverBase(new EnemyEstimator()),
         robot_id_(obj.robot_id_)
     {}
 
@@ -147,6 +153,16 @@ private:
 class BallObserver : public ObserverBase
 {
 public:
+    BallObserver() : 
+        ObserverBase(new BallEstimator())
+    {}
+
+    // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
+    // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
+    BallObserver(const BallObserver& obj) :
+        ObserverBase(new BallEstimator())
+    {}
+
     BallInfo GetInfo()
     {
         BallInfo info(this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
