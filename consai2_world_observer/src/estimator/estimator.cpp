@@ -59,6 +59,21 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
 
 void PoseKalmanFilter::Reset()
 {
+    ColumnVector prior_Mu(6);
+    prior_Mu = 0.0;
+
+    SymmetricMatrix prior_Cov(6);
+    prior_Cov = 0.0;
+    prior_Cov(1,1) = 100.0;
+    prior_Cov(2,2) = 100.0;
+    prior_Cov(3,3) = 100.0;
+    prior_Cov(4,4) = 100.0;
+    prior_Cov(5,5) = 100.0;
+    prior_Cov(6,6) = 100.0;
+
+    this->prior->ExpectedValueSet(prior_Mu);
+    this->prior->CovarianceSet(prior_Cov);
+
     this->filter->Reset(this->prior);
 }
 
