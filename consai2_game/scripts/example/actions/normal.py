@@ -74,3 +74,41 @@ def stop(control_target):
     return control_target, remake_path
 
 
+def move_to(control_target, pose, ball_info, look_ball=False):
+    # 指定位置に移動する
+    # ボールを見ることもできる
+
+    new_goal_pose = pose
+
+    if look_ball:
+        new_goal_pose.theta = tool.get_angle(new_goal_pose, ball_info.pose)
+
+    # キックとドリブルはOFF
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
+    # パスを初期化する
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+    return control_target
+
+
+def keep_x(control_target, pose_x, ball_info):
+    # x座標をpose_xに、y座標をボールのy座標に合わせて移動する
+
+    new_goal_pose = Pose2D()
+    new_goal_pose.x = pose_x
+    new_goal_pose.y = ball_info.pose.y
+    new_goal_pose.theta = tool.get_angle(new_goal_pose, ball_info.pose)
+
+    # キックとドリブルはOFF
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
+    # パスを初期化する
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+    return control_target
+

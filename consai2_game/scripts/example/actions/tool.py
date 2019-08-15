@@ -4,8 +4,12 @@
 import math
 import cmath
 import numpy
+import sys,os
+
 from geometry_msgs.msg import Pose2D
 
+sys.path.append(os.pardir)
+from field import Field
 
 def distance_2_poses(pose1, pose2):
     # 2点間の距離を取る
@@ -51,6 +55,11 @@ def get_angle(from_pose, to_pose):
 
     return math.atan2(diff_pose.y, diff_pose.x)
 
+
+def get_angle_from_center(pose):
+    return math.atan2(pose.y, pose.x)
+
+
 def get_intersection(pose1, pose2, pose3, pose4):
     # get intersection of line1(pose1, pose2) and line2(pose3, pose4)
     # reference:http://imagingsolution.blog107.fc2.com/blog-entry-137.html
@@ -71,6 +80,31 @@ def get_intersection(pose1, pose2, pose3, pose4):
     output.y = pose1.y + (pose2.y - pose1.y) * coefficient
 
     return output
+
+def is_in_defence_area(pose, team='our'):
+    PENALTY_UPPER_FRONT = Field.penalty_pose(team, 'upper_front')
+    PENALTY_LOWER_FRONT = Field.penalty_pose(team, 'lower_front')
+
+    pose_is_in_area = False
+
+    if team == 'our':
+        # 自チームディフェンスエリアに入っているか
+        if pose.x < PENALTY_UPPER_FRONT.x \
+                and pose.y < PENALTY_UPPER_FRONT.y \
+                and pose.y > PENALTY_LOWER_FRONT.y:
+            pose_is_in_area = True
+    else:
+        # 相手チームディフェンスエリアに入っているか
+        if pose.x > PENALTY_UPPER_FRONT.x \
+                and pose.y < PENALTY_UPPER_FRONT.y \
+                and pose.y > PENALTY_LOWER_FRONT.y:
+            pose_is_in_area = True
+
+    return pose_is_in_area
+
+def get_size_from_center(pose):
+    return math.hypot(pose.x, pose.y)
+
 
 class Trans():
     # 座標系を移動、回転するクラス
@@ -106,5 +140,4 @@ class Trans():
 
     def inverted_transform_angle(self, angle):
         return angle_normalize(angle + self._c_angle)
-
 

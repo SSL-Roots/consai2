@@ -59,6 +59,86 @@ def simple_kick(my_pose, ball_info, control_target, kick_power=0.5):
     return control_target
 
 
+def inplay_shoot(my_pose, ball_info, control_target):
+    # インプレイ用のシュートアクション
+    # デフォルトでゴールを狙う
+
+    KICK_POWER = 1.0
+    IS_TOUCH_DIST = 0.2 # meters
+    IS_TOUCH_ANGLE = 170 # degrees
+    IS_LOOK_TARGET_ANGLE = 45 # degrees
+    CAN_SHOOT_ANGLE = 5 # degrees
+    SHOOT_TARGET = Field.goal_pose('their', 'center')
+
+    # ボールから見たロボットの座標系を生成
+    angle_ball_to_robot = tool.get_angle(ball_info.pose, my_pose)
+    trans_BtoR = tool.Trans(ball_info.pose, angle_ball_to_robot)
+    tr_robot_pose_BtoR = trans_BtoR.transform(my_pose)
+    tr_robot_angle_BtoR = trans_BtoR.transform_angle(my_pose.theta)
+
+    # ボールから見たターゲットの座標系を生成
+    angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
+    trans_BtoT = tool.Trans(ball_info.pose, angle_ball_to_target)
+    tr_robot_angle_BtoT = trans_BtoT.transform_angle(my_pose.theta)
+
+    can_look_target = False
+    can_shoot = False
+    # ドリブラーがボールにくっついたらcan_look_target is True
+    # ロボットとボールの直線距離が近いか
+    if tr_robot_pose_BtoR.x < IS_TOUCH_DIST \
+            and math.fabs(tr_robot_angle_BtoR) > math.radians(IS_TOUCH_ANGLE): #ロボットがボールを見ているか
+        can_look_target = True
+
+    # ロボットがTargetを向いたらcan_shoot is True
+    if math.fabs(tr_robot_angle_BtoT) < math.radians(IS_LOOK_TARGET_ANGLE):
+        can_shoot = True
+
+    new_goal_pose = Pose2D()
+    if can_look_target is False:
+        # ドリブラーがボールにつくまで移動する
+        new_goal_pose = trans_BtoR.inverted_transform(Pose2D(-0.1, 0, 0))
+        new_goal_pose.theta = trans_BtoR.inverted_transform_angle(math.radians(180))
+
+        # ドリブルとキックをオフ
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 0.0
+    elif can_shoot is False:
+        # 目標角度に値を加えてロボットを回転させる
+        tr_robot_pose_BtoR = trans_BtoR.transform(my_pose)
+        length = tr_robot_pose_BtoR.x
+        ADD_ANGLE = math.copysign(90, tr_robot_angle_BtoT) * -1.0
+        tr_goal_pose_BtoR = Pose2D(length*math.cos(ADD_ANGLE), length*math.sin(ADD_ANGLE), 0)
+
+        # ボールにくっつきながら回転動作を加える
+        new_goal_pose = trans_BtoR.inverted_transform(tr_goal_pose_BtoR)
+        new_goal_pose.theta = tool.get_angle(new_goal_pose, ball_info.pose)
+
+        # ドリブルをオン、キックをオフ
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 1.0
+    else:
+        new_goal_pose = trans_BtoT.inverted_transform(Pose2D(0.01, 0, 0))
+        new_goal_pose.theta = angle_ball_to_target
+        # ドリブルをオフ、キックをオン
+
+        # 狙いが定まったらシュート
+        if math.fabs(tr_robot_angle_BtoT) < math.radians(CAN_SHOOT_ANGLE):
+            control_target.kick_power = KICK_POWER
+            control_target.dribble_power = 1.0
+        else:
+            control_target.kick_power = 0.0
+            control_target.dribble_power = 1.0
+
+
+
+    # パスを追加
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+
+    return control_target
+
+
 def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
     # セットプレイ用のシュートアクション
     # kick_enable is Falseで、ボールの近くまで移動する
@@ -68,7 +148,6 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
     KICK_POWER = 0.8
     SHOOT_TARGET = Field.goal_pose('their', 'center')
 
-    # 目標位置はボールの前方にし、目標角度は、自己位置からみたボール方向にする
     angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
     trans = tool.Trans(ball_info.pose, angle_ball_to_target)
     tr_my_pose = trans.transform(my_pose)
