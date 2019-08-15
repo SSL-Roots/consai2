@@ -48,7 +48,7 @@ class RobotNode(object):
 
     def get_action(self, referee, obstacle_avoidance, ball_info, robot_info=None, defece_num=0):
         self._control_target.control_enable = True
-        remake_path = False # 経路再生成のフラグ
+        remake_path = False # 経路再生成のフラグ TODO:remake_pathを活用する
         avoid_obstacle = True # 障害物回避の経路追加フラグ
         avoid_ball = False # ボール回避の経路追加フラグ
 
@@ -60,82 +60,237 @@ class RobotNode(object):
 
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
-            self._control_target, remake_path= normal.make_line(self._my_role, ball_info, self._control_target)
 
+            if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                self._control_target = goalie.interpose(
+                        ball_info, robot_info, self._control_target)
+                avoid_obstacle = False # 障害物回避しない
+            elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                self._control_target = offense.simple_kick(
+                        self._my_pose, ball_info, self._control_target)
+            else:
+                self._control_target = defense.defence_decision(
+                        self._my_role, ball_info, self._control_target, 
+                        self._my_pose, defece_num, robot_info)
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
                 rospy.logdebug("STOP")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+                
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_PREPARATION"]:
                 rospy.logdebug("OUR_KICKOFF_PREPARATION")
 
-                if self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_shoot(
                             self._my_pose, ball_info, self._control_target,
                             kick_enable = False)
                 else:
-                    avoid_obstacle = False # 障害物回避しない
-                    pass
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_START"]:
                 rospy.logdebug("OUR_KICKOFF_START")
-                if self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_shoot(
                             self._my_pose, ball_info, self._control_target,
                             kick_enable = True)
                 else:
-                    avoid_obstacle = False # 障害物回避しない
-                    pass
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_PREPARATION"]:
                 rospy.logdebug("OUR_PENALTY_PREPARATION")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = False)
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_START"]:
                 rospy.logdebug("OUR_PENALTY_START")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = True)
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_DIRECT_FREE"]:
                 rospy.logdebug("OUR_DIRECT_FREE")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = True)
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_INDIRECT_FREE"]:
                 rospy.logdebug("OUR_INDIRECT_FREE")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = True)
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["OUR_TIMEOUT"]:
                 rospy.logdebug("OUR_TIMEOUT")
+                # 自チームのタイムアウトではロボットを停止させる
+
+                self._control_target, remake_path= normal.stop(self._control_target)
                 avoid_obstacle = False # 障害物回避しない
-                pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_BALL_PLACEMENT"]:
                 rospy.logdebug("OUR_BALL_PLACEMENT")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_PREPARATION"] \
                     or referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_START"]:
                 rospy.logdebug("THEIR_KICKOFF")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_PREPARATION"] \
                     or referee.referee_id == ref.REFEREE_ID["THEIR_PENALTY_START"]:
                 rospy.logdebug("THEIR_PENALTY")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
                 rospy.logdebug("THEIR_DIRECT")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_INDIRECT_FREE"]:
                 rospy.logdebug("THEIR_INDIRECT")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_TIMEOUT"]:
                 rospy.logdebug("THEIR_TIMEOUT")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_BALL_PLACEMENT"]:
                 rospy.logdebug("THEIR_BALL_PLACEMENT")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
+                    avoid_obstacle = False # 障害物回避しない
+                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target = defense.interpose(ball_info,
+                            self._control_target, dist_from_target = 0.6)
+                    avoid_ball = True
+                else:
+                    self._control_target = defense.defence_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defece_num, robot_info)
 
         # 障害物回避の経路作成
         if avoid_obstacle:
