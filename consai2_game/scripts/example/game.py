@@ -67,8 +67,19 @@ class RobotNode(object):
                         ball_info, robot_info, self._control_target)
                 avoid_obstacle = False # 障害物回避しない
             elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                self._control_target = offense.inplay_shoot(
-                        self._my_pose, ball_info, self._control_target)
+                if tool.is_in_defence_area(ball_info.pose, 'our'):
+                    # ボールが自チームのディフェンスエリアにある場合は行動を変える
+                    self._control_target = normal.move_to(
+                            self._control_target, Pose2D(0,0,0), ball_info, look_ball=True)
+                elif tool.is_in_defence_area(ball_info.pose, 'their'):
+                    # ボールが相手チームのディフェンスエリアにある場合は行動を変える
+                    self._control_target = normal.keep_x(
+                            self._control_target, 
+                            Field.penalty_pose('their', 'upper_front').x - 1.0,
+                            ball_info)
+                else:
+                    self._control_target = offense.inplay_shoot(
+                            self._my_pose, ball_info, self._control_target)
             else:
                 self._control_target = defense.defence_decision(
                         self._my_role, ball_info, self._control_target, 
@@ -385,7 +396,9 @@ class Game(object):
 
     def update(self):
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
-        self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
+        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False:
+            # ボールが自チームディフェンスエリア外にあるとき、アタッカーの交代を考える
+            self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
         Observer.update_ball_is_moving(self._ball_info)
