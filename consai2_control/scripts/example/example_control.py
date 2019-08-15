@@ -90,8 +90,8 @@ class Controller(object):
 
         self._MAX_VELOCITY = 4.0 # m/s
         self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
-        self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
-        self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
+        self._MAX_ACCELERATION = 2.0 / 60.0 # m/s^2 / frame
+        self._MAX_ANGLE_ACCELERATION = 2.0 * math.pi / 60.0 # rad/s^2 / frame
         self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
         self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
         self._PID_GAIN = { # 位置制御のPIDゲイン
