@@ -15,6 +15,8 @@ ROLE_ID = {
     "ROLE_NONE"           : 99,
 }
 
+ZONE_DEFENCE_NUM = 4
+
 # Roleの計算をするクラス
 class RoleDecision(object):
     def __init__(self, max_id, goalie_id):

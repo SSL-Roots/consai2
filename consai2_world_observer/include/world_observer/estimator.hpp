@@ -73,6 +73,14 @@ class EnemyEstimator : public PoseKalmanFilter
 };
 
 
+class BallEstimator : public PoseKalmanFilter
+{
+    protected:
+        void InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf, LinearAnalyticSystemModelGaussianUncertainty** sys_model);
+        void InitMeasurementModel(LinearAnalyticConditionalGaussian** meas_pdf, LinearAnalyticMeasurementModelGaussianUncertainty** meas_model);
+        void InitPrior(Gaussian** prior);
+};
+
 
 class EulerAngle
 {

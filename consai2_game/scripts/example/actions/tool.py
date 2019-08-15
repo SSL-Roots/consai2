@@ -55,6 +55,11 @@ def get_angle(from_pose, to_pose):
 
     return math.atan2(diff_pose.y, diff_pose.x)
 
+
+def get_angle_from_center(pose):
+    return math.atan2(pose.y, pose.x)
+
+
 def get_intersection(pose1, pose2, pose3, pose4):
     # get intersection of line1(pose1, pose2) and line2(pose3, pose4)
     # reference:http://imagingsolution.blog107.fc2.com/blog-entry-137.html
@@ -97,6 +102,9 @@ def is_in_defence_area(pose, team='our'):
 
     return pose_is_in_area
 
+def get_size_from_center(pose):
+    return math.hypot(pose.x, pose.y)
+
 
 class Trans():
     # 座標系を移動、回転するクラス
@@ -132,5 +140,4 @@ class Trans():
 
     def inverted_transform_angle(self, angle):
         return angle_normalize(angle + self._c_angle)
-
 
