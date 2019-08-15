@@ -4,8 +4,12 @@
 import math
 import cmath
 import numpy
+import sys,os
+
 from geometry_msgs.msg import Pose2D
 
+sys.path.append(os.pardir)
+from field import Field
 
 def distance_2_poses(pose1, pose2):
     # 2点間の距離を取る
@@ -77,6 +81,26 @@ def get_intersection(pose1, pose2, pose3, pose4):
 
     return output
 
+def is_in_defence_area(pose, team='our'):
+    PENALTY_UPPER_FRONT = Field.penalty_pose(team, 'upper_front')
+    PENALTY_LOWER_FRONT = Field.penalty_pose(team, 'lower_front')
+
+    pose_is_in_area = False
+
+    if team == 'our':
+        # 自チームディフェンスエリアに入っているか
+        if pose.x < PENALTY_UPPER_FRONT.x \
+                and pose.y < PENALTY_UPPER_FRONT.y \
+                and pose.y > PENALTY_LOWER_FRONT.y:
+            pose_is_in_area = True
+    else:
+        # 相手チームディフェンスエリアに入っているか
+        if pose.x > PENALTY_UPPER_FRONT.x \
+                and pose.y < PENALTY_UPPER_FRONT.y \
+                and pose.y > PENALTY_LOWER_FRONT.y:
+            pose_is_in_area = True
+
+    return pose_is_in_area
 
 def get_size_from_center(pose):
     return math.hypot(pose.x, pose.y)
