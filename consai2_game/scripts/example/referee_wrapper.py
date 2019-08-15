@@ -289,7 +289,8 @@ class RefereeWrapper(object):
         # Consider inplay
         # Reference : Rule 2019, 8.1.3 Double Touch
         # Reference : Rule 2019, A.1 Ball In And Out Of Play
-        if decoded_msg.referee_id == self._DECODE_ID["STOP"] \
+        if decoded_msg.referee_id == self._DECODE_ID["HALT"] \
+                or decoded_msg.referee_id == self._DECODE_ID["STOP"] \
                 or decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["KICKOFF_PREPARATION"] \
                 or decoded_msg.referee_id == self._DECODE_ID["THEIR"] + self._DECODE_ID["KICKOFF_PREPARATION"] \
                 or decoded_msg.referee_id == self._DECODE_ID["OUR"] + self._DECODE_ID["PENALTY_PREPARATION"] \

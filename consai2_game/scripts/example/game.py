@@ -50,6 +50,7 @@ class RobotNode(object):
         self._control_target.control_enable = True
         remake_path = False # 経路再生成のフラグ
         avoid_obstacle = True # 障害物回避の経路追加フラグ
+        avoid_ball = False # ボール回避の経路追加フラグ
 
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
@@ -68,12 +69,23 @@ class RobotNode(object):
                 pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_PREPARATION"]:
                 rospy.logdebug("OUR_KICKOFF_PREPARATION")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+
+                if self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = False)
+                else:
+                    avoid_obstacle = False # 障害物回避しない
+                    pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_START"]:
                 rospy.logdebug("OUR_KICKOFF_START")
-                avoid_obstacle = False # 障害物回避しない
-                pass
+                if self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    self._control_target, avoid_ball = offense.setplay_shoot(
+                            self._my_pose, ball_info, self._control_target,
+                            kick_enable = True)
+                else:
+                    avoid_obstacle = False # 障害物回避しない
+                    pass
             elif referee.referee_id == ref.REFEREE_ID["OUR_PENALTY_PREPARATION"]:
                 rospy.logdebug("OUR_PENALTY_PREPARATION")
                 avoid_obstacle = False # 障害物回避しない
@@ -128,7 +140,7 @@ class RobotNode(object):
         # 障害物回避の経路作成
         if avoid_obstacle:
             self._control_target.path = obstacle_avoidance.add_path(
-                    self._control_target.path, self._my_pose)
+                    self._control_target.path, self._my_pose, avoid_ball)
 
         return self._control_target
 

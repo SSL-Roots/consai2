@@ -57,3 +57,54 @@ def simple_kick(my_pose, ball_info, control_target, kick_power=0.5):
         control_target.path.append(new_goal_pose)
 
     return control_target
+
+
+def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
+    # セットプレイ用のシュートアクション
+    # kick_enable is Falseで、ボールの近くまで移動する
+    # kick_enable is True で、シュートする
+    # デフォルトでゴールを狙う
+
+    KICK_POWER = 0.8
+    SHOOT_TARGET = Field.goal_pose('their', 'center')
+
+    # 目標位置はボールの前方にし、目標角度は、自己位置からみたボール方向にする
+    angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
+    trans = tool.Trans(ball_info.pose, angle_ball_to_target)
+    tr_my_pose = trans.transform(my_pose)
+
+    # ロボットがボールの裏側に回ったらcan_kick is True
+    can_kick = False
+    if tr_my_pose.x < 0.01 and math.fabs(tr_my_pose.y) < 0.05:
+        can_kick = True
+    
+
+    avoid_ball = True # ボールを回避する
+    new_goal_pose = Pose2D()
+    if can_kick and kick_enable:
+        # ボールをける
+        avoid_ball = False
+
+        # ボールの前方に移動する
+        new_position = trans.inverted_transform(Pose2D(0.02, 0, 0))
+        new_goal_pose = new_position
+        new_goal_pose.theta = angle_ball_to_target
+        # ドリブルとキックをオン
+        control_target.kick_power = KICK_POWER
+    else:
+        # ボールの裏に移動する
+        new_position = trans.inverted_transform(Pose2D(-0.3, 0, 0))
+        new_goal_pose = new_position
+        new_goal_pose.theta = angle_ball_to_target
+        # ドリブルとキックをオフ
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 0.0
+        
+    # パスを追加
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+
+    return control_target, avoid_ball
+
+
