@@ -66,9 +66,16 @@ def interpose(target_info, control_target,
 
     return control_target
 
+def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info):
+    if role.ROLE_ID['ROLE_DEFENCE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_GOAL_2']:
+        return defence_goal(my_pose, ball_info, control_target, my_role, defence_num)
+    else:
+        return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'])
+
+
 # ゴール前ディフェンス
 def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
-    MARGIN_LINE = 0.1
+    MARGIN_LINE = 0.2
     MARGIN_ROBOT = 0
     MARGIN_FOR_SPEED = 0.5
     if defence_num > 1:
@@ -143,7 +150,7 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
         if target_pose is not None:
             target_pose.y += MARGIN_LINE
             # ロボットが左側にいない
-            if my_pose.y < left_penalty_corner.y:
+            if my_pose.y < left_penalty_corner.y - 0.5:
                 # 左側にいないかつ後ろにいる場合は右側を沿う
                 if my_pose.x < left_penalty_corner.x:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
@@ -163,7 +170,7 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
         if target_pose is not None:
             target_pose.y -= MARGIN_LINE
             # ロボットが右側にいない
-            if my_pose.y > right_penalty_corner.y:
+            if my_pose.y > right_penalty_corner.y + 0.5:
                 # 右側にいないかつ後ろにいる場合は左側を沿う
                 if my_pose.x < left_penalty_corner.x:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
@@ -182,7 +189,10 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     # 向きはボールの方向
     target_pose.theta = angle_to_ball
 
-    return target_pose
+    control_target.path = []
+    control_target.path.append(target_pose)
+
+    return control_target
     
 
 # ゾーンディフェンス
@@ -198,6 +208,10 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     field_length = Field.field('length')
     half_our_field_length = -float(field_length) / 4
     goal_center = Field.goal_pose('our', 'center')
+
+    # ペナルティエリアの角
+    left_penalty_corner = Field.penalty_pose('our', 'upper_front')
+    right_penalty_corner = Field.penalty_pose('our', 'lower_front')
 
     angle_to_ball = tool.get_angle(my_pose, ball_pose)
     angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
@@ -219,13 +233,17 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             invader_pose = [i.pose for i in their_robot_info \
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
-            print(invader_pose)
+            #print(invader_pose)
             # ボールが自分のゾーンの中に入っている
             if(ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
-                trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
-                target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
-                #target_pose = ball_pose
+                # でもペナルティエリアの中
+                if((left_penalty_corner.x + 0.5 > ball_pose.x > right_penalty_corner.x - 0.5) and \
+                        ball_pose.y < left_penalty_corner.y + 0.5):
+                    target_pose.x = half_our_field_length
+                else:
+                    trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
+                    target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
             elif invader_pose != []:
                 # 敵とボールの間に割り込む
@@ -242,22 +260,8 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
         pass
         #return target_pose
 
-    # ---------------------------------------------------------
-    remake_path = False
-    # pathが設定されてなければpathを新規作成
-    if control_target.path is None or len(control_target.path) == 0:
-        remake_path = True
-    # 現在のpathゴール姿勢と、新しいpathゴール姿勢を比較し、path再生成の必要を判断する
-    if remake_path is False:
-        current_goal_pose = control_target.path[-1]
-
-        if not tool.is_close(current_goal_pose, target_pose, Pose2D(0.1, 0.1, math.radians(10))):
-            remake_path = True
-    # remake_path is Trueならpathを再生成する
-    # pathを再生成すると衝突回避用に作られた経路もリセットされる
-    if remake_path:
-        control_target.path = []
-        control_target.path.append(target_pose)
+    control_target.path = []
+    control_target.path.append(target_pose)
 
     return control_target
 
