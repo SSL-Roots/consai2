@@ -257,6 +257,92 @@ void EnemyEstimator::InitPrior(Gaussian** prior)
     *prior = new Gaussian (prior_Mu,prior_Cov);
 }
 
+// BallEstimatorクラス
+// ボールの位置・速度推定を担当
+void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf, LinearAnalyticSystemModelGaussianUncertainty** sys_model)
+{
+    // Create the matrices A and B for the linear system model
+    Matrix A(6,6);
+    A(1,1) = 1.0;  A(1,2) = 0.0;  A(1,3) = 0.0;  A(1,4) = dt;   A(1,5) = 0.0;  A(1,6) = 0.0;
+    A(2,1) = 0.0;  A(2,2) = 1.0;  A(2,3) = 0.0;  A(2,4) = 0.0;  A(2,5) = dt;   A(2,6) = 0.0;
+    A(3,1) = 0.0;  A(3,2) = 0.0;  A(3,3) = 1.0;  A(3,4) = 0.0;  A(3,5) = 0.0;  A(3,6) = dt;
+    A(4,1) = 0.0;  A(4,2) = 0.0;  A(4,3) = 0.0;  A(4,4) = 1.0;  A(4,5) = 0.0;  A(4,6) = 0.0;
+    A(5,1) = 0.0;  A(5,2) = 0.0;  A(5,3) = 0.0;  A(5,4) = 0.0;  A(5,5) = 1.0;  A(5,6) = 0.0;
+    A(6,1) = 0.0;  A(6,2) = 0.0;  A(6,3) = 0.0;  A(6,4) = 0.0;  A(6,5) = 0.0;  A(6,6) = 1.0;
+
+    Matrix B(6,3);
+    B(1,1) = 0.0;  B(1,2) = 0.0;  B(1,3) = 0.0;
+    B(2,1) = 0.0;  B(2,2) = 0.0;  B(2,3) = 0.0;
+    B(3,1) = 0.0;  B(3,2) = 0.0;  B(3,3) = 0.0;
+    B(4,1) = dt;   B(4,2) = 0.0;  B(4,3) = 0.0;
+    B(5,1) = 0.0;  B(5,2) = dt;   B(5,3) = 0.0;
+    B(6,1) = 0.0;  B(6,2) = 0.0;  B(6,3) = dt;
+
+    vector<Matrix> AB(2);
+    AB[0] = A;
+    AB[1] = B;
+
+    // create gaussian
+    ColumnVector sysNoise_Mu(6);
+    sysNoise_Mu = 0.0;
+
+    // ボールの位置、速度変化はノイズとして表現
+    SymmetricMatrix sysNoise_Cov(6);
+    sysNoise_Cov = 0.0;
+    sysNoise_Cov(1,1) = pow(8.0*dt, 2);     // ボールの最高速度を 8.0[m/s]　と仮定
+    sysNoise_Cov(2,2) = pow(8.0*dt, 2);
+    sysNoise_Cov(3,3) = 0.0;
+    sysNoise_Cov(4,4) = pow(10.0*dt,  2);   // ボールの最高加速度を 10.0[m/s^2] と仮定
+    sysNoise_Cov(5,5) = pow(10.0*dt,  2);
+    sysNoise_Cov(6,6) = 0.0;
+
+    Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
+
+    // create the model
+    *sys_pdf = new LinearAnalyticConditionalGaussian(AB, system_Uncertainty);
+    *sys_model = new  LinearAnalyticSystemModelGaussianUncertainty(*sys_pdf);
+}
+
+void BallEstimator::InitMeasurementModel(LinearAnalyticConditionalGaussian** meas_pdf, LinearAnalyticMeasurementModelGaussianUncertainty** meas_model)
+{
+    // create matrix H for linear measurement model
+    Matrix H(3,6);
+    H = 0.0;
+    H(1,1) = 1.0;
+    H(2,2) = 1.0;
+    H(3,3) = 1.0;
+
+    // Construct the measurement noise
+    ColumnVector measNoise_Mu(3);
+    measNoise_Mu = 0.0;
+
+    SymmetricMatrix measNoise_Cov(3);
+    measNoise_Cov(1,1) = pow(0.01, 2);   // 観測ノイズを標準偏差 0.01[m] と仮定
+    measNoise_Cov(2,2) = pow(0.01, 2);
+    measNoise_Cov(3,3) = 0.0;
+    Gaussian measurement_Uncertainty(measNoise_Mu, measNoise_Cov);
+
+    // create the model
+    *meas_pdf = new LinearAnalyticConditionalGaussian(H, measurement_Uncertainty);
+    *meas_model = new LinearAnalyticMeasurementModelGaussianUncertainty (*meas_pdf);
+}
+
+void BallEstimator::InitPrior(Gaussian** prior)
+{
+    ColumnVector prior_Mu(6);
+    prior_Mu = 0.0;
+
+    SymmetricMatrix prior_Cov(6);
+    prior_Cov = 0.0;
+    prior_Cov(1,1) = 100.0;
+    prior_Cov(2,2) = 100.0;
+    prior_Cov(3,3) = 100.0;
+    prior_Cov(4,4) = 100.0;
+    prior_Cov(5,5) = 100.0;
+    prior_Cov(6,6) = 100.0;
+
+    *prior = new Gaussian (prior_Mu,prior_Cov);
+}
 /**********************************************************
  * This is implementation of EulerAngle class
  ***********************************************************/
