@@ -203,6 +203,10 @@ class RobotNode(object):
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
+                # elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    # self._control_target, avoid_ball = ball_placement.basic(
+                            # ball_info, robot_info, replace_pose, self._control_target, \
+                            # role.ROLE_ID["ROLE_ATTACKER"], role.ROLE_ID["ROLE_DEFENCE_GOAL_1"])
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = ball_placement.atk(
                             self._my_pose, ball_info, self._control_target, replace_pose, \
