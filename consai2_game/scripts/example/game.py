@@ -395,13 +395,16 @@ class Game(object):
         self._robot_info['their'][robot_id] = msg
 
     def update(self):
+        Observer.update_ball_is_moving(self._ball_info)
+
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
-        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False:
-            # ボールが自チームディフェンスエリア外にあるとき、アタッカーの交代を考える
+        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False\
+                and Observer.ball_is_moving() is False:
+            # ボールが自チームディフェンスエリア外にあり
+            # ボールが動いていないとき、アタッカーの交代を考える
             self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
-        Observer.update_ball_is_moving(self._ball_info)
 
         self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
 
