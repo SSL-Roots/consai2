@@ -70,8 +70,10 @@ def interpose(target_info, control_target,
 def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info):
     if role.ROLE_ID['ROLE_DEFENCE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_GOAL_2']:
         return defence_goal(my_pose, ball_info, control_target, my_role, defence_num)
-    else:
+    elif role.ROLE_ID['ROLE_DEFENCE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_ZONE_4']:
         return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'])
+    else:
+        return control_target
 
 
 # ゴール前ディフェンス
@@ -204,6 +206,10 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
 
     ball_pose = ball_info.pose
 
+    # control_targetの更新(path以外)
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
     field_width = Field.field('width')
     half_field_width = float(field_width) / 2
     field_length = Field.field('length')
@@ -217,6 +223,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     angle_to_ball = tool.get_angle(my_pose, ball_pose)
     angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
 
+    zone_id = None
     target_pose = Pose2D()
 
     if ZONE_DEFENCE_NUM > 0:
@@ -225,8 +232,8 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
         # 今のディフェンス数からゾーンの区切りを変える
         split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
                 if i % 2 != 0]
-        # FIXME 賢くしたい
-        # ロボットが死んだ瞬間数がおかしくなるのでエラー処理（応急処置的）
+
+        # 参照エラー対策
         try:
             zone_id = my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
             target_pose.y = split_field_center[zone_id]
@@ -234,7 +241,6 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             invader_pose = [i.pose for i in their_robot_info \
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
-            #print(invader_pose)
             # ボールが自分のゾーンの中に入っている
             if(ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
@@ -249,21 +255,20 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             else:
                 target_pose.x = half_our_field_length
         except IndexError:
-            zone_id = None
             target_pose = my_pose
         target_pose.theta = angle_to_ball
-        #return target_pose
-    else:
-        pass
-        #return target_pose
+
+
     if zone_id != None:
         receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, zone_id)
         if receive_ball_result:
+            # ドリブラー回す
+            control_target.dribble_power = 1.0
             target_pose = receive_target_pose
 
     # ペナルティエリアには入らない
-    if((left_penalty_corner.x + 0.1 > target_pose.x > right_penalty_corner.x - 0.1) and \
-                target_pose.y < left_penalty_corner.y + 0.1):
+    if((left_penalty_corner.y + 0.1 > target_pose.y > right_penalty_corner.y - 0.1) and \
+                target_pose.x < left_penalty_corner.x + 0.1):
         target_pose.x = half_our_field_length
 
     control_target.path = []
@@ -309,9 +314,6 @@ def update_receive_ball(ball_info, my_pose, zone_id):
             Receiving.update_receiving(zone_id, False)
 
         if Receiving.receiving(zone_id) and tr_pose.x > 0.0:
-            # ボール軌道上に乗ったらボールに近づく
-            # if math.fabs(tr_pose.y) < 0.3:
-            #     tr_pose.x *= 0.9
 
             tr_pose.y = 0.0
             inv_pose = trans.inverted_transform(tr_pose)
