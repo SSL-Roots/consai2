@@ -204,6 +204,10 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
 
     ball_pose = ball_info.pose
 
+    # control_targetの更新(path以外)
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
     field_width = Field.field('width')
     half_field_width = float(field_width) / 2
     field_length = Field.field('length')
@@ -259,11 +263,13 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     if zone_id != None:
         receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, zone_id)
         if receive_ball_result:
+            # ドリブラー回す
+            control_target.dribble_power = 1.0
             target_pose = receive_target_pose
 
     # ペナルティエリアには入らない
-    if((left_penalty_corner.x + 0.1 > target_pose.x > right_penalty_corner.x - 0.1) and \
-                target_pose.y < left_penalty_corner.y + 0.1):
+    if((left_penalty_corner.y + 0.1 > target_pose.y > right_penalty_corner.y - 0.1) and \
+                target_pose.x < left_penalty_corner.x + 0.1):
         target_pose.x = half_our_field_length
 
     control_target.path = []
@@ -290,9 +296,16 @@ def update_receive_ball(ball_info, my_pose, zone_id):
 
     result = False
 
+    # FIXME
+    # たまにzone_idがバグる。要調査。応急処置
+    if 0 <= zone_id <= 3:
+        zone_id_ok = True
+    else:
+        zone_id_ok = False
+
     target_pose = Pose2D()
 
-    if Observer.ball_is_moving():
+    if Observer.ball_is_moving() and zone_id_ok:
         angle_velocity = tool.get_angle_from_center(ball_vel)
         trans = tool.Trans(ball_pose, angle_velocity)
 
@@ -309,9 +322,6 @@ def update_receive_ball(ball_info, my_pose, zone_id):
             Receiving.update_receiving(zone_id, False)
 
         if Receiving.receiving(zone_id) and tr_pose.x > 0.0:
-            # ボール軌道上に乗ったらボールに近づく
-            # if math.fabs(tr_pose.y) < 0.3:
-            #     tr_pose.x *= 0.9
 
             tr_pose.y = 0.0
             inv_pose = trans.inverted_transform(tr_pose)
