@@ -235,14 +235,10 @@ class RobotNode(object):
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
-                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
-                    avoid_ball = True
                 else:
-                    self._control_target = defense.defence_decision(
-                            self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                    self._control_target, remake_path = normal.make_line(
+                            self._my_role, ball_info, self._control_target,
+                            start_x=-5, start_y=-3, add_x=0.4, add_y=0)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
                 rospy.logdebug("THEIR_DIRECT")
 
@@ -398,7 +394,7 @@ class Game(object):
         Observer.update_ball_is_moving(self._ball_info)
 
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
-        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False\
+        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False \
                 and Observer.ball_is_moving() is False:
             # ボールが自チームディフェンスエリア外にあり
             # ボールが動いていないとき、アタッカーの交代を考える
