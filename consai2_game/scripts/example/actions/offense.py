@@ -153,8 +153,9 @@ def inplay_shoot(my_pose, ball_info, control_target):
     # インプレイ用のシュートアクション
     # デフォルトでゴールを狙う
     SHOOT_TARGET = Field.goal_pose('their', 'center')
+    CAN_SHOOT_ANGLE = 10 # degrees
 
-    return _inplay_shoot(my_pose, ball_info, control_target, SHOOT_TARGET)
+    return _inplay_shoot(my_pose, ball_info, control_target, SHOOT_TARGET, CAN_SHOOT_ANGLE)
 
 
 def outside_shoot(my_pose, ball_info, control_target):
@@ -173,12 +174,12 @@ def outside_shoot(my_pose, ball_info, control_target):
     return _inplay_shoot(my_pose, ball_info, control_target, shoot_target, CAN_SHOOT_ANGLE)
 
 
-def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose):
+def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=0.8):
     # セットプレイ用のシュートアクション
     # kick_enable is Falseで、ボールの近くまで移動する
     # kick_enable is True で、シュートする
 
-    KICK_POWER = 0.8
+    KICK_POWER = kick_power
     SHOOT_TARGET = target_pose
 
     angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
@@ -231,5 +232,6 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
 def setplay_pass(my_pose, ball_info, control_target, target_pose):
 
     kick_enable = True
+    kick_power = 0.5
 
-    return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose)
+    return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,kick_power)
