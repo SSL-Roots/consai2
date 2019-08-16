@@ -189,9 +189,12 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target, avoid_ball = offense.setplay_shoot(
+                    self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            Pose2D(3, 0, 0))
+                    # self._control_target, avoid_ball = offense.setplay_shoot(
+                    #         self._my_pose, ball_info, self._control_target,
+                    #         kick_enable = True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
