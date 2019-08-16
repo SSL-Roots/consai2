@@ -153,7 +153,7 @@ bool PoseKalmanFilter::isOutlier(ColumnVector measurement){
     // Reference: https://myenigma.hatenablog.com/entry/20140825/1408975706
 
     double mahala_dist = mahalanobisDistance(measurement);
-    double thresh = 3.84146; //自由度1、棄却率5%のしきい値
+    double thresh = 5.99; //自由度2、棄却率5%のしきい値
      
     if(mahala_dist > thresh){
         return true;
@@ -236,7 +236,7 @@ void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf
     sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(3,3) = pow(MAX_ANGULAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
-    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
     sysNoise_Cov(6,6) = pow(MAX_ANGULAR_ACCEL_IN_DT, 2);
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
@@ -328,7 +328,7 @@ void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf,
     sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(3,3) = 1e9;
     sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
-    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
     sysNoise_Cov(6,6) = 1e9;
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);

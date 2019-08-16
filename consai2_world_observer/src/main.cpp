@@ -17,7 +17,7 @@ public:
     bool is_appear_;
 
     AppearanceMonitor() :
-        APPEAR_THRESHOLD_TIME_(0.5),
+        APPEAR_THRESHOLD_TIME_(0.05),
         DISAPPEAR_THRESHOLD_TIME_(3.0),
         latest_appeared_time_(ros::Time(0)),
         latest_disappeared_time_(ros::Time(0)),
