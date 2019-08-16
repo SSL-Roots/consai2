@@ -6,7 +6,9 @@
 // PoseKalmanFilterクラス
 // 二次元座標での位置と速度のカルマンフィルタ
 
-PoseKalmanFilter::PoseKalmanFilter()
+PoseKalmanFilter::PoseKalmanFilter() : 
+    KIDNAPPED_TIME_THRESH_(1.0),
+    latest_inlier_stamp_(ros::Time(0))
 {
 }
 
@@ -56,8 +58,15 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
         if (isOutlier(observation_cv)) {
             continue;
         }
+        this->latest_inlier_stamp_ = ros::Time::now();
 
         update(observation_cv);
+    }
+
+    if ((ros::Time::now() - this->latest_inlier_stamp_) > this->KIDNAPPED_TIME_THRESH_)
+    {
+        // 誘拐状態
+        this->Reset();
     }
 
     return convetEstimationToOdometry();

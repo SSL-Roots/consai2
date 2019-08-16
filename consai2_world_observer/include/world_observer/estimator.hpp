@@ -55,7 +55,9 @@ class PoseKalmanFilter
                 SymmetricMatrix cov;
         };
 
+        ros::Duration KIDNAPPED_TIME_THRESH_;
         Estimation  last_estimation;
+        ros::Time   latest_inlier_stamp_;
 
         void  predict(ColumnVector input);
         void  update(ColumnVector measurement);
