@@ -107,6 +107,11 @@ public:
         this->last_detection_pose = observations[0];
     }
 
+    geometry2d::Odometry GetOdometry()
+    {
+        return odom_;
+    }
+
 
 protected:
     PoseKalmanFilter* p_estimator_;
