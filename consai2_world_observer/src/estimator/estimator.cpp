@@ -409,6 +409,14 @@ geometry2d::Odometry BallEstimator::estimateWithConsideringOtherRobots(std::vect
     bool will_reflection_occur = this->ball_reflection_detector_.WillReflectionOccur(latest_ball_odom, other_robots);
 
     // TODO: implement
+    if (will_reflection_occur)
+    {
+        this->SetSytemNoiseForReflecting();
+    }
+    else
+    {
+        this->SetSystemNoiseToRolling();
+    }
 
     return this->estimate(observations);
 }
@@ -418,6 +426,46 @@ geometry2d::Odometry BallEstimator::estimateWithConsideringOtherRobots(geometry2
     return  this->estimate(accel, observations);
 }
 
+
+void BallEstimator::SetSytemNoiseForReflecting()
+{
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 500.0;    // 6.5[m/s] / 16[ms] = 500
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+
+    SymmetricMatrix sysNoise_Cov(6);
+    sysNoise_Cov = 0.0;
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(3,3) = 1e9;
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(6,6) = 1e9;
+
+    sys_pdf->AdditiveNoiseSigmaSet(sysNoise_Cov);
+}
+
+void BallEstimator::SetSystemNoiseToRolling()
+{
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 10.0;
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+
+    SymmetricMatrix sysNoise_Cov(6);
+    sysNoise_Cov = 0.0;
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(3,3) = 1e9;
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(6,6) = 1e9;
+
+    sys_pdf->AdditiveNoiseSigmaSet(sysNoise_Cov);
+}
 
 // BallReflectionDetector クラス
 // ボールがキックまたは跳ね返ることを検出するクラス
@@ -433,18 +481,15 @@ bool BallEstimator::BallReflectionDetector::WillReflectionOccur(geometry2d::Odom
 
         if (this->IsBallInFrontOfRobot(robot_pose, ball_pose))
         {
-            ROS_INFO("Ball is in front of robot!");
             return true;
         }
 
         if (this->WillBallContactToRobotSoon(odom_robot, odom_ball))
         {
-            ROS_INFO("Robot on the ball trajectory!");
             return true;
         }
     }
 
-    ROS_INFO("NO CONTACT");
     return false;
 }
 

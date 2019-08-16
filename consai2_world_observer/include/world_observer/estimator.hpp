@@ -109,6 +109,9 @@ class BallEstimator : public PoseKalmanFilter
         };
 
         BallReflectionDetector  ball_reflection_detector_;
+
+        void SetSytemNoiseForReflecting();
+        void SetSystemNoiseToRolling();
 };
 
 
