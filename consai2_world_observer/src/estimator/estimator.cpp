@@ -153,7 +153,7 @@ bool PoseKalmanFilter::isOutlier(ColumnVector measurement){
     // Reference: https://myenigma.hatenablog.com/entry/20140825/1408975706
 
     double mahala_dist = mahalanobisDistance(measurement);
-    double thresh = 3.84146; //自由度1、棄却率5%のしきい値
+    double thresh = 5.99; //自由度2、棄却率5%のしきい値
      
     if(mahala_dist > thresh){
         return true;
