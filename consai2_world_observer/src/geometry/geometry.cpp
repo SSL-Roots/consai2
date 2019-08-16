@@ -81,6 +81,14 @@ geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
     return retval;
 }
 
+// double Pose::GetNorm()
+// 位置のノルム（距離）を返す
+double Pose::GetNorm()
+{
+    return sqrt(pow(this->x, 2) + pow(this->y, 2));
+}
+
+
 Velocity::Velocity()
 {
     this->x = 0.0;
