@@ -52,6 +52,7 @@ class RobotNode(object):
         remake_path = False # 経路再生成のフラグ TODO:remake_pathを活用する
         avoid_obstacle = True # 障害物回避の経路追加フラグ
         avoid_ball = False # ボール回避の経路追加フラグ
+        zone_enable = False
 
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
@@ -61,6 +62,7 @@ class RobotNode(object):
 
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
+            zone_enable = True
 
             if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                 if tool.is_in_defence_area(ball_info.pose, 'our'):
@@ -87,7 +89,7 @@ class RobotNode(object):
             else:
                 self._control_target = defense.defence_decision(
                         self._my_role, ball_info, self._control_target, 
-                        self._my_pose, defece_num, robot_info)
+                        self._my_pose, defece_num, robot_info, zone_enable)
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
                 rospy.logdebug("STOP")
