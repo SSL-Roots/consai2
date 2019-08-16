@@ -15,6 +15,13 @@ Pose::Pose()
     this->theta = 0.0;
 }
 
+Pose::Pose(double x, double y, double theta)
+{
+    this->x = x;
+    this->y = y;
+    this->theta = theta;
+}
+
 Pose::Pose(geometry_msgs::Pose   pose)
 {
     this->x = pose.position.x;

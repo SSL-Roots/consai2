@@ -25,6 +25,7 @@ public:
     double x, y, theta;
 
     Pose();
+    Pose(double x, double y, double theta);
     Pose(geometry_msgs::Pose   pose);
     Pose(geometry_msgs::Pose2D pose);
 
