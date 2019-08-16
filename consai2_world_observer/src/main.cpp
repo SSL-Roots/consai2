@@ -198,7 +198,10 @@ public:
         for (auto robot_id=0; robot_id <= this->max_id_; ++robot_id)
         {
             this->blue_observers_[robot_id].update(observation_container.blue_observations[robot_id]);
+            this->blue_robot_odoms_[robot_id]   = this->blue_observers_[robot_id].GetOdometry();
+
             this->yellow_observers_[robot_id].update(observation_container.yellow_observations[robot_id]);
+            this->yellow_robot_odoms_[robot_id] = this->yellow_observers_[robot_id].GetOdometry();
         }
         this->ball_observer_.update(observation_container.ball_observations);
     }
@@ -224,6 +227,8 @@ private:
     std::vector<RobotObserver> blue_observers_;
     std::vector<RobotObserver> yellow_observers_;
     BallObserver ball_observer_;
+    std::vector<geometry2d::Odometry> blue_robot_odoms_;
+    std::vector<geometry2d::Odometry> yellow_robot_odoms_;
 };
 
 ObserverFacade* observer_facade;
