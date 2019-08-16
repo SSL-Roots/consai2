@@ -63,8 +63,12 @@ class RobotNode(object):
             rospy.logdebug("IN-PLAY")
 
             if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                self._control_target = goalie.interpose(
-                        ball_info, robot_info, self._control_target)
+                if tool.is_in_defence_area(ball_info.pose, 'our'):
+                    self._control_target = offense.outside_shoot(
+                            self._my_pose, ball_info, self._control_target)
+                else:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
                 avoid_obstacle = False # 障害物回避しない
             elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                 if tool.is_in_defence_area(ball_info.pose, 'our'):
