@@ -67,11 +67,11 @@ def interpose(target_info, control_target,
 
     return control_target
 
-def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info):
+def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info, zone_enable):
     if role.ROLE_ID['ROLE_DEFENCE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_GOAL_2']:
         return defence_goal(my_pose, ball_info, control_target, my_role, defence_num)
     elif role.ROLE_ID['ROLE_DEFENCE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_ZONE_4']:
-        return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'])
+        return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'], zone_enable)
     else:
         control_target.path = []
         control_target.path.append(my_pose)
@@ -201,7 +201,7 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     
 
 # ゾーンディフェンス
-def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their_robot_info):
+def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their_robot_info, zone_enable):
     ROLE_MAX = 7
     GOAL_DEFENCE_NUM = 2
     ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
@@ -243,13 +243,14 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             invader_pose = [i.pose for i in their_robot_info \
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
-            # ボールが自分のゾーンの中に入っている
-            if(ball_pose.x < 0 and \
+            # ボールが自分のゾーンの中に入っている, かつzone_enable
+            if(zone_enable and \
+                    ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
                 target_pose = trans.inverted_transform(Pose2D(-0.9, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
-            elif invader_pose != []:
+            elif zone_enable and invader_pose != []:
                 # 敵とボールの間に割り込む
                 angle_to_ball_from_invader = tool.get_angle(invader_pose[0], ball_pose)
                 trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)
