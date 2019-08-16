@@ -54,6 +54,10 @@ class RobotNode(object):
         avoid_ball = False # ボール回避の経路追加フラグ
         zone_enable = False
 
+        # パラメータ初期化
+        self._control_target.dribble_power = 0.0
+        self._control_target.kick_power = 0.0
+
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
             rospy.logdebug("HALT")
@@ -90,6 +94,7 @@ class RobotNode(object):
                 self._control_target = defense.defence_decision(
                         self._my_role, ball_info, self._control_target, 
                         self._my_pose, defece_num, robot_info, zone_enable)
+
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
                 rospy.logdebug("STOP")
@@ -100,7 +105,7 @@ class RobotNode(object):
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
+                            self._control_target, dist_from_target = 0.7)
                     avoid_ball = True
                 else:
                     self._control_target = defense.defence_decision(
@@ -174,9 +179,9 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target, avoid_ball = offense.setplay_shoot(
+                    self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            Pose2D(3, 0, 0))
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -192,9 +197,6 @@ class RobotNode(object):
                     self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
                             Pose2D(3, 0, 0))
-                    # self._control_target, avoid_ball = offense.setplay_shoot(
-                    #         self._my_pose, ball_info, self._control_target,
-                    #         kick_enable = True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
