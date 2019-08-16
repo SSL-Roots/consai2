@@ -12,6 +12,7 @@ from python_qt_binding.QtWidgets import QWidget
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
 from consai2_msgs.msg import ControlTarget
+from consai2_msgs.msg import DecodedReferee
 
 
 class PaintWidget(QWidget):
@@ -26,6 +27,7 @@ class PaintWidget(QWidget):
         self._COLOR_BALL = QColor(Qt.red)
         self._COLOR_ROBOT  = {'blue':QColor(Qt.cyan), 'yellow':QColor(Qt.yellow)}
         self._ID_POS = (0.15, 0.15) # IDを描画するロボット中心からの位置
+        self._FLAG_POS = (0.15, 0) # control_targetのフラグを描画するロボット中心からの位置
 
         # Replace
         self._REPLACE_CLICK_POS_THRESHOLD = 0.1
@@ -77,11 +79,18 @@ class PaintWidget(QWidget):
         self._ball_info = BallInfo()
         self._robot_info = {'blue':[],'yellow':[]}
 
+        # レフェリー情報
+        self._decoded_referee = None
+
         # Publisher
         self._pub_replace = rospy.Publisher('sim_sender/replacements', 
                 Replacements, queue_size=1)
 
         # Subscribers
+        self._sub_decoded_referee = rospy.Subscriber(
+                'referee_wrapper/decoded_referee', DecodedReferee, 
+                self._callback_referee, queue_size=1)
+
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry, 
                 self._callback_geometry, queue_size=1)
@@ -96,7 +105,15 @@ class PaintWidget(QWidget):
 
         self._subs_robot_info = {'blue':[], 'yellow':[]}
 
+        self._control_targets = {'blue':[], 'yellow':[]}
+        self._subs_control_target = {'blue':[], 'yellow':[]}
+
         for robot_id in range(self._MAX_ID +1):
+            self._robot_info['blue'].append(RobotInfo())
+            self._robot_info['yellow'].append(RobotInfo())
+            self._control_targets['blue'].append(ControlTarget())
+            self._control_targets['yellow'].append(ControlTarget())
+
             # 末尾に16進数の文字列をつける
             topic_id = hex(robot_id)[2:]
             topic_name = 'vision_wrapper/robot_info_blue_' + topic_id
@@ -109,8 +126,21 @@ class PaintWidget(QWidget):
                     rospy.Subscriber(topic_name, RobotInfo,
                         self._callback_yellow_info, callback_args=robot_id))
 
-            self._robot_info['blue'].append(RobotInfo())
-            self._robot_info['yellow'].append(RobotInfo())
+            topic_name = 'consai2_game/control_target_blue_' + topic_id
+            self._subs_control_target['blue'].append(
+                    rospy.Subscriber(topic_name, ControlTarget,
+                        self._callback_blue_target, callback_args=robot_id))
+            
+            topic_name = 'consai2_game/control_target_blue_' + topic_id
+            self._subs_control_target['blue'].append(
+                    rospy.Subscriber(topic_name, ControlTarget,
+                        self._callback_blue_target, callback_args=robot_id))
+
+            topic_name = 'consai2_game/control_target_yellow_' + topic_id
+            self._subs_control_target['yellow'].append(
+                    rospy.Subscriber(topic_name, ControlTarget,
+                        self._callback_yellow_target, callback_args=robot_id))
+
 
         # Configs
         # This function enables mouse tracking without pressing mouse button
@@ -148,6 +178,8 @@ class PaintWidget(QWidget):
 
         self._resize_draw_world()
 
+    def _callback_referee(self, msg):
+        self._decoded_referee = msg
 
     def _callback_ball_info(self, msg):
         self._ball_info = msg
@@ -157,6 +189,12 @@ class PaintWidget(QWidget):
 
     def _callback_yellow_info(self, msg, robot_id):
         self._robot_info['yellow'][robot_id] = msg
+
+    def _callback_blue_target(self, msg, robot_id):
+        self._control_targets['blue'][robot_id] = msg
+
+    def _callback_yellow_target(self, msg, robot_id):
+        self._control_targets['yellow'][robot_id] = msg
 
     def _callback_joy_target(self, msg):
         self._joy_target = msg
@@ -241,6 +279,9 @@ class PaintWidget(QWidget):
             self._draw_joy_target(painter)
 
         self._draw_robots(painter)
+
+        # Referee情報
+        self._draw_referee(painter)
 
         # grSim Replacement関連
         if self._replacement_target['ball_pos'] or self._replacement_target['robot_pos']:
@@ -658,6 +699,9 @@ class PaintWidget(QWidget):
             text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
             painter.drawText(text_point, str(robot.robot_id))
 
+            # ControlTarget
+            self._draw_control_target(painter, color, robot)
+
 
     def _draw_cursor_coordinate(self, painter):
         # マウスカーソルのフィールド座標を描画する
@@ -729,6 +773,66 @@ class PaintWidget(QWidget):
         painter.setPen(Qt.black)
         painter.drawText(current_point, text)
 
+
+    def _draw_control_target(self, painter, color, robot):
+        # ロボットの制御目標値を描画する
+
+        # 経路の線を描画するための変数
+        prev_point = None
+
+        robot_id = robot.robot_id
+        target = self._control_targets[color][robot_id]
+
+        # 経路を描画
+        for pose in target.path:
+            point = self._convert_to_view(pose.x, pose.y)
+            size = self._ROBOT_RADIUS * self._scale_field_to_view
+
+            target_color = QColor(Qt.magenta)
+            target_color.setAlphaF(0.5)
+            painter.setPen(Qt.black)
+            painter.setBrush(target_color)
+            painter.drawEllipse(point, size, size)
+
+            # 角度
+            line_x = self._ROBOT_RADIUS * math.cos(pose.theta)
+            line_y = self._ROBOT_RADIUS * math.sin(pose.theta)
+            line_point = point + self._convert_to_view(line_x, line_y)
+            painter.drawLine(point, line_point)
+
+            # IDを添える
+            text_point = point + self._convert_to_view(self._ID_POS[0], self._ID_POS[1])
+            painter.drawText(text_point, str(robot_id))
+
+            # 経路を描画
+            if prev_point is None:
+                prev_point = point
+            else:
+                painter.setPen(QPen(QColor(0,0,255, 127), 4))
+                painter.drawLine(prev_point, point)
+                prev_point = point
+
+        # キック・ドリブルフラグを、ロボットの現在位置周辺に描画
+        text_flag = ""
+        if target.kick_power > 0.0:
+            text_flag += "K:" + str(target.kick_power)
+
+        if target.chip_enable is True:
+            text_flag += "\nC:ON"
+
+        if target.dribble_power > 0.0:
+            text_flag += "\nD:" + str(target.dribble_power)
+    
+        point = self._convert_to_view(robot.pose.x, robot.pose.y)
+        text_point = point + self._convert_to_view(self._FLAG_POS[0], self._FLAG_POS[1])
+        # 複数行に分けてテキストを描画するため、widthとheightを設定する
+        text_width = 50
+        text_height = 100
+        painter.setPen(QPen(Qt.red, 2))
+        painter.drawText(
+                text_point.x(), text_point.y(), 
+                text_width, text_height, 0, text_flag)
+
     
     def _to_angle(self, from_point, to_point):
         diff_point = to_point - from_point
@@ -769,4 +873,21 @@ class PaintWidget(QWidget):
                 painter.drawLine(prev_point, point)
                 prev_point = point
 
+    def _draw_referee(self, painter):
+        # レフェリーの情報を描画する
+
+        if self._decoded_referee is None:
+            return 
+
+        # ボール進入禁止エリアを描画
+        if self._decoded_referee.keep_out_radius_from_ball != -1:
+            point = self._convert_to_view(
+                    self._ball_info.pose.x, self._ball_info.pose.y)
+            size = self._decoded_referee.keep_out_radius_from_ball * self._scale_field_to_view
+
+            ball_color = copy.deepcopy(self._COLOR_BALL)
+            keepout_color = QColor(255, 0, 0, 100)
+            painter.setPen(Qt.black)
+            painter.setBrush(keepout_color)
+            painter.drawEllipse(point, size, size)
 

@@ -1,19 +1,25 @@
 <launch>
 
   <!-- Visualizer用のパラメータ -->
-  <arg name="publish_ball" default="true" />
-  <arg name="publish_blue" default="true" />
-  <arg name="publish_yellow" default="true" />
+  <!-- <arg name="publish_ball" default="true" />   -->
+  <!-- <arg name="publish_blue" default="true" />   -->
+  <!-- <arg name="publish_yellow" default="true" /> -->
   <!-- grSimのロボットを動かす場合はtrue -->
   <arg name="sim" default="false" />
+  <!-- 速度制御の場合はTrue -->
+  <arg name="velocity_control" default="false" />
+  <!-- 制御対象ロボットのID -->
+  <arg name="id" default="0" />
+  <!-- 制御対象ロボットのチームカラー -->
+  <arg name="color" default="blue" />
   <!-- 複数のロボットを動かすときはTrue -->
   <arg name="collective" default="false" />
 
   <!-- ビジュアライザの起動 -->
   <include file="$(find consai2_examples)/launch/visualizer.launch">
-    <arg name="publish_ball" default="$(arg publish_ball)" />
-    <arg name="publish_blue" default="$(arg publish_blue)" />
-    <arg name="publish_yellow" default="$(arg publish_yellow)" />
+    <!-- <arg name="publish_ball" default="$(arg publish_ball)" />     -->
+    <!-- <arg name="publish_blue" default="$(arg publish_blue)" />     -->
+    <!-- <arg name="publish_yellow" default="$(arg publish_yellow)" /> -->
   </include>
 
   <include file="$(find consai2_sender)/launch/sender.launch">
@@ -24,10 +30,20 @@
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
 
   <group unless="$(arg collective)">
-    <node name="control_example" pkg="consai2_examples" type="control_example.py" output="screen" />
+    <node name="control_example" pkg="consai2_examples" type="control_example.py" output="screen">
+      <param name="velocity_control" value="$(arg velocity_control)" />
+      <param name="id" value="$(arg id)" />
+      <param name="color" value="$(arg color)" />
+    </node>
   </group>
 
   <group if="$(arg collective)">
     <node name="collective_control_example" pkg="consai2_examples" type="collective_control_example.py" output="screen" />
   </group>
+
+  <node name="rqt_plot" pkg="rqt_plot" type="rqt_plot" required="true" 
+    args="
+    vision_wrapper/robot_info_$(arg color)_$(arg id)/velocity 
+    consai2_game/control_target_$(arg color)_$(arg id)/goal_velocity
+    consai2_control/command_velocity_$(arg color)_$(arg id)" />
 </launch>

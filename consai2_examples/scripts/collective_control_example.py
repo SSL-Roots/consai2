@@ -53,11 +53,12 @@ class CollectiveController(object):
 
 
     def halt(self):
-        # 全てのロボットの制御を切る
+        # 全てのロボットの速度を０にする
         for robot_id in range(self._ID_NUM):
             control_target = ControlTarget()
             control_target.robot_id = robot_id
-            control_target.control_enable = False
+            control_target.control_enable = True
+            control_target.goal_velocity = Pose2D(0, 0, 0)
 
             self._pubs_control_target[robot_id].publish(control_target)
 
@@ -82,9 +83,9 @@ class CollectiveController(object):
 
 
     def _publish_line_positions(self, move_forward=True):
-        START_X = -2.0
-        MARGIN = 0.4
-        TARGET_Y = 2.0
+        START_X = 1.0
+        MARGIN = 0.6
+        TARGET_Y = 4.0
         THETA = math.pi * 0.5
 
         # 横一直線の目標位置を送信する

@@ -3,7 +3,7 @@
 
 import rospy
 import math
-import serial
+import copy
 
 from consai2_msgs.msg import ControlTarget, RobotCommand, RobotCommands, RobotInfo
 from geometry_msgs.msg import Pose2D
@@ -31,28 +31,89 @@ def angle_normalize(angle):
 
     return angle
 
+class PIDGain(object):
+    def __init__(self, KP, KI ,KD):
+        self._KP = KP
+        self._KI = KI
+        self._KD = KD
+
+    def KP(self):
+        return self._KP
+    def KI(self):
+        return self._KI
+    def KD(self):
+        return self._KD
+
+class PIDController(object):
+    class inner_PIDController(object):
+        def __init__(self, pid_gain):
+            self._pid_gain = pid_gain
+
+            self._error1 = 0
+            self._error2 = 0
+            self._output = 0
+
+        def update(self, error):
+            delta_output = self._pid_gain.KP() * (error - self._error1) \
+                    + self._pid_gain.KI() * (error) \
+                    + self._pid_gain.KD() * (error - 2*self._error1 + self._error2)
+            self._output += delta_output
+
+            # 誤差の更新
+            self._error2 = self._error1
+            self._error1 = error
+            return self._output
+
+    def __init__(self, pid_gain_x, pid_gain_y, pid_gain_theta):
+        self._pid_controller = {
+                "x": self.inner_PIDController(pid_gain_x),
+                "y": self.inner_PIDController(pid_gain_y),
+                "theta": self.inner_PIDController(pid_gain_theta)
+                }
+
+        self._output = Pose2D()
+
+
+    def update(self, error_pose):
+        self._output.x = self._pid_controller["x"].update(error_pose.x)
+        self._output.y = self._pid_controller["y"].update(error_pose.y)
+        self._output.theta = self._pid_controller["theta"].update(error_pose.theta)
+
+        return self._output
+
+
 
 class Controller(object):
     def __init__(self):
         QUEUE_SIZE = 10
         self._COLORS = ['blue', 'yellow']
 
-        self._MAX_VELOCITY = 4.0 # m/s
+        self._MAX_VELOCITY = 2.0 # m/s
         self._MAX_ANGLE_VELOCITY = 2.0 * math.pi # rad/s
-        self._MAX_ACCELERATION = 1.0 / 60.0 # m/s^2 / frame
-        self._MAX_ANGLE_ACCELERATION = 1.0 * math.pi / 60.0 # rad/s^2 / frame
-        self._POSE_P_GAIN = 1.0
+        self._MAX_ACCELERATION = 2.0 / 60.0 # m/s^2 / frame
+        self._MAX_ANGLE_ACCELERATION = 2.0 * math.pi / 60.0 # rad/s^2 / frame
         self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
         self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
+        self._PID_GAIN = { # 位置制御のPIDゲイン
+                "x":PIDGain(1.0, 0.0, 0.0),
+                "y":PIDGain(1.0, 0.0, 0.0),
+                "theta":PIDGain(1.0, 0.0, 0.0)
+                }
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
 
         # フィールド座標系の制御速度
         # PID制御のため、前回の制御速度を保存する
         self._control_velocity = {'blue':[],'yellow':[]}
+        self._pid_controller = {'blue':[], 'yellow':[]}
         for color in self._COLORS:
             for robot_id in range(self._MAX_ID +1):
                 self._control_velocity[color].append(Pose2D())
+                self._pid_controller[color].append(
+                        PIDController(
+                            self._PID_GAIN["x"], 
+                            self._PID_GAIN["y"], 
+                            self._PID_GAIN["theta"]))
 
         # 経路追従のためのインデックス
         self._path_index = {'blue':[],'yellow':[]}
@@ -64,6 +125,8 @@ class Controller(object):
         self._subs_control_target = {'blue':[],'yellow':[]}
 
         self._pubs_is_arrived = {'blue':[],'yellow':[]}
+
+        self._pubs_command_velocity = {'blue':[],'yellow':[]}
 
         for color in self._COLORS:
             for robot_id in range(self._MAX_ID +1):
@@ -88,6 +151,10 @@ class Controller(object):
                 pub_is_arrived = rospy.Publisher(topic_name, Bool, queue_size=QUEUE_SIZE)
                 self._pubs_is_arrived[color].append(pub_is_arrived)
 
+                topic_name = 'consai2_control/command_velocity_' + color + '_' + topic_id
+                pub_command_velocity = rospy.Publisher(topic_name, Pose2D, queue_size=QUEUE_SIZE)
+                self._pubs_command_velocity[color].append(pub_command_velocity)
+
         self._pub_commands = rospy.Publisher('consai2_control/robot_commands', 
                 RobotCommands, queue_size=QUEUE_SIZE)
 
@@ -101,8 +168,8 @@ class Controller(object):
         self._path_index[color][msg.robot_id] = 0 
 
 
-    def _control_update(self, color, robot_id):
-        # ロボットの走行制御を更新する
+    def _make_command(self, color, robot_id):
+        # ロボットの動作司令を生成する
         # ControlTargetを受け取ってない場合は停止司令を生成する
 
         command = RobotCommand()
@@ -110,25 +177,25 @@ class Controller(object):
 
         control_target = self._control_target[color][robot_id]
 
-        # 制御目標が有効であれば
-        if control_target.control_enable:
-            # 経路がセットされていれば
-            if len(control_target.path) != 0:
-                command, arrived  = self._path_tracking(color, robot_id, control_target.path)
+        # 経路がセットされていれば
+        if len(control_target.path) != 0:
+            command, arrived  = self._path_tracking(color, robot_id, control_target.path)
 
-                command.kick_power = control_target.kick_power
-                command.chip_enable = control_target.chip_enable
-                command.dribble_power = control_target.dribble_power
-                
-                if arrived:
-                    # 到達したことをpublish
-                    self._pubs_is_arrived[color][robot_id].publish(True)
-                else:
-                    # 到達してないことをpublish
-                    self._pubs_is_arrived[color][robot_id].publish(False)
+            
+            if arrived:
+                # 到達したことをpublish
+                self._pubs_is_arrived[color][robot_id].publish(True)
+            else:
+                # 到達してないことをpublish
+                self._pubs_is_arrived[color][robot_id].publish(False)
         else:
-            # 保存していた制御速度をリセットする
-            self._reset_control_velocity(color, robot_id)
+            rospy.logdebug("Velocity Control")
+            command = self._make_command_velocity(color, robot_id, control_target.goal_velocity)
+
+        # キック・ドリブルパラメータのセット
+        command.kick_power = control_target.kick_power
+        command.chip_enable = control_target.chip_enable
+        command.dribble_power = control_target.dribble_power
 
         return command
 
@@ -170,6 +237,30 @@ class Controller(object):
         return command, arrived
 
 
+    def _make_command_velocity(self, color, robot_id, goal_velocity):
+        command = RobotCommand()
+        command.robot_id = robot_id
+
+        robot_info = self._robot_info[color][robot_id]
+        current_control_velocity = self._control_velocity[color][robot_id]
+
+        # 制御速度の生成
+        robot_velocity = robot_info.velocity
+        new_control_velocity = self._velocity_control(
+                goal_velocity, current_control_velocity)
+
+        # 速度方向をロボット座標系に変換
+        theta = robot_info.pose.theta
+        command.vel_surge = math.cos(theta)*new_control_velocity.x + math.sin(theta)*new_control_velocity.y
+        command.vel_sway = -math.sin(theta)*new_control_velocity.x + math.cos(theta)*new_control_velocity.y
+        command.vel_angular = new_control_velocity.theta
+
+        # 制御速度の保存
+        self._control_velocity[color][robot_id] = new_control_velocity
+
+        return command
+
+
     def _move_to_pose(self, color, robot_id, goal_pose):
         command = RobotCommand()
         command.robot_id = robot_id
@@ -192,17 +283,23 @@ class Controller(object):
     
     def _pid_pose_control(self, color, robot_id, robot_pose, goal_pose, current_control_velocity):
         # 現在姿勢と目標姿勢の差分から、field座標系での動作速度を求める
-        diff_pose = Pose2D()
+        pose_error = Pose2D()
         target_velocity = Pose2D()
 
-        diff_pose.x = goal_pose.x - robot_pose.x
-        diff_pose.y = goal_pose.y - robot_pose.y
-        diff_pose.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
+        pose_error.x = goal_pose.x - robot_pose.x
+        pose_error.y = goal_pose.y - robot_pose.y
+        pose_error.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
 
         # 目標動作速度を求める
-        target_velocity.x = self._POSE_P_GAIN * diff_pose.x
-        target_velocity.y = self._POSE_P_GAIN * diff_pose.y
-        target_velocity.theta = self._POSE_P_GAIN * diff_pose.theta
+        target_velocity = self._pid_controller[color][robot_id].update(pose_error)
+
+        new_control_velocity = self._velocity_control(target_velocity, current_control_velocity)
+
+        return new_control_velocity
+
+
+    def _velocity_control(self, target_velocity, current_control_velocity):
+        # 現在速度と目標速度の差分から、field座標系での制御速度を生成する
 
         # x方向の加速度制限
         current_control_velocity.x = self._acceleration_limit(
@@ -215,7 +312,7 @@ class Controller(object):
         # thetaの加速度制限
         current_control_velocity.theta = self._acceleration_limit(
                 target_velocity.theta, current_control_velocity.theta,
-                self._MAX_ANGLE_ACCELERATION, is_angle=True)
+                self._MAX_ANGLE_ACCELERATION)
 
         # x方向の速度制限
         current_control_velocity.x = self._velocity_limit(
@@ -230,18 +327,12 @@ class Controller(object):
         return current_control_velocity
 
     
-    def _acceleration_limit(self, target_velocity, current_velocity, limit_value, is_angle=False):
+    def _acceleration_limit(self, target_velocity, current_velocity, limit_value):
         # 加速度制限をかけて目標速度を返す
         diff_velocity = target_velocity - current_velocity
 
-        if is_angle:
-            diff_velocity = angle_normalize(diff_velocity)
-
         if math.fabs(diff_velocity) > limit_value:
             target_velocity = current_velocity + math.copysign(limit_value, diff_velocity)
-
-            if is_angle:
-                target_velocity = angle_normalize(target_velocity)
 
         return target_velocity
 
@@ -272,13 +363,22 @@ class Controller(object):
                 robot_commands.is_yellow = True
 
             for robot_info in self._robot_info[color]:
-                # フィールド上にいるロボットのみを動かす
-                if robot_info.disappeared is False:
-                    # 動作司令を更新
-                    command = self._control_update(color, robot_info.robot_id)
+                # 制御が有効な場合のみ動作司令を生成する
+                if self._control_target[color][robot_info.robot_id].control_enable:
+                    # 動作司令を生成
+                    command = self._make_command(color, robot_info.robot_id)
                     robot_commands.commands.append(command)
 
-            self._pub_commands.publish(robot_commands)
+                    # 動作司令の速度をpublish
+                    self._pubs_command_velocity[color][robot_info.robot_id].publish(
+                            self._control_velocity[color][robot_info.robot_id])
+                else:
+                    # 保存していた制御速度をリセットする
+                    self._reset_control_velocity(color, robot_info.robot_id)
+
+            # 動作司令が無ければpublishしない
+            if len(robot_commands.commands) > 0:
+                self._pub_commands.publish(robot_commands)
 
 
 def main():
