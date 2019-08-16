@@ -88,6 +88,13 @@ double Pose::GetNorm()
     return sqrt(pow(this->x, 2) + pow(this->y, 2));
 }
 
+// double Pose::GetAngle()
+// 原点からみた自身のなす角を返す（極座標表現での角度）
+double Pose::GetAngle()
+{
+    return atan2(this->y, this->x);
+}
+
 
 Velocity::Velocity()
 {

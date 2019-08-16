@@ -32,7 +32,10 @@ public:
     geometry_msgs::Pose ToROSPose();
     geometry_msgs::Pose2D ToROSPose2D();
     geometry2d::Pose Transpose(geometry2d::Pose pose);
+
+    // TODO: この辺の関数は Pose()クラスにあるべき
     double GetNorm();
+    double GetAngle();
 };
 
 class Velocity
