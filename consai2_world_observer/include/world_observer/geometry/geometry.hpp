@@ -48,6 +48,8 @@ public:
     Velocity(geometry_msgs::Twist twist);
 
     geometry_msgs::Twist ToROSTwist();
+    double GetNorm();
+    double GetAngle();
 };
 
 class Accel

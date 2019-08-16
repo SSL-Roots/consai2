@@ -129,6 +129,21 @@ geometry_msgs::Twist Velocity::ToROSTwist()
     return msg;
 }
 
+// double Velocity::GetNorm()
+// 速度ベクトルのノルムを返す
+double Velocity::GetNorm()
+{
+    return sqrt(pow(this->x, 2) + pow(this->y, 2));
+}
+
+// double Velocity::GetAngle()
+// 速度ベクトルが原点となす角度を返す
+double Velocity::GetAngle()
+{
+    return atan2(this->y, this->x);
+}
+
+
 Accel::Accel()
 {
     this->x = 0.0;
