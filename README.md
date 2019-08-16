@@ -7,6 +7,8 @@ CON-SAI2は[RoboCup SSL](https://ssl.robocup.org/)に
 
 **CON**tribution to **S**occer **AI**
 
+![consai2_main](https://github.com/SSL-Roots/consai2/blob/images/images/consai2_main.png "consai2_main")
+
 前作の[CON-SAI](https://github.com/SSL-Roots/CON-SAI)
 からCON-SAI2へ開発を移行しました。
 
