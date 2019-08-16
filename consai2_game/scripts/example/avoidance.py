@@ -44,6 +44,7 @@ class ObstacleAvoidance(object):
         avoid_pose = self.basic_avoid(my_pose, goal_path, ball_avoid_flag)
         # パスに追加する
         if avoid_pose is not None:
+            avoid_pose.theta = target_path[-1].theta
             goal_path.insert(0, avoid_pose)
 
         return goal_path
