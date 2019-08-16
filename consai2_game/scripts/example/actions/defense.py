@@ -73,6 +73,8 @@ def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, r
     elif role.ROLE_ID['ROLE_DEFENCE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_ZONE_4']:
         return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'])
     else:
+        control_target.path = []
+        control_target.path.append(my_pose)
         return control_target
 
 
@@ -245,7 +247,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             if(ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
-                target_pose = trans.inverted_transform(Pose2D(-0.5, 0, 0))
+                target_pose = trans.inverted_transform(Pose2D(-0.9, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
             elif invader_pose != []:
                 # 敵とボールの間に割り込む
@@ -267,8 +269,8 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
             target_pose = receive_target_pose
 
     # ペナルティエリアには入らない
-    if((left_penalty_corner.y + 0.1 > target_pose.y > right_penalty_corner.y - 0.1) and \
-                target_pose.x < left_penalty_corner.x + 0.1):
+    if((left_penalty_corner.y + 0.2 > target_pose.y > right_penalty_corner.y - 0.2) and \
+                target_pose.x < left_penalty_corner.x + 0.3):
         target_pose.x = half_our_field_length
 
     control_target.path = []
