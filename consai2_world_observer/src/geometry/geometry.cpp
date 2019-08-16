@@ -79,7 +79,7 @@ geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
     geometry2d::Pose retval;
 
     double diff_x = pose.x - this->x;
-    double diff_y = pose.y = this->y;
+    double diff_y = pose.y - this->y;
 
     retval.x = cos(this->theta) * diff_x - sin(this->theta) * diff_y;
     retval.y = sin(this->theta) * diff_x + cos(this->theta) * diff_y;
