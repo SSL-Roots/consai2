@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include <world_observer/geometry/geometry.hpp>
 
 #include <tf/transform_datatypes.h>
@@ -60,6 +62,23 @@ geometry_msgs::Pose2D Pose::ToROSPose2D()
     msg.theta = this->theta;
 
     return msg;
+}
+
+
+// geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
+// このインスタンスの姿勢からみた pose の姿勢を返す
+geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
+{
+    geometry2d::Pose retval;
+
+    double diff_x = pose.x - this->x;
+    double diff_y = pose.y = this->y;
+
+    retval.x = cos(this->theta) * diff_x - sin(this->theta) * diff_y;
+    retval.y = sin(this->theta) * diff_x + cos(this->theta) * diff_y;
+    retval.theta = pose.theta - this->theta;
+
+    return retval;
 }
 
 Velocity::Velocity()
