@@ -67,7 +67,7 @@ def interpose(target_info, control_target,
 
     return control_target
 
-def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info, zone_enable):
+def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info, zone_enable=False):
     if role.ROLE_ID['ROLE_DEFENCE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_GOAL_2']:
         return defence_goal(my_pose, ball_info, control_target, my_role, defence_num)
     elif role.ROLE_ID['ROLE_DEFENCE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_ZONE_4']:
