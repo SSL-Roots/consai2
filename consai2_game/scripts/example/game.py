@@ -188,7 +188,6 @@ class RobotNode(object):
                     self._control_target = normal.move_to(
                             self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
                 else:
-                    B
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
                             self._my_pose, defece_num, robot_info)

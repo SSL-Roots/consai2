@@ -287,7 +287,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
                 if ball_pose.x > MARGIN_CENTER:
                     target_pose.x = half_our_field_length + 1.0
                 else:
-                target_pose.x = half_our_field_length
+                    target_pose.x = half_our_field_length
         except IndexError:
             target_pose = my_pose
         target_pose.theta = angle_to_ball
