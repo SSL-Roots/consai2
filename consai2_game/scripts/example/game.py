@@ -305,19 +305,21 @@ class RobotNode(object):
                             self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_BALL_PLACEMENT"]:
                 rospy.logdebug("THEIR_BALL_PLACEMENT")
-
+                replace_pose = referee.placement_position
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
-                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
-                    avoid_ball = True
+                # elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    # self._control_target = defense.interpose(ball_info,
+                            # self._control_target, dist_from_target = 0.6)
+                    # avoid_ball = True
                 else:
-                    self._control_target = defense.defence_decision(
-                            self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                    self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(
+                            self._my_pose, ball_info, replace_pose, self._control_target)
+                    # self._control_target = defense.defence_decision(
+                            # self._my_role, ball_info, self._control_target, 
+                            # self._my_pose, defece_num, robot_info)
 
         # 障害物回避の経路作成
         if avoid_obstacle:
