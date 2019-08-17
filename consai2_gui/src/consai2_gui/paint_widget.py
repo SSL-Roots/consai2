@@ -875,9 +875,23 @@ class PaintWidget(QWidget):
 
     def _draw_referee(self, painter):
         # レフェリーの情報を描画する
+        PLACE_RADIUS = 0.15 # meters
 
         if self._decoded_referee is None:
             return 
+
+        # ボールプレースメントの設置エリアを描画
+        if self._decoded_referee.referee_text == "OUR_BALL_PLACEMENT" \
+                or self._decoded_referee.referee_text == "THEIR_BALL_PLACEMENT":
+            point = self._convert_to_view(
+                    self._decoded_referee.placement_position.x,
+                    self._decoded_referee.placement_position.y)
+            size = PLACE_RADIUS * self._scale_field_to_view
+            place_color = QColor(Qt.white)
+            place_color.setAlphaF(0.6)
+            painter.setPen(QPen(Qt.black,2))
+            painter.setBrush(place_color)
+            painter.drawEllipse(point, size, size)
 
         # ボール進入禁止エリアを描画
         if self._decoded_referee.keep_out_radius_from_ball != -1:
@@ -886,7 +900,8 @@ class PaintWidget(QWidget):
             size = self._decoded_referee.keep_out_radius_from_ball * self._scale_field_to_view
 
             ball_color = copy.deepcopy(self._COLOR_BALL)
-            keepout_color = QColor(255, 0, 0, 100)
+            keepout_color = QColor(Qt.red)
+            keepout_color.setAlphaF(0.3)
             painter.setPen(Qt.black)
             painter.setBrush(keepout_color)
             painter.drawEllipse(point, size, size)
