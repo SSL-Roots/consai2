@@ -192,7 +192,7 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
     KICK_POWER = kick_power
     SHOOT_TARGET = target_pose
 
-    arrive_threshold = 0.1
+    arrive_threshold = 0.2
 
     angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
     trans = tool.Trans(ball_info.pose, angle_ball_to_target)
@@ -250,10 +250,14 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
 
     return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, SHOOT_TARGET)
 
-def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None):
+def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
     kick_enable = True
     kick_power = 0.5
+
+    # ダイレクトかつ、直接シュートが無理の無い位置だった場合は直シュート
+    if direct and ball_info.pose.x < Field.penalty_pose('their','upper_front').x:
+        return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, Field.goal_pose('their','center'), kick_power)
 
     # receive_enable ならレシーバにパスする動きをする
     if receive_enable:
