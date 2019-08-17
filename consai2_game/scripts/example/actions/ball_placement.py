@@ -21,7 +21,7 @@ SET_POSE_ADD_X = 0.3
 # kick_power
 KICK_POWER = 0.5
 # dorrible_power
-DRIBBLE_POWER = 0.8
+DRIBBLE_POWER = 0.6
 
 # ボールがplacementされたとみなされる範囲
 BALL_PLACE_TRESHOLD = 0.10
