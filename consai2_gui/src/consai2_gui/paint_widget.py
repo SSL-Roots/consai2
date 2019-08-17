@@ -906,3 +906,17 @@ class PaintWidget(QWidget):
             painter.setBrush(keepout_color)
             painter.drawEllipse(point, size, size)
 
+        # レフェリーテキストをカーソル周辺に表示する
+        if self._decoded_referee.referee_text:
+            # カーソル座標を取得
+            current_pos = self._convert_to_field(
+                    self._current_mouse_pos.x(), self._current_mouse_pos.y())
+            # 他のテキストと被らないように位置を微調整
+            current_point = self._convert_to_view(current_pos.x() + 0.1, current_pos.y() - 0.15)
+
+            text = self._decoded_referee.referee_text
+
+            painter.setPen(Qt.black)
+            painter.drawText(current_point, text)
+
+
