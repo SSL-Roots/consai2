@@ -61,7 +61,7 @@ def simple_kick(my_pose, ball_info, control_target, kick_power=0.5):
 
 
 def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
-        can_shoot_angle = 5, shoot_enable=True):
+        can_shoot_angle = 5, shoot_enable=True, dribble_dist=0.01):
     # インプレイ用のシュートアクション
     # デフォルトでゴールを狙う
 
@@ -73,6 +73,7 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
     CAN_DRIBBLE_DIST =0.5 # meters
     CAN_SHOOT_ANGLE = can_shoot_angle # degrees
     SHOOT_TARGET = target_pose
+    DRIBBLE_DIST = dribble_dist
 
     # ボールから見たロボットの座標系を生成
     angle_ball_to_robot = tool.get_angle(ball_info.pose, my_pose)
@@ -125,7 +126,7 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         control_target.kick_power = 0.0
     else:
 
-        new_goal_pose = trans_BtoT.inverted_transform(Pose2D(0.01, 0, 0))
+        new_goal_pose = trans_BtoT.inverted_transform(Pose2D(dribble_dist, 0, 0))
         new_goal_pose.theta = angle_ball_to_target
         # ドリブルをオフ、キックをオン
 
@@ -185,8 +186,9 @@ def outside_shoot(my_pose, ball_info, control_target):
 def inplay_dribble(my_pose, ball_info, control_target, target_pose):
     # ボールを蹴らずにドリブルする
     CAN_SHOOT_ANGLE = 10 # degrees
+    DRIBBLE_DIST = 0.1 # meters
 
-    return _inplay_shoot(my_pose, ball_info, control_target, target_pose, CAN_SHOOT_ANGLE, shoot_enable=False)
+    return _inplay_shoot(my_pose, ball_info, control_target, target_pose, CAN_SHOOT_ANGLE, False, DRIBBLE_DIST)
 
 
 def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=0.8, receive_enable=False, receiver_role_exist=False, robot_info=None):
