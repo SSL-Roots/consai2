@@ -21,7 +21,7 @@ SET_POSE_ADD_X = 0.3
 # kick_power
 KICK_POWER = 0.5
 # dorrible_power
-DRIBBLE_POWER = 0.8
+DRIBBLE_POWER = 0.6
 
 # ボールがplacementされたとみなされる範囲
 BALL_PLACE_TRESHOLD = 0.10
@@ -37,7 +37,7 @@ BALL_GET_AREA = 0.5
 VEL_THRESHOLD = 0.5
 
 # ボール保持の判定
-IS_LOOK_TARGET_ANGLE = 5  # deg
+IS_LOOK_TARGET_ANGLE = 4  # deg
 IS_TOUCH_DIST = 0.20
 
 # 侵入禁止をする範囲(余裕を見て+0.1)
@@ -54,7 +54,7 @@ def threshold(tr_my_pose):
     return flag
 
 # パス動作と最後の調整を行う
-def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
+def atk(my_pose, ball_info, control_target, goal_pose, robot_info, my_id):
 
     # パス受取ロボットの座標（距離が一番近いロボットを使う）
     dist = []
@@ -65,8 +65,8 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             # インデックスを揃えるためダミーデータを挿入する
             dist.append(100)
     your_id = dist.index(min(dist))
+    # dist_your2goal = min(dist)
     your_pose = robot_info['our'][your_id].pose
-    dist_your2goal = min(dist)
 
     # 目標座標までの角度
     angle_ball_to_target = tool.get_angle(ball_info.pose, goal_pose)
@@ -114,11 +114,10 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
         new_goal_pose = Pose2D()
         
         # ---------------------------------------
-
         # 蹴ったあとに追いかけない様に対策
         if VEL_THRESHOLD < v:
             new_goal_pose = my_pose
-            control_target.kick_power = 0
+            control_target.dribble_power = 1
 
         # もしボールとゴールに近い場合はアタッカーが置きにいく
         elif dist_ball2goal < BALL_PLACE_AREA_NO_DRIBBLE:
@@ -129,13 +128,14 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             new_goal_pose = control_target.path[-1]
             control_target.dribble_power = 0.0
         # 
-        elif dist_ball2goal < BALL_GET_AREA:
-            control_target = offense.inplay_dribble(my_pose, ball_info, 
-                    control_target, goal_pose)
-            new_goal_pose = control_target.path[-1]
+        # elif dist_ball2goal < BALL_GET_AREA:
+            # control_target = offense.inplay_dribble(my_pose, ball_info, 
+                    # control_target, goal_pose)
+            # new_goal_pose = control_target.path[-1]
 
         # お互いの位置がセットされたら蹴る
         elif my_flag and your_flag:
+
             # ボールをける
             avoid_ball = False
             # control_target = offense.inplay_shoot_to_target(
@@ -149,6 +149,7 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             control_target.kick_power = KICK_POWER
             control_target.dribble_power = DRIBBLE_POWER
         else:
+
             # ボールの後ろに周り込む
             # ボールの裏に移動する
             # control_target = offense.inplay_shoot_to_target(
@@ -224,6 +225,7 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
         new_goal_pose = Pose2D()
         # 速度が出ている場合キャチしにいく
         if VEL_THRESHOLD < v:
+
             target_pose = receive_ball(ball_info, my_pose)
             new_goal_pose = target_pose
             control_target.kick_power = 0
@@ -231,6 +233,7 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
 
         # アタッカーのほうがボールに近い場合は避ける
         elif dist_ball2target < BALL_GET_AREA:
+
             new_position = my_pose
             avoid_ball = False
             control_target.kick_power = 0.0
