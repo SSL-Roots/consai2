@@ -166,7 +166,7 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_shoot(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            kick_enable = True, penalty=True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
