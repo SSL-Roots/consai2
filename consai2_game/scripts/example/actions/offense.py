@@ -65,9 +65,11 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
     # デフォルトでゴールを狙う
 
     KICK_POWER = 1.0
+    DRRIBLE_POWER = 1.0
     IS_TOUCH_DIST = 0.2 # meters
     IS_TOUCH_ANGLE = 160 # degrees
     IS_LOOK_TARGET_ANGLE = 45 # degrees
+    CAN_DRIBBLE_DIST =0.5 # meters
     CAN_SHOOT_ANGLE = can_shoot_angle # degrees
     SHOOT_TARGET = target_pose
 
@@ -102,9 +104,8 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         new_goal_pose = trans_BtoR.inverted_transform(Pose2D(-0.1, 0, 0))
         new_goal_pose.theta = trans_BtoR.inverted_transform_angle(math.radians(180))
 
-        # ドリブルとキックをオフ
+        # キックをオフ
         control_target.kick_power = 0.0
-        control_target.dribble_power = 0.0
     elif can_shoot is False:
         # 目標角度に値を加えてロボットを回転させる
         rospy.logdebug("inplay_shoot: rotate")
@@ -119,9 +120,8 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         new_goal_pose = trans_BtoR.inverted_transform(tr_goal_pose_BtoR)
         new_goal_pose.theta = tool.get_angle(new_goal_pose, ball_info.pose)
 
-        # ドリブルをオン、キックをオフ
+        # キックをオフ
         control_target.kick_power = 0.0
-        control_target.dribble_power = 1.0
     else:
 
         new_goal_pose = trans_BtoT.inverted_transform(Pose2D(0.01, 0, 0))
@@ -131,13 +131,16 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         # 狙いが定まったらシュート
         if math.fabs(tr_robot_angle_BtoT) < math.radians(CAN_SHOOT_ANGLE):
             rospy.logdebug("inplay_shoot: shoot")
-
             control_target.kick_power = KICK_POWER
-            control_target.dribble_power = 1.0
         else:
             rospy.logdebug("inplay_shoot: pre-shoot")
             control_target.kick_power = 0.0
-            control_target.dribble_power = 1.0
+
+    # ボールに近づいたらドリブルをオン
+    if tool.distance_2_poses(my_pose, ball_info.pose) < CAN_DRIBBLE_DIST:
+        control_target.dribble_power = DRRIBLE_POWER
+    else:
+        control_target.dribble_power = 0.0
 
 
 
