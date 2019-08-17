@@ -8,6 +8,7 @@ from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+import normal
 
 sys.path.append(os.pardir)
 from field import Field
@@ -236,15 +237,53 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     return control_target, avoid_ball
 
 # TODO: 再配置用、これから実装
-def other(my_pose, ball_pose, id_atk, id_recv, control_target):
+def avoid_ball_place_line(my_pose, ball_info, goal_pose, my_id, control_target):
+
+    angle_ball2goal = tool.get_angle(ball_info.pose, goal_pose)
+
+    trans = tool.Trans(ball_info.pose, angle_ball2goal)
+    tr_my_pose = trans.transform(my_pose)
+
+    if -0.5 < tr_my_pose.y < 0:
+        tr_my_pose.y -= 1
+    elif 0 <= tr_my_pose.y < 0.5:
+        tr_my_pose.y += 1
+    if -0.5 < tr_my_pose.x < 0:
+        tr_my_pose.x -= 1
+    elif 0 <= tr_my_pose.x < 0.5:
+        tr_my_pose.x += 1
+
+    target_pose = trans.inverted_transform(tr_my_pose)
+
+    control_target.path = []
+    control_target.path.append(target_pose)
+
+    return control_target, True
+
+# TODO: 再配置用、これから実装
+def make_line(my_pose, ball_info, goal_pose, my_id, control_target):
+
+    MARGIN_X = 1
+    MARGIN_Y = 0
     
     # 再配置する位置の中心からの角度
     angle_center2goal = tool.get_angle(Pose2D(0, 0, 0), goal_pose)
     
-    atk_pose = robot_info['our'][id_atk].pose
-    recv_pose = robot_info['our'][id_recv].pose
+    trans = tool.Trans(goal_pose, angle_center2goal)
+    tr_my_pose = trans.transform(my_pose)
+    tr_goal_pose = trans.transform(goal_pose)
 
-    return control_target
+    sign = 1
+    if goal_pose.x < ball_info.pose.x:
+        sign = -1
+
+    start_x = goal_pose.x + sign * MARGIN_X
+    start_y = goal_pose.y + MARGIN_Y
+
+    control_target, remake_path = normal.make_line(my_id, ball_info, control_target, 
+        start_x=start_x, start_y=start_y, add_x=0.3, add_y=0)
+
+    return control_target, remake_path
 
 # ボール受け取り位置の生成
 def receive_ball(ball_info, my_pose):

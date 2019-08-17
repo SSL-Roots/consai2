@@ -172,6 +172,7 @@ class RobotNode(object):
                             self._my_pose, ball_info, self._control_target,
                             kick_enable = True)
                 else:
+                    B
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
                             self._my_pose, defece_num, robot_info)
@@ -212,7 +213,10 @@ class RobotNode(object):
                             self._my_pose, ball_info, self._control_target, replace_pose, \
                             role.ROLE_ID["ROLE_ATTACKER"], robot_info)
                 else:
-                    self._control_target.path = [self._my_pose]
+                    # self._control_target.path = [self._my_pose]
+                    self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(self._my_pose, ball_info, replace_pose, self._my_role, self._control_target)
+                    # self._control_target, avoid_ball = ball_placement.make_line(
+                            # self._my_pose, ball_info, replace_pose, self._my_role, self._control_target) 
                     # self._control_target = defense.defence_decision(
                             # self._my_role, ball_info, self._control_target, 
                             # self._my_pose, defece_num, robot_info)
