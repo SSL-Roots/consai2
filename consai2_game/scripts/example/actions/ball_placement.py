@@ -53,7 +53,8 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     # パス受取ロボットの座標
     dist = []
     for our_info in robot_info['our']:
-        dist.append(tool.distance_2_poses(our_info.pose, goal_pose)) 
+        if our_info.disappeared is False:
+            dist.append(tool.distance_2_poses(our_info.pose, goal_pose)) 
     your_id = dist.index(min(dist))
     your_pose = robot_info['our'][your_id].pose
     dist_your2goal = min(dist)
@@ -71,18 +72,20 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     tr_goal_back_pose = Pose2D()
     tr_goal_back_pose.x = tr_goal_pose.x + SET_POSE_ADD_X
     tr_goal_back_pose.y = tr_goal_pose.y
+    goal_back_pose = trans.inverted_transform(tr_goal_back_pose)
 
     # レシーブと対象の位置の距離 
     dist_your2ball = tool.distance_2_poses(tr_your_pose, tr_ball_pose)
     dist_your2goal = tool.distance_2_poses(tr_your_pose, tr_goal_pose)
     dist_your2goal_back = tool.distance_2_poses(tr_your_pose, tr_goal_back_pose)
+
+
     # 自分と対象の位置の距離 
     dist_i2ball = tool.distance_2_poses(tr_my_pose, tr_ball_pose)
     dist_i2goal = tool.distance_2_poses(tr_my_pose, tr_goal_pose)
     dist_i2goal_back = tool.distance_2_poses(tr_my_pose, tr_goal_back_pose)
 
     dist_ball2goal = tool.distance_2_poses(ball_info.pose, goal_pose)
-
 
     ball_vel = ball_info.velocity
     v = math.hypot(ball_vel.x, ball_vel.y)
@@ -94,10 +97,9 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
 
         your_flag = False
         if dist_your2goal_back < 0.1:
+
             your_flag = True
 
-        print dist_your2goal_back
-        
         avoid_ball = True # ボールを回避する
         new_goal_pose = Pose2D()
 
