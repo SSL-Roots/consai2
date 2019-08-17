@@ -33,7 +33,7 @@ BALL_PLACE_AREA_NO_DRIBBLE = 0.3
 # ボールを置きに行く動作に入るときの範囲
 # BALL_PLACE_AREA = 0.5
 # ボールに近いと判断する距離
-BALL_GET_AREA = 0.5
+BALL_GET_AREA = 2.0
 # ボールが動いていると判断する速度
 VEL_THRESHOLD = 0.5
 
