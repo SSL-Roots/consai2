@@ -13,6 +13,7 @@ import tool
 
 sys.path.append(os.pardir)
 from field import Field
+from observer import Observer
 
 
 def simple_kick(my_pose, ball_info, control_target, kick_power=0.5):
@@ -245,14 +246,72 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
 
     return control_target, avoid_ball
 
-def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
+def _penalty_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=1.0):
+    # PK用のシュートアクション
+    # kick_enable is Falseで、ボールの近くまで移動する
+    # kick_enable is True で、シュートする
+
+    KICK_POWER = kick_power
+    SHOOT_TARGET = target_pose
+
+    angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
+    trans = tool.Trans(ball_info.pose, angle_ball_to_target)
+    tr_my_pose = trans.transform(my_pose)
+
+    random_num = Observer.random_zero_one()
+    if random_num == 0:
+        target_goal_side = Field.goal_pose('their', 'upper')
+    else:
+        target_goal_side = Field.goal_pose('their', 'lower')
+
+    angle_to_target_side = tool.get_angle(my_pose, target_goal_side)
+
+    # ロボットがボールの裏側に回ったらcan_kick is True
+    can_kick = False
+    if tr_my_pose.x > -0.2 and math.fabs(tr_my_pose.y) < 0.05:
+        can_kick = True
+
+    avoid_ball = True # ボールを回避する
+    new_goal_pose = Pose2D()
+    if can_kick and kick_enable:
+        # ボールをける
+        avoid_ball = False
+
+        # ボールの前方に移動する
+        new_position = trans.inverted_transform(Pose2D(0, 0, 0))
+        new_goal_pose = new_position
+        new_goal_pose.theta = angle_to_target_side
+        if math.fabs(tool.angle_normalize(my_pose.theta - new_goal_pose.theta)) < 0.2:
+            # ドリブルとキックをオン
+            control_target.kick_power = KICK_POWER
+    else:
+        Observer.update_random_zero_one()
+        # ボールの裏に移動する
+        new_position = trans.inverted_transform(Pose2D(-0.1, 0, 0))
+        new_goal_pose = new_position
+        new_goal_pose.theta = angle_ball_to_target
+        # ドリブルとキックをオフ
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 0.0
+        
+    # パスを追加
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+
+    return control_target, avoid_ball
+
+def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False, penalty=False):
     # セットプレイ用のシュートアクション
     # kick_enable is Falseで、ボールの近くまで移動する
     # kick_enable is True で、シュートする
 
     SHOOT_TARGET = Field.goal_pose('their', 'center')
 
-    return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, SHOOT_TARGET)
+    if penalty:
+        return _penalty_shoot(my_pose, ball_info, control_target, kick_enable, SHOOT_TARGET)
+    else:
+        return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, SHOOT_TARGET)
 
 def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
