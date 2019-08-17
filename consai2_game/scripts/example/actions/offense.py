@@ -174,13 +174,15 @@ def outside_shoot(my_pose, ball_info, control_target):
     return _inplay_shoot(my_pose, ball_info, control_target, shoot_target, CAN_SHOOT_ANGLE)
 
 
-def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=0.8):
+def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=0.8, receive_enable=False, receiver_role_exist=False, robot_info=None):
     # セットプレイ用のシュートアクション
     # kick_enable is Falseで、ボールの近くまで移動する
     # kick_enable is True で、シュートする
 
     KICK_POWER = kick_power
     SHOOT_TARGET = target_pose
+
+    arrive_threshold = 0.1
 
     angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
     trans = tool.Trans(ball_info.pose, angle_ball_to_target)
@@ -190,7 +192,16 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
     can_kick = False
     if tr_my_pose.x < 0.01 and math.fabs(tr_my_pose.y) < 0.05:
         can_kick = True
-    
+
+    # レシーバにパスする場合、蹴る位置近くにロボットが存在すれば receive_arrive is True
+    # ただし、指定したroleが存在しなければ関係なし
+    # can_kick と receive_arrive が両方Trueなら蹴る
+    if receive_enable and receiver_role_exist:
+        receive_arrive = False
+        for robot_id in range(len(robot_info['our'])):
+            if arrive_threshold > tool.distance_2_poses(target_pose, robot_info['our'][robot_id].pose):
+                receive_arrive = True
+        can_kick = can_kick and receive_arrive
 
     avoid_ball = True # ボールを回避する
     new_goal_pose = Pose2D()
@@ -229,9 +240,15 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False):
 
     return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, SHOOT_TARGET)
 
-def setplay_pass(my_pose, ball_info, control_target, target_pose):
+def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None):
 
     kick_enable = True
     kick_power = 0.5
 
-    return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,kick_power)
+    # receive_enable ならレシーバにパスする動きをする
+    if receive_enable:
+        return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,kick_power,
+                receive_enable, receiver_role_exist, robot_info)
+    # それ以外ならターゲットに蹴るだけ
+    else:
+        return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,kick_power)
