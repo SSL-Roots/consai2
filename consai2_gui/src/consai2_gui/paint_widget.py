@@ -916,7 +916,7 @@ class PaintWidget(QWidget):
 
             text = self._decoded_referee.referee_text
 
-            painter.setPen(Qt.black)
+            painter.setPen(Qt.red)
             painter.drawText(current_point, text)
 
 
