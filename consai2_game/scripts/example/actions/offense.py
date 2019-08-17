@@ -67,8 +67,8 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
     KICK_POWER = 1.0
     DRRIBLE_POWER = 1.0
     IS_TOUCH_DIST = 0.2 # meters
-    IS_TOUCH_ANGLE = 160 # degrees
-    IS_LOOK_TARGET_ANGLE = 45 # degrees
+    IS_TOUCH_ANGLE = 140 # degrees
+    IS_LOOK_TARGET_ANGLE = 30 # degrees
     CAN_DRIBBLE_DIST =0.5 # meters
     CAN_SHOOT_ANGLE = can_shoot_angle # degrees
     SHOOT_TARGET = target_pose
@@ -113,7 +113,7 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         # ドリブラーがボールにつくまで移動する
         tr_robot_pose_BtoR = trans_BtoR.transform(my_pose)
         length = tr_robot_pose_BtoR.x
-        ADD_ANGLE = math.copysign(90, tr_robot_angle_BtoT) * -1.0
+        ADD_ANGLE = math.copysign(80, tr_robot_angle_BtoT) * 1.0
         tr_goal_pose_BtoR = Pose2D(length*math.cos(ADD_ANGLE), length*math.sin(ADD_ANGLE), 0)
 
         # ボールにくっつきながら回転動作を加える
@@ -160,6 +160,10 @@ def inplay_shoot(my_pose, ball_info, control_target):
     CAN_SHOOT_ANGLE = 10 # degrees
 
     return _inplay_shoot(my_pose, ball_info, control_target, SHOOT_TARGET, CAN_SHOOT_ANGLE)
+
+def inplay_shoot_to_target(my_pose, ball_info, control_target, shoot_target, can_shoot_angle=5):
+    # インプレイ用のtargeを狙うシュートアクション
+    return _inplay_shoot(my_pose, ball_info, control_target, shoot_target, can_shoot_angle)
 
 
 def outside_shoot(my_pose, ball_info, control_target):

@@ -133,39 +133,48 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             # ボールをける
             avoid_ball = False
 
-            new_position = trans.inverted_transform(Pose2D(0.2, 0, 0))
-            new_goal_pose = new_position
-            new_goal_pose.theta = angle_ball_to_target
+            control_target = offense.inplay_shoot_to_target(
+                    my_pose, ball_info, control_target, goal_pose, 5)
+            new_goal_pose = control_target.path[-1]
+
+            # new_position = trans.inverted_transform(Pose2D(0.2, 0, 0))
+            # new_goal_pose = new_position
+            # new_goal_pose.theta = angle_ball_to_target
             # ドリブルとキックをオン
             control_target.kick_power = KICK_POWER
             control_target.dribble_power = DRIBBLE_POWER
 
-        # ボールを置きにいく
-        elif dist_i2goal < BALL_PLACE_AREA and dist_i2goal_back < BALL_PLACE_AREA:
-            avoid_ball = False
-            # ball近づく
-            if IS_TOUCH_DIST < dist_i2ball:
-                # レシーブしにいく
-                target_pose = receive_ball(ball_info, my_pose)
-                target_pose.y = my_pose.y
-                new_goal_pose = target_pose
-                control_target.kick_power = 0
-                control_target.dribble_power = DRIBBLE_POWER
-            else:
-                # 移動する
-                new_goal_pose = trans.inverted_transform(tr_goal_pose)
-                new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
-
-                control_target.kick_power = 0
-                control_target.dribble_power = DRIBBLE_POWER
+        # # ボールを置きにいく
+        # elif dist_i2goal < BALL_PLACE_AREA and dist_i2goal_back < BALL_PLACE_AREA:
+        #     avoid_ball = False
+        #     # ball近づく
+        #     if IS_TOUCH_DIST < dist_i2ball:
+        #         # レシーブしにいく
+        #         target_pose = receive_ball(ball_info, my_pose)
+        #         target_pose.y = my_pose.y
+        #         new_goal_pose = target_pose
+        #         control_target.kick_power = 0
+        #         control_target.dribble_power = DRIBBLE_POWER
+        #     else:
+        #         # 移動する
+        #         new_goal_pose = trans.inverted_transform(tr_goal_pose)
+        #         new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
+        #
+        #         control_target.kick_power = 0
+        #         control_target.dribble_power = DRIBBLE_POWER
         else:
+
+            avoid_ball = False
             # ボールの裏に移動する
-            new_position = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X, 0, 0))
-            new_goal_pose = new_position
-            new_goal_pose.theta = angle_ball_to_target
+            control_target = offense.inplay_shoot_to_target(
+                    my_pose, ball_info, control_target, goal_pose, 3)
+            new_goal_pose = control_target.path[-1]
+            # new_position = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X, 0, 0))
+            # new_goal_pose = new_position
+            # new_goal_pose.theta = angle_ball_to_target
             # ドリブルとキックをオフ
             control_target.kick_power = 0.0
-            control_target.dribble_power = 0.0
+            control_target.dribble_power = DRIBBLE_POWER
     else:
         avoid_ball = False
         # tr_target_pose = tr_ball_pose
