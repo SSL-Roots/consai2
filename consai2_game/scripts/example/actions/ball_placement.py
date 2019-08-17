@@ -161,7 +161,10 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             control_target.dribble_power = 0.0
     else:
         avoid_ball = False
-        new_goal_pose = my_pose
+        tr_target_pose = tr_ball_pose
+        tr_target_pose.x -= -0.5 
+        new_goal_pose = trans.inverted_transform(tr_target_pose)
+
         control_target.dribble_power = 0
         control_target.kick_power = 0
 
@@ -254,8 +257,11 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             control_target.kick_power = 0.0
             control_target.dribble_power = 0.0
     else:
-        new_goal_pose = my_pose
         avoid_ball = False
+        # tr_target_pose = tr_ball_pose
+        # tr_target_pose.x -= -0.2 
+        # new_goal_pose = trans.inverted_transform(tr_target_pose)
+        new_goal_pose = my_pose
         control_target.kick_power = 0.0
         control_target.dribble_power = 0.0
             
