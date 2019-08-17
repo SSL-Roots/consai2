@@ -208,6 +208,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
     ZONE_OFFENCE_POSE = Pose2D(3,0,0)
     MARGIN_CENTER = 0.6
+    DRIBBLE_POWER = 0.6
 
     ball_pose = ball_info.pose
 
@@ -297,7 +298,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
         receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, zone_id)
         if receive_ball_result:
             # ドリブラー回す
-            control_target.dribble_power = 1.0
+            control_target.dribble_power = DRIBBLE_POWER
             target_pose = receive_target_pose
 
     # ペナルティエリアには入らない

@@ -66,9 +66,9 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
     # デフォルトでゴールを狙う
 
     KICK_POWER = 1.0
-    DRRIBLE_POWER = 1.0
+    DRRIBLE_POWER = 0.6
     IS_TOUCH_DIST = 0.2 # meters
-    IS_TOUCH_ANGLE = 140 # degrees
+    IS_TOUCH_ANGLE = 170 # degrees
     IS_LOOK_TARGET_ANGLE = 30 # degrees
     CAN_DRIBBLE_DIST =0.5 # meters
     CAN_SHOOT_ANGLE = can_shoot_angle # degrees
@@ -158,7 +158,7 @@ def inplay_shoot(my_pose, ball_info, control_target):
     # インプレイ用のシュートアクション
     # デフォルトでゴールを狙う
     SHOOT_TARGET = Field.goal_pose('their', 'center')
-    CAN_SHOOT_ANGLE = 10 # degrees
+    CAN_SHOOT_ANGLE = 5 # degrees
 
     return _inplay_shoot(my_pose, ball_info, control_target, SHOOT_TARGET, CAN_SHOOT_ANGLE)
 
