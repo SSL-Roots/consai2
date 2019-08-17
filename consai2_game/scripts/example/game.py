@@ -52,6 +52,11 @@ class RobotNode(object):
         remake_path = False # 経路再生成のフラグ TODO:remake_pathを活用する
         avoid_obstacle = True # 障害物回避の経路追加フラグ
         avoid_ball = False # ボール回避の経路追加フラグ
+        zone_enable = False
+
+        # パラメータ初期化
+        self._control_target.dribble_power = 0.0
+        self._control_target.kick_power = 0.0
 
         if referee.can_move_robot is False or ball_info.disappeared:
             # 移動禁止 or ボールの消失で制御を停止する
@@ -61,10 +66,15 @@ class RobotNode(object):
 
         elif referee.is_inplay:
             rospy.logdebug("IN-PLAY")
+            zone_enable = True
 
             if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                self._control_target = goalie.interpose(
-                        ball_info, robot_info, self._control_target)
+                if tool.is_in_defence_area(ball_info.pose, 'our'):
+                    self._control_target = offense.outside_shoot(
+                            self._my_pose, ball_info, self._control_target)
+                else:
+                    self._control_target = goalie.interpose(
+                            ball_info, robot_info, self._control_target)
                 avoid_obstacle = False # 障害物回避しない
             elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                 if tool.is_in_defence_area(ball_info.pose, 'our'):
@@ -83,7 +93,8 @@ class RobotNode(object):
             else:
                 self._control_target = defense.defence_decision(
                         self._my_role, ball_info, self._control_target, 
-                        self._my_pose, defece_num, robot_info)
+                        self._my_pose, defece_num, robot_info, zone_enable)
+
         else:
             if referee.referee_id == ref.REFEREE_ID["STOP"]:
                 rospy.logdebug("STOP")
@@ -94,7 +105,7 @@ class RobotNode(object):
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
+                            self._control_target, dist_from_target = 0.7)
                     avoid_ball = True
                 else:
                     self._control_target = defense.defence_decision(
@@ -168,9 +179,9 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target, avoid_ball = offense.setplay_shoot(
+                    self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            Pose2D(3, 0, 0))
                 else:
                     B
                     self._control_target = defense.defence_decision(
@@ -184,9 +195,9 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target, avoid_ball = offense.setplay_shoot(
+                    self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            Pose2D(3, 0, 0))
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -244,14 +255,10 @@ class RobotNode(object):
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
-                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
-                    avoid_ball = True
                 else:
-                    self._control_target = defense.defence_decision(
-                            self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                    self._control_target, remake_path = normal.make_line(
+                            self._my_role, ball_info, self._control_target,
+                            start_x=-5, start_y=-3, add_x=0.4, add_y=0)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
                 rospy.logdebug("THEIR_DIRECT")
 
@@ -407,7 +414,7 @@ class Game(object):
         Observer.update_ball_is_moving(self._ball_info)
 
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
-        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False\
+        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False \
                 and Observer.ball_is_moving() is False:
             # ボールが自チームディフェンスエリア外にあり
             # ボールが動いていないとき、アタッカーの交代を考える
@@ -415,11 +422,13 @@ class Game(object):
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defence_num
 
-        self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
 
+        self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
         for our_info in self._robot_info['our']:
             robot_id = our_info.robot_id
             target = ControlTarget()
+            # ロールの更新
+            self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
             if our_info.disappeared:
                 # ロボットが消えていたら停止
                 target = self._robot_node[robot_id].get_sleep()
@@ -434,8 +443,6 @@ class Game(object):
                         self._ball_info,
                         self._robot_info,
                         defense_num)
-
-            self._robot_node[robot_id]._my_role = self._roledecision._rolestocker._my_role[robot_id]
 
             self._pubs_control_target[robot_id].publish(target)
 

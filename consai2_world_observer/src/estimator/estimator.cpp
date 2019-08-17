@@ -46,9 +46,12 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
     {
         MatrixWrapper::ColumnVector observation_cv = observation.ToColumnVector();
 
-        // if (isOutlier(observation_cv)) {
-        //     continue;
-        // }
+        // collect angle continuity
+        observation_cv(3) = EulerAngle::normalize(observation_cv(3), this->last_estimation.val(3));
+
+        if (isOutlier(observation_cv)) {
+            continue;
+        }
 
         update(observation_cv);
     }
@@ -121,9 +124,6 @@ void PoseKalmanFilter::update(ColumnVector measurement)
 {
     Estimation  est;
 
-    // collect angle continuity
-    measurement(3) = EulerAngle::normalize(measurement(3), this->last_estimation.val(3));
-
     this->filter->Update(meas_model, measurement);
     est = getResult();
 
@@ -150,12 +150,35 @@ geometry2d::Odometry PoseKalmanFilter::convetEstimationToOdometry()
 
 
 bool PoseKalmanFilter::isOutlier(ColumnVector measurement){
+    // Reference: https://myenigma.hatenablog.com/entry/20140825/1408975706
+
+    double mahala_dist = mahalanobisDistance(measurement);
+    double thresh = 5.99; //自由度2、棄却率5%のしきい値
+     
+    if(mahala_dist > thresh){
+        return true;
+    }
     return false;
 }
 
 
 double PoseKalmanFilter::mahalanobisDistance(ColumnVector measurement){
-    return 0;
+    double measurementX= measurement(1);
+    double measurementY= measurement(2);
+    double estimationX = this->last_estimation.val(1);
+    double estimationY = this->last_estimation.val(2);
+    double covarianceX = this->last_estimation.cov(1,1);
+    double covarianceY = this->last_estimation.cov(2,2);
+
+    double diffX = measurementX - estimationX;
+    double diffY = measurementY - estimationY;
+
+    // avoid 0 division
+    if(covarianceX == 0 || covarianceY == 0){
+        return 0;
+    }
+
+    return sqrt(pow(diffX, 2)/covarianceX + pow(diffY, 2)/covarianceY);
 }
 
 
@@ -213,7 +236,7 @@ void EnemyEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf
     sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(3,3) = pow(MAX_ANGULAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
-    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
     sysNoise_Cov(6,6) = pow(MAX_ANGULAR_ACCEL_IN_DT, 2);
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);
@@ -305,7 +328,7 @@ void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf,
     sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
     sysNoise_Cov(3,3) = 1e9;
     sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
-    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACC_MPS, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
     sysNoise_Cov(6,6) = 1e9;
 
     Gaussian system_Uncertainty(sysNoise_Mu, sysNoise_Cov);

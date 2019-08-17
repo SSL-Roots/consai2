@@ -12,6 +12,7 @@ from python_qt_binding.QtWidgets import QWidget
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
 from consai2_msgs.msg import ControlTarget
+from consai2_msgs.msg import DecodedReferee
 
 
 class PaintWidget(QWidget):
@@ -78,11 +79,18 @@ class PaintWidget(QWidget):
         self._ball_info = BallInfo()
         self._robot_info = {'blue':[],'yellow':[]}
 
+        # レフェリー情報
+        self._decoded_referee = None
+
         # Publisher
         self._pub_replace = rospy.Publisher('sim_sender/replacements', 
                 Replacements, queue_size=1)
 
         # Subscribers
+        self._sub_decoded_referee = rospy.Subscriber(
+                'referee_wrapper/decoded_referee', DecodedReferee, 
+                self._callback_referee, queue_size=1)
+
         self._sub_geometry = rospy.Subscriber(
                 'vision_receiver/raw_vision_geometry', VisionGeometry, 
                 self._callback_geometry, queue_size=1)
@@ -170,6 +178,8 @@ class PaintWidget(QWidget):
 
         self._resize_draw_world()
 
+    def _callback_referee(self, msg):
+        self._decoded_referee = msg
 
     def _callback_ball_info(self, msg):
         self._ball_info = msg
@@ -269,6 +279,9 @@ class PaintWidget(QWidget):
             self._draw_joy_target(painter)
 
         self._draw_robots(painter)
+
+        # Referee情報
+        self._draw_referee(painter)
 
         # grSim Replacement関連
         if self._replacement_target['ball_pos'] or self._replacement_target['robot_pos']:
@@ -860,4 +873,36 @@ class PaintWidget(QWidget):
                 painter.drawLine(prev_point, point)
                 prev_point = point
 
+    def _draw_referee(self, painter):
+        # レフェリーの情報を描画する
+        PLACE_RADIUS = 0.15 # meters
+
+        if self._decoded_referee is None:
+            return 
+
+        # ボールプレースメントの設置エリアを描画
+        if self._decoded_referee.referee_text == "OUR_BALL_PLACEMENT" \
+                or self._decoded_referee.referee_text == "THEIR_BALL_PLACEMENT":
+            point = self._convert_to_view(
+                    self._decoded_referee.placement_position.x,
+                    self._decoded_referee.placement_position.y)
+            size = PLACE_RADIUS * self._scale_field_to_view
+            place_color = QColor(Qt.white)
+            place_color.setAlphaF(0.6)
+            painter.setPen(QPen(Qt.black,2))
+            painter.setBrush(place_color)
+            painter.drawEllipse(point, size, size)
+
+        # ボール進入禁止エリアを描画
+        if self._decoded_referee.keep_out_radius_from_ball != -1:
+            point = self._convert_to_view(
+                    self._ball_info.pose.x, self._ball_info.pose.y)
+            size = self._decoded_referee.keep_out_radius_from_ball * self._scale_field_to_view
+
+            ball_color = copy.deepcopy(self._COLOR_BALL)
+            keepout_color = QColor(Qt.red)
+            keepout_color.setAlphaF(0.3)
+            painter.setPen(Qt.black)
+            painter.setBrush(keepout_color)
+            painter.drawEllipse(point, size, size)
 
