@@ -9,6 +9,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
 import normal
+import offense
 
 sys.path.append(os.pardir)
 from field import Field
@@ -23,7 +24,9 @@ KICK_POWER = 0.5
 DRIBBLE_POWER = 0.8
 
 # ボールがplacementされたとみなされる範囲
-BALL_PLACE_THRESHOLD = 0.15
+BALL_PLACE_THRESHOLD = 0.10
+# ボールを置きに行く動作に入るときの範囲(ドリブルしない）
+BALL_PLACE_AREA_NO_DRIBBLE = 0.3
 # ボールを置きに行く動作に入るときの範囲
 BALL_PLACE_AREA = 0.5
 # ボールに近いと判断する距離
@@ -55,6 +58,9 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     for our_info in robot_info['our']:
         if our_info.disappeared is False:
             dist.append(tool.distance_2_poses(our_info.pose, goal_pose)) 
+        else:
+            # インデックスを揃えるためダミーデータを挿入する
+            dist.append(100)
     your_id = dist.index(min(dist))
     your_pose = robot_info['our'][your_id].pose
     dist_your2goal = min(dist)
@@ -108,21 +114,19 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             new_goal_pose = my_pose
             control_target.kick_power = 0
         # もしボールとゴールに近い場合はアタッカーが置きにいく
+        elif dist_ball2goal < BALL_PLACE_AREA_NO_DRIBBLE:
+
+            control_target = offense.inplay_dribble(my_pose, ball_info, 
+                    control_target, goal_pose)
+
+            new_goal_pose = control_target.path[-1]
+            control_target.dribble_power = 0.0
         elif dist_ball2goal < BALL_PLACE_AREA:
-            control_target.kick_power = 0
-            if my_flag:
-                avoid_ball = False
-                new_position = trans.inverted_transform(tr_goal_pose)
-                new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
-                control_target.dribble_power = DRIBBLE_POWER
-            else:
-                # ボールの後ろに周り込む
-                tr_target_pose = tr_ball_pose
-                tr_target_pose.x -= 0.3
-                new_goal_pose = trans.inverted_transform(tr_target_pose)
-                new_goal_pose.theta = angle_ball_to_target
-                new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
-                control_target.dribble_power = 0
+            # control_target.kick_power = 0
+            control_target = offense.inplay_dribble(my_pose, ball_info, 
+                    control_target, goal_pose)
+
+            new_goal_pose = control_target.path[-1]
 
         # お互いの位置がセットされたら蹴る
         elif my_flag and your_flag:
@@ -134,7 +138,6 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             new_goal_pose.theta = angle_ball_to_target
             # ドリブルとキックをオン
             control_target.kick_power = KICK_POWER
-            control_target.dribble_power = DRIBBLE_POWER
             control_target.dribble_power = DRIBBLE_POWER
 
         # ボールを置きにいく
@@ -211,8 +214,8 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     # ボールと目標の距離
     dist_ball2target = tool.distance_2_poses(ball_info.pose, goal_pose)
 
-
-    if BALL_PLACE_THRESHOLD < dist_ball2goal:
+    # if BALL_PLACE_THRESHOLD < dist_ball2goal:
+    if BALL_PLACE_AREA < dist_ball2goal:
 
         flag = threshold(tr_my_pose)
         ball_vel = ball_info.velocity
@@ -225,10 +228,10 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             target_pose = receive_ball(ball_info, my_pose)
             new_goal_pose = target_pose
             control_target.kick_power = 0
-            if 0.3 < dist_i2ball:
-                control_target.dribble_power = 0
-            else:
-                control_target.dribble_power = DRIBBLE_POWER
+            # if 0.3 < dist_i2ball:
+            #     control_target.dribble_power = 0
+            # else:
+            control_target.dribble_power = DRIBBLE_POWER
         # elif dist_your2goal < 0.3:
             # new_goal_pose = my_pose
             # control_target.kick_power = 0

@@ -60,7 +60,7 @@ def simple_kick(my_pose, ball_info, control_target, kick_power=0.5):
 
 
 def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
-        can_shoot_angle = 5):
+        can_shoot_angle = 5, shoot_enable=True):
     # インプレイ用のシュートアクション
     # デフォルトでゴールを狙う
 
@@ -129,7 +129,8 @@ def _inplay_shoot(my_pose, ball_info, control_target, target_pose,
         # ドリブルをオフ、キックをオン
 
         # 狙いが定まったらシュート
-        if math.fabs(tr_robot_angle_BtoT) < math.radians(CAN_SHOOT_ANGLE):
+        if math.fabs(tr_robot_angle_BtoT) < math.radians(CAN_SHOOT_ANGLE) \
+                and shoot_enable:
             rospy.logdebug("inplay_shoot: shoot")
             control_target.kick_power = KICK_POWER
         else:
@@ -175,6 +176,12 @@ def outside_shoot(my_pose, ball_info, control_target):
     shoot_target = trans.inverted_transform(Pose2D(TARGET_LENGTH, 0, 0))
 
     return _inplay_shoot(my_pose, ball_info, control_target, shoot_target, CAN_SHOOT_ANGLE)
+
+def inplay_dribble(my_pose, ball_info, control_target, target_pose):
+    # ボールを蹴らずにドリブルする
+    CAN_SHOOT_ANGLE = 10 # degrees
+
+    return _inplay_shoot(my_pose, ball_info, control_target, target_pose, CAN_SHOOT_ANGLE, shoot_enable=False)
 
 
 def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose, kick_power=0.8, receive_enable=False, receiver_role_exist=False, robot_info=None):
