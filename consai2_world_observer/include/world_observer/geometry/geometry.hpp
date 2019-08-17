@@ -25,13 +25,18 @@ public:
     double x, y, theta;
 
     Pose();
+    Pose(double x, double y, double theta);
     Pose(geometry_msgs::Pose   pose);
     Pose(geometry_msgs::Pose2D pose);
 
     MatrixWrapper::ColumnVector ToColumnVector();
     geometry_msgs::Pose ToROSPose();
     geometry_msgs::Pose2D ToROSPose2D();
-    
+    geometry2d::Pose Transpose(geometry2d::Pose pose);
+
+    // TODO: この辺の関数は Pose()クラスにあるべき
+    double GetNorm();
+    double GetAngle();
 };
 
 class Velocity
@@ -44,6 +49,8 @@ public:
     Velocity(geometry_msgs::Twist twist);
 
     geometry_msgs::Twist ToROSTwist();
+    double GetNorm();
+    double GetAngle();
 };
 
 class Accel

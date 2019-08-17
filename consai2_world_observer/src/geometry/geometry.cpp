@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include <world_observer/geometry/geometry.hpp>
 
 #include <tf/transform_datatypes.h>
@@ -11,6 +13,13 @@ Pose::Pose()
     this->x = 0.0;
     this->y = 0.0;
     this->theta = 0.0;
+}
+
+Pose::Pose(double x, double y, double theta)
+{
+    this->x = x;
+    this->y = y;
+    this->theta = theta;
 }
 
 Pose::Pose(geometry_msgs::Pose   pose)
@@ -62,6 +71,38 @@ geometry_msgs::Pose2D Pose::ToROSPose2D()
     return msg;
 }
 
+
+// geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
+// このインスタンスの姿勢からみた pose の姿勢を返す
+geometry2d::Pose Pose::Transpose(geometry2d::Pose pose)
+{
+    geometry2d::Pose retval;
+
+    double diff_x = pose.x - this->x;
+    double diff_y = pose.y - this->y;
+
+    retval.x = cos(this->theta) * diff_x - sin(this->theta) * diff_y;
+    retval.y = sin(this->theta) * diff_x + cos(this->theta) * diff_y;
+    retval.theta = pose.theta - this->theta;
+
+    return retval;
+}
+
+// double Pose::GetNorm()
+// 位置のノルム（距離）を返す
+double Pose::GetNorm()
+{
+    return sqrt(pow(this->x, 2) + pow(this->y, 2));
+}
+
+// double Pose::GetAngle()
+// 原点からみた自身のなす角を返す（極座標表現での角度）
+double Pose::GetAngle()
+{
+    return atan2(this->y, this->x);
+}
+
+
 Velocity::Velocity()
 {
     this->x = 0.0;
@@ -94,6 +135,21 @@ geometry_msgs::Twist Velocity::ToROSTwist()
 
     return msg;
 }
+
+// double Velocity::GetNorm()
+// 速度ベクトルのノルムを返す
+double Velocity::GetNorm()
+{
+    return sqrt(pow(this->x, 2) + pow(this->y, 2));
+}
+
+// double Velocity::GetAngle()
+// 速度ベクトルが原点となす角度を返す
+double Velocity::GetAngle()
+{
+    return atan2(this->y, this->x);
+}
+
 
 Accel::Accel()
 {
