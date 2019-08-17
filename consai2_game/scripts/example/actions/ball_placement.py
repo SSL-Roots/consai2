@@ -23,22 +23,27 @@ KICK_POWER = 0.5
 DRIBBLE_POWER = 0.8
 
 # ボールがplacementされたとみなされる範囲
-BALL_PLACE_THRESHOLD = 0.14
+BALL_PLACE_THRESHOLD = 0.13
 # ボールを置きに行く動作に入るときの範囲
 BALL_PLACE_AREA = 0.7
+# ボールに近いと判断する距離
+BALL_GET_AREA = 0.5
 # ボールが動いていると判断する速度
 VEL_THRESHOLD = 0.5
 
+# ボール保持の判定
+IS_LOOK_TARGET_ANGLE = 5  # deg
+IS_TOUCH_DIST = 0.20
+# IS_TOUCH_DIST = 0.2
+
 # 指定位置に到達したか判定
-def threshold(tr_my_pose, mode):
+def threshold(tr_my_pose):
+
     flag = False
-    if mode == 'my':
-        if tr_my_pose.x < 0.05 and math.fabs(tr_my_pose.y) < 0.05 and \
-            math.fabs(tr_my_pose.theta) < math.radians(2):
-            flag = True
-    else:
-        if 0.05 < tr_my_pose.x and math.fabs(tr_my_pose.y) < 0.05:
-            flag = True
+    if tr_my_pose.x < 0.05 and math.fabs(tr_my_pose.y) < 0.05 and \
+            math.fabs(tr_my_pose.theta) < math.radians(IS_LOOK_TARGET_ANGLE): 
+        flag = True
+
     return flag
 
 def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
@@ -82,9 +87,9 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     # ボールが範囲に入っていない場合は処理を行う
     if BALL_PLACE_THRESHOLD < dist_ball2goal:
 
-        my_flag = threshold(tr_my_pose, 'my')
+        my_flag = threshold(tr_my_pose)
         your_flag = False
-        if dist_your2goal < 0.05 or dist_your2goal_back < 0.05:
+        if dist_your2goal < 0.1 or dist_your2goal_back < 0.1:
             your_flag = True
         
         avoid_ball = True # ボールを回避する
@@ -94,14 +99,23 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
         if VEL_THRESHOLD < v:
             new_goal_pose = my_pose
             control_target.kick_power = 0
-        # elif dist_i2goal < 0.5 and dist_i2ball < 0.2:
-             # 移動する
-            # new_position = trans.inverted_transform(tr_goal_pose)
-            # new_goal_pose = new_position
-            # new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
+        # もしボールとゴールに近い場合はアタッカーが置きにいく
+        elif dist_ball2goal < BALL_PLACE_AREA:
+            if my_flag:
+                avoid_ball = False
+                new_position = trans.inverted_transform(tr_goal_pose)
+                new_goal_pose = new_position
+                new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
+            else:
+                tr_target_pose = tr_ball_pose
+                tr_target_pose.x -= 0.3
+                
+                new_goal_pose = trans.inverted_transform(tr_target_pose)
+                new_goal_pose.theta = angle_ball_to_target
+                new_goal_pose.theta = tool.get_angle(my_pose, ball_info.pose)
 
-            # control_target.kick_power = 0
-            # control_target.dribble_power = DRIBBLE_POWER
+            control_target.kick_power = 0
+            control_target.dribble_power = DRIBBLE_POWER
 
         # お互いの位置がセットされたら蹴る
         elif my_flag and your_flag:
@@ -121,8 +135,8 @@ def atk(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
         # ボールを置きにいく
         elif dist_i2goal < BALL_PLACE_AREA and dist_i2goal_back < BALL_PLACE_AREA:
             avoid_ball = False
-            # ballんび近づく
-            if 0.15 < dist_i2ball:
+            # ball近づく
+            if IS_TOUCH_DIST < dist_i2ball:
                 # レシーブしにいく
                 target_pose = receive_ball(ball_info, my_pose)
                 target_pose.y = my_pose.y
@@ -180,10 +194,15 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     dist_your2ball = tool.distance_2_poses(your_pose, ball_info.pose)
 
 
+    dist_ball2goal = tool.distance_2_poses(ball_info.pose, goal_pose)
+
+    # ボールと目標の距離
+    dist_ball2target = tool.distance_2_poses(ball_info.pose, goal_pose)
+
+
     if BALL_PLACE_THRESHOLD < dist_ball2goal:
 
-        flag = threshold(tr_my_pose, 'my')
-
+        flag = threshold(tr_my_pose)
         ball_vel = ball_info.velocity
         v = math.hypot(ball_vel.x, ball_vel.y)
 
@@ -203,9 +222,19 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
             # control_target.kick_power = 0
             # control_target.dribble_power = 0
 
-        elif dist_ball2goal < BALL_PLACE_AREA:
+        # アタッカーのほうが近い場合は何もしない
+        # elif dist_your2goal < BALL_PLACE_AREA and dist_your2ball < BALL_GET_AREA:
+        elif dist_ball2target < BALL_PLACE_AREA:
+            
+            new_goal_pose = my_pose
 
-            # ボールをける
+            new_goal_pose.x -= 0.5
+            new_goal_pose.y -= 0.5
+            avoid_ball = False
+            control_target.kick_power = 0.0
+            control_target.dribble_power = 0.0
+
+        elif dist_ball2goal < BALL_PLACE_AREA:
             avoid_ball = False
 
             # ゴールに移動する
@@ -237,7 +266,7 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     return control_target, avoid_ball
 
 # TODO: 再配置用、これから実装
-def avoid_ball_place_line(my_pose, ball_info, goal_pose, my_id, control_target):
+def avoid_ball_place_line(my_pose, ball_info, goal_pose, control_target):
 
     angle_ball2goal = tool.get_angle(ball_info.pose, goal_pose)
 
@@ -259,31 +288,6 @@ def avoid_ball_place_line(my_pose, ball_info, goal_pose, my_id, control_target):
     control_target.path.append(target_pose)
 
     return control_target, True
-
-# TODO: 再配置用、これから実装
-def make_line(my_pose, ball_info, goal_pose, my_id, control_target):
-
-    MARGIN_X = 1
-    MARGIN_Y = 0
-    
-    # 再配置する位置の中心からの角度
-    angle_center2goal = tool.get_angle(Pose2D(0, 0, 0), goal_pose)
-    
-    trans = tool.Trans(goal_pose, angle_center2goal)
-    tr_my_pose = trans.transform(my_pose)
-    tr_goal_pose = trans.transform(goal_pose)
-
-    sign = 1
-    if goal_pose.x < ball_info.pose.x:
-        sign = -1
-
-    start_x = goal_pose.x + sign * MARGIN_X
-    start_y = goal_pose.y + MARGIN_Y
-
-    control_target, remake_path = normal.make_line(my_id, ball_info, control_target, 
-        start_x=start_x, start_y=start_y, add_x=0.3, add_y=0)
-
-    return control_target, remake_path
 
 # ボール受け取り位置の生成
 def receive_ball(ball_info, my_pose):
