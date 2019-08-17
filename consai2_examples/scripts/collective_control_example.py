@@ -29,6 +29,8 @@ class CollectiveController(object):
         self._pubs_control_target = []
         self._subs_is_arrived = []
 
+        self.last_time = rospy.Time.now()
+
         color = 'blue'
         for robot_id in range(self._ID_NUM):
             self._is_arrived.append(False)
@@ -67,13 +69,19 @@ class CollectiveController(object):
 
     def collective_move(self):
         if self._is_busy is True:
-            # 全員が目標位置にたどり着いたかチェック
-            if self._are_robots_arrived(6):
-                print("Arrived")
+            if (rospy.Time.now() - self.last_time) > rospy.Duration(10.0):
                 self._is_busy = False
-
-                # 移動方向を変更する
+                self.last_time = rospy.Time.now()
                 self._move_forward = not self._move_forward
+            
+
+            # # 全員が目標位置にたどり着いたかチェック
+            # if self._are_robots_arrived(6):
+            #     print("Arrived")
+            #     self._is_busy = False
+
+            #     # 移動方向を変更する
+            #     self._move_forward = not self._move_forward
 
         if self._is_busy is False:
             # 目標値を送信
@@ -85,7 +93,7 @@ class CollectiveController(object):
     def _publish_line_positions(self, move_forward=True):
         START_X = 1.0
         MARGIN = 0.6
-        TARGET_Y = 4.0
+        TARGET_Y = 1.0
         THETA = math.pi * 0.5
 
         # 横一直線の目標位置を送信する
