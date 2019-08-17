@@ -227,7 +227,7 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = ball_placement.atk(
                             self._my_pose, ball_info, self._control_target, replace_pose, \
-                            role.ROLE_ID["ROLE_DEFENCE_GOAL_1"], robot_info)
+                            robot_info, self._MY_ID)
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
                     self._control_target, avoid_ball = ball_placement.recv(
                             self._my_pose, ball_info, self._control_target, replace_pose, \
@@ -421,8 +421,8 @@ class Game(object):
         Observer.update_role_is_exist(self._roledecision._rolestocker._role_is_exist)
 
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
-        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False:
-        #        and Observer.ball_is_moving() is False:
+        if tool.is_in_defence_area(self._ball_info.pose, 'our') is False \
+               and Observer.ball_is_moving() is False:
             # ボールが自チームディフェンスエリア外にあり
             # ボールが動いていないとき、アタッカーの交代を考える
             self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
