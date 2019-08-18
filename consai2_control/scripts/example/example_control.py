@@ -97,8 +97,8 @@ class Controller(object):
         self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
         self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
         self._PID_GAIN = { # 位置制御のPIDゲイン
-                "x":PIDGain(1.0, 0.0, 0.0),
-                "y":PIDGain(1.0, 0.0, 0.0),
+                "x":PIDGain(1.475, 0.0, 21.0),
+                "y":PIDGain(1.475, 0.0, 21.0),
                 "theta":PIDGain(1.0, 0.0, 0.0)
                 }
 
