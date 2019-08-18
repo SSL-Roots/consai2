@@ -48,6 +48,8 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
     // System update by only system model with input
     predict(accel.ToColumnVector());
 
+    bool is_observation_coming = observations.size() > 0;
+
     for (auto observation : observations)
     {
         MatrixWrapper::ColumnVector observation_cv = observation.ToColumnVector();
@@ -63,10 +65,15 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
         update(observation_cv);
     }
 
-    if ((ros::Time::now() - this->latest_inlier_stamp_) > this->KIDNAPPED_TIME_THRESH_)
+    if (is_observation_coming)
     {
-        // 誘拐状態
-        this->Reset();
+        // 観測が全く来ていない（ロボットが存在しないときなど）は誘拐判定しないように
+
+        if ((ros::Time::now() - this->latest_inlier_stamp_) > this->KIDNAPPED_TIME_THRESH_)
+        {
+            // 誘拐状態
+            this->Reset();
+        }
     }
 
     return convetEstimationToOdometry();
