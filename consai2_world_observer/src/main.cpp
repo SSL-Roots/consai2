@@ -16,9 +16,9 @@ public:
     ros::Time latest_disappeared_time_;
     bool is_appear_;
 
-    AppearanceMonitor() :
+    AppearanceMonitor(double disappear_threshold_time_sec) :
         APPEAR_THRESHOLD_TIME_(0.05),
-        DISAPPEAR_THRESHOLD_TIME_(3.0),
+        DISAPPEAR_THRESHOLD_TIME_(disappear_threshold_time_sec),
         latest_appeared_time_(ros::Time(0)),
         latest_disappeared_time_(ros::Time(0)),
         is_appear_(false)
@@ -58,8 +58,9 @@ public:
 class ObserverBase
 {
 public:
-    ObserverBase(PoseKalmanFilter* p_estimator) : 
-        p_estimator_(p_estimator)
+    ObserverBase(PoseKalmanFilter* p_estimator, AppearanceMonitor* p_appearance_monitor) : 
+        p_estimator_(p_estimator),
+        p_appearance_monitor_(p_appearance_monitor)
     {
         this->p_estimator_->Init(0.016);
     }
@@ -67,13 +68,14 @@ public:
     ~ObserverBase()
     {
         delete this->p_estimator_;
+        delete this->p_appearance_monitor_;
     }
 
     void update()
     {
-        this->appearance_monitor_.update(false);
+        this->p_appearance_monitor_->update(false);
         this->detected_ = false;
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -91,10 +93,10 @@ public:
             return;
         }
 
-        this->appearance_monitor_.update(true);
+        this->p_appearance_monitor_->update(true);
         this->detected_ = true;
 
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -114,13 +116,13 @@ public:
 
     bool IsAppear()
     {
-        return this->appearance_monitor_.is_appear_;
+        return this->p_appearance_monitor_->is_appear_;
     }
 
 
 protected:
     PoseKalmanFilter* p_estimator_;
-    AppearanceMonitor appearance_monitor_;
+    AppearanceMonitor* p_appearance_monitor_;
     geometry2d::Odometry odom_;
 
     bool detected_;
@@ -135,20 +137,20 @@ class RobotObserver : public ObserverBase
 {
 public:
     RobotObserver(int robot_id) :
-        ObserverBase(new EnemyEstimator()),
+        ObserverBase(new EnemyEstimator(), new AppearanceMonitor(3.0)),
         robot_id_(robot_id)
     {}
 
     // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
     // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     RobotObserver(const RobotObserver& obj) :
-        ObserverBase(new EnemyEstimator()),
+        ObserverBase(new EnemyEstimator(), new AppearanceMonitor(3.0)),
         robot_id_(obj.robot_id_)
     {}
 
     RobotInfo GetInfo()
     {
-        RobotInfo info(this->robot_id_, this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
+        RobotInfo info(this->robot_id_, this->odom_, this->detected_, !(this->p_appearance_monitor_->is_appear_), this->last_detection_pose, this->p_appearance_monitor_->latest_appeared_time_);
 
         return info;
     }
@@ -164,20 +166,20 @@ class BallObserver : public ObserverBase
 {
 public:
     BallObserver() : 
-        ObserverBase(new BallEstimator())
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
     {}
 
     // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
     // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     BallObserver(const BallObserver& obj) :
-        ObserverBase(new BallEstimator())
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
     {}
 
     void updateWithConsideringRobot(std::vector<geometry2d::Odometry> robot_odoms)
     {
-        this->appearance_monitor_.update(false);
+        this->p_appearance_monitor_->update(false);
         this->detected_ = false;
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -195,10 +197,10 @@ public:
             return;
         }
 
-        this->appearance_monitor_.update(true);
+        this->p_appearance_monitor_->update(true);
         this->detected_ = true;
 
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -213,7 +215,7 @@ public:
 
     BallInfo GetInfo()
     {
-        BallInfo info(this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
+        BallInfo info(this->odom_, this->detected_, !(this->p_appearance_monitor_->is_appear_), this->last_detection_pose, this->p_appearance_monitor_->latest_appeared_time_);
         return info;
     }
 };
