@@ -20,7 +20,7 @@ from observer import Observer
 SET_POSE_ADD_X = 0.3
 SET_POSE_ADD_X_RECV = 0.1
 # kick_power
-KICK_POWER = 0.5
+KICK_POWER = 0.3
 # dorrible_power
 DRIBBLE_POWER = 0.6
 
@@ -33,7 +33,7 @@ BALL_PLACE_AREA_NO_DRIBBLE = 0.3
 # ボールを置きに行く動作に入るときの範囲
 # BALL_PLACE_AREA = 0.5
 # ボールに近いと判断する距離
-BALL_GET_AREA = 2.0
+BALL_GET_AREA = 4.0
 # ボールが動いていると判断する速度
 VEL_THRESHOLD = 0.5
 
@@ -42,7 +42,7 @@ IS_LOOK_TARGET_ANGLE = 4  # deg
 IS_TOUCH_DIST = 0.20
 
 # 侵入禁止をする範囲(余裕を見て+0.1)
-BALL_MARGIN_DIST = 0.5 + 0.5
+BALL_MARGIN_DIST = 0.5 + 0.15
 
 # 指定位置に到達したか判定
 def threshold(tr_my_pose):
@@ -274,7 +274,7 @@ def recv(my_pose, ball_info, control_target, goal_pose, your_id, robot_info):
     return control_target, avoid_ball
 
 # 配置を担当しないロボットは避ける
-def avoid_ball_place_line(my_pose, ball_info, goal_pose, control_target):
+def avoid_ball_place_line(my_pose, ball_info, goal_pose, control_target, force_avoid=False):
 
     angle_ball2goal = tool.get_angle(ball_info.pose, goal_pose)
 
@@ -286,7 +286,7 @@ def avoid_ball_place_line(my_pose, ball_info, goal_pose, control_target):
     # ライン上にいるやつは避ける
     # if -BALL_MARGIN_DIST < tr_my_pose.x < tr_goal_pose.x + BALL_MARGIN_DIST and \
         # -BALL_MARGIN_DIST < tr_my_pose.y < BALL_MARGIN_DIST:
-    if BALL_PLACE_AREA_NO_DRIBBLE < dist_ball2goal:
+    if BALL_PLACE_AREA_NO_DRIBBLE < dist_ball2goal or force_avoid:
         if -BALL_MARGIN_DIST < tr_my_pose.y < BALL_MARGIN_DIST:
             if tr_my_pose.y < 0:
                 tr_my_pose.y -= BALL_MARGIN_DIST
