@@ -205,6 +205,10 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     ROLE_MAX = 7
     GOAL_DEFENCE_NUM = 2
     ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
+    ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
+    ZONE_OFFENCE_POSE = Pose2D(3,0,0)
+    MARGIN_CENTER = 0.6
+    DRIBBLE_POWER = 0.6
 
     ball_pose = ball_info.pose
 
@@ -228,7 +232,32 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     zone_id = None
     target_pose = Pose2D()
 
-    if ZONE_DEFENCE_NUM > 0:
+    # 私はゾーンオフェンスですか
+    my_role_is_offence = False
+    # ボールが相手フィールドにあるとき
+    # ゾーンから1台オフェンスに出す
+    if ZONE_DEFENCE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
+        ZONE_DEFENCE_NUM -= 1
+        ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENCE_ZONE_2"]
+        if my_role is role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
+            my_role_is_offence = True
+
+    # 私はゾーンオフェンスです
+    if my_role_is_offence:
+        zone_id = 0
+        target_pose = ZONE_OFFENCE_POSE
+        if ball_pose.y > 0.1:
+            target_pose.y  =  - float(Field.field('width'))/4.0
+        elif ball_pose.y < 0.1:
+            target_pose.y = float(Field.field('width'))/4.0
+        else:
+            if my_pose.y > 0:
+                target_pose.y  =  - float(Field.field('width'))/4.0
+            else:
+                target_pose.y = float(Field.field('width'))/4.0
+        target_pose.theta = angle_to_ball
+
+    if ZONE_DEFENCE_NUM > 0 and not my_role_is_offence:
         step = float(field_width) / (ZONE_DEFENCE_NUM * 2)
         split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2 + 1))]
         # 今のディフェンス数からゾーンの区切りを変える
@@ -237,7 +266,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
 
         # 参照エラー対策
         try:
-            zone_id = my_role - role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
+            zone_id = my_role - ZONE_START_ROLE_ID
             target_pose.y = split_field_center[zone_id]
             # 自分のゾーンに入っている敵チェック
             invader_pose = [i.pose for i in their_robot_info \
@@ -256,17 +285,20 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
                 trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)
                 target_pose = trans.inverted_transform(Pose2D(0.5, 0, 0))
             else:
-                target_pose.x = half_our_field_length
+                if ball_pose.x > MARGIN_CENTER:
+                    target_pose.x = half_our_field_length + 1.0
+                else:
+                    target_pose.x = half_our_field_length
         except IndexError:
             target_pose = my_pose
         target_pose.theta = angle_to_ball
 
-
+    # ボールが来てたらボールを受け取る
     if zone_id != None:
         receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, zone_id)
         if receive_ball_result:
             # ドリブラー回す
-            control_target.dribble_power = 1.0
+            control_target.dribble_power = DRIBBLE_POWER
             target_pose = receive_target_pose
 
     # ペナルティエリアには入らない

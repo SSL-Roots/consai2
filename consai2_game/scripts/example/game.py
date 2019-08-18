@@ -11,7 +11,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import referee_wrapper as ref
 import avoidance
-from actions import tool, defense, offense, goalie, normal
+from actions import tool, defense, offense, goalie, normal, ball_placement
 from field import Field
 from observer import Observer
 import role
@@ -166,7 +166,7 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_shoot(
                             self._my_pose, ball_info, self._control_target,
-                            kick_enable = True)
+                            kick_enable = True, penalty=True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -181,7 +181,12 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            Pose2D(3, 0, 0))
+                            Pose2D(3, 0, 0),
+                            receive_enable=True, receiver_role_exist=Observer.role_is_exist(role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]),
+                            robot_info=robot_info, direct=True)
+                elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
+                    self._control_target = normal.move_to(
+                            self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -196,7 +201,12 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            Pose2D(3, 0, 0))
+                            Pose2D(3, 0, 0),
+                            receive_enable=True, receiver_role_exist=Observer.role_is_exist(role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]),
+                            robot_info=robot_info)
+                elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
+                    self._control_target = normal.move_to(
+                            self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -209,19 +219,22 @@ class RobotNode(object):
                 avoid_obstacle = False # 障害物回避しない
             elif referee.referee_id == ref.REFEREE_ID["OUR_BALL_PLACEMENT"]:
                 rospy.logdebug("OUR_BALL_PLACEMENT")
-
+                replace_pose = referee.placement_position
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
-                    avoid_ball = True
+                    self._control_target, avoid_ball = ball_placement.atk(
+                            self._my_pose, ball_info, self._control_target, replace_pose, \
+                            robot_info, self._MY_ID)
+                elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
+                    self._control_target, avoid_ball = ball_placement.recv(
+                            self._my_pose, ball_info, self._control_target, replace_pose, \
+                            role.ROLE_ID["ROLE_ATTACKER"], robot_info)
                 else:
-                    self._control_target = defense.defence_decision(
-                            self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                    self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(
+                            self._my_pose, ball_info, replace_pose, self._control_target)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_PREPARATION"] \
                     or referee.referee_id == ref.REFEREE_ID["THEIR_KICKOFF_START"]:
                 rospy.logdebug("THEIR_KICKOFF")
@@ -264,7 +277,7 @@ class RobotNode(object):
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                            self._my_pose, defece_num, robot_info,zone_enable=True)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_INDIRECT_FREE"]:
                 rospy.logdebug("THEIR_INDIRECT")
 
@@ -279,7 +292,7 @@ class RobotNode(object):
                 else:
                     self._control_target = defense.defence_decision(
                             self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                            self._my_pose, defece_num, robot_info, zone_enable=True)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_TIMEOUT"]:
                 rospy.logdebug("THEIR_TIMEOUT")
 
@@ -297,19 +310,22 @@ class RobotNode(object):
                             self._my_pose, defece_num, robot_info)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_BALL_PLACEMENT"]:
                 rospy.logdebug("THEIR_BALL_PLACEMENT")
-
+                replace_pose = referee.placement_position
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
-                elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
-                            self._control_target, dist_from_target = 0.6)
-                    avoid_ball = True
+                # elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
+                    # self._control_target = defense.interpose(ball_info,
+                            # self._control_target, dist_from_target = 0.6)
+                    # avoid_ball = True
                 else:
-                    self._control_target = defense.defence_decision(
-                            self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defece_num, robot_info)
+                    self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(
+                            self._my_pose, ball_info, replace_pose, self._control_target,
+                            force_avoid=True)
+                    # self._control_target = defense.defence_decision(
+                            # self._my_role, ball_info, self._control_target, 
+                            # self._my_pose, defece_num, robot_info)
 
         # 障害物回避の経路作成
         if avoid_obstacle:
@@ -403,10 +419,11 @@ class Game(object):
 
     def update(self):
         Observer.update_ball_is_moving(self._ball_info)
+        Observer.update_role_is_exist(self._roledecision._rolestocker._role_is_exist)
 
         self._roledecision.set_disappeared([i.disappeared for i in self._robot_info['our']])
         if tool.is_in_defence_area(self._ball_info.pose, 'our') is False \
-                and Observer.ball_is_moving() is False:
+               and Observer.ball_is_moving() is False:
             # ボールが自チームディフェンスエリア外にあり
             # ボールが動いていないとき、アタッカーの交代を考える
             self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)

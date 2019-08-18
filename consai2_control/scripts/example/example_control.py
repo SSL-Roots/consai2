@@ -53,10 +53,12 @@ class PIDController(object):
             self._error2 = 0
             self._output = 0
 
-        def update(self, error):
-            delta_output = self._pid_gain.KP() * (error - self._error1) \
-                    + self._pid_gain.KI() * (error) \
-                    + self._pid_gain.KD() * (error - 2*self._error1 + self._error2)
+        def update(self, error, disable_integrator_input=False):
+            delta_output = self._pid_gain.KP() * (error - self._error1)
+            if disable_integrator_input == False:
+                delta_output += self._pid_gain.KI() * (error)
+            delta_output += self._pid_gain.KD() * (error - 2*self._error1 + self._error2)
+
             self._output += delta_output
 
             # 誤差の更新
@@ -74,10 +76,10 @@ class PIDController(object):
         self._output = Pose2D()
 
 
-    def update(self, error_pose):
-        self._output.x = self._pid_controller["x"].update(error_pose.x)
-        self._output.y = self._pid_controller["y"].update(error_pose.y)
-        self._output.theta = self._pid_controller["theta"].update(error_pose.theta)
+    def update(self, error_pose, disable_integrator_input_x, disable_integrator_input_y, disable_integrator_input_theta):
+        self._output.x = self._pid_controller["x"].update(error_pose.x, disable_integrator_input_x)
+        self._output.y = self._pid_controller["y"].update(error_pose.y, disable_integrator_input_y)
+        self._output.theta = self._pid_controller["theta"].update(error_pose.theta, disable_integrator_input_theta)
 
         return self._output
 
@@ -95,12 +97,15 @@ class Controller(object):
         self._ARRIVED_THRESH = 0.1 # meters 目標位置に到着したかどうかのしきい値
         self._APPROACH_THRESH = 0.5 # meters 経由位置に近づいたかどうかのしきい値
         self._PID_GAIN = { # 位置制御のPIDゲイン
-                "x":PIDGain(1.0, 0.0, 0.0),
-                "y":PIDGain(1.0, 0.0, 0.0),
+                "x":PIDGain(1.475, 0.0, 21.0),
+                "y":PIDGain(1.475, 0.0, 21.0),
                 "theta":PIDGain(1.0, 0.0, 0.0)
                 }
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
+        self._disable_integrater_input_x = False
+        self._disable_integrater_input_y = False
+        self._disable_integrater_input_theta = False
 
         # フィールド座標系の制御速度
         # PID制御のため、前回の制御速度を保存する
@@ -291,12 +296,34 @@ class Controller(object):
         pose_error.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
 
         # 目標動作速度を求める
-        target_velocity = self._pid_controller[color][robot_id].update(pose_error)
-
+        target_velocity = self._pid_controller[color][robot_id].update(pose_error, self._disable_integrater_input_x, self._disable_integrater_input_y, self._disable_integrater_input_theta,)
         new_control_velocity = self._velocity_control(target_velocity, current_control_velocity)
+
+        # アンチワインドアップ処理
+        # ref:  https://hamachannel.hatenablog.com/entry/2019/01/06/135004
+        if (self.is_windup(target_velocity.x, new_control_velocity.x)):
+            self._disable_integrater_input_x = True
+        else:
+            self._disable_integrater_input_x = False
+        if (self.is_windup(target_velocity.y, new_control_velocity.y)):
+            self._disable_integrater_input_y = True
+        else:
+            self._disable_integrater_input_y = False
+        if (self.is_windup(target_velocity.theta, new_control_velocity.theta)):
+            self._disable_integrater_input_theta = True
+        else:
+            self._disable_integrater_input_theta = False
 
         return new_control_velocity
 
+    def is_windup(self, raw_vel, saturated_vel):
+        if raw_vel >= 0:
+            if raw_vel > saturated_vel:
+                return True
+        else:
+            if raw_vel < saturated_vel:
+                return True
+        return False
 
     def _velocity_control(self, target_velocity, current_control_velocity):
         # 現在速度と目標速度の差分から、field座標系での制御速度を生成する

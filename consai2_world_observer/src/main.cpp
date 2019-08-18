@@ -16,9 +16,9 @@ public:
     ros::Time latest_disappeared_time_;
     bool is_appear_;
 
-    AppearanceMonitor() :
+    AppearanceMonitor(double disappear_threshold_time_sec) :
         APPEAR_THRESHOLD_TIME_(0.05),
-        DISAPPEAR_THRESHOLD_TIME_(3.0),
+        DISAPPEAR_THRESHOLD_TIME_(disappear_threshold_time_sec),
         latest_appeared_time_(ros::Time(0)),
         latest_disappeared_time_(ros::Time(0)),
         is_appear_(false)
@@ -58,8 +58,9 @@ public:
 class ObserverBase
 {
 public:
-    ObserverBase(PoseKalmanFilter* p_estimator) : 
-        p_estimator_(p_estimator)
+    ObserverBase(PoseKalmanFilter* p_estimator, AppearanceMonitor* p_appearance_monitor) : 
+        p_estimator_(p_estimator),
+        p_appearance_monitor_(p_appearance_monitor)
     {
         this->p_estimator_->Init(0.016);
     }
@@ -67,13 +68,14 @@ public:
     ~ObserverBase()
     {
         delete this->p_estimator_;
+        delete this->p_appearance_monitor_;
     }
 
     void update()
     {
-        this->appearance_monitor_.update(false);
+        this->p_appearance_monitor_->update(false);
         this->detected_ = false;
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -91,10 +93,10 @@ public:
             return;
         }
 
-        this->appearance_monitor_.update(true);
+        this->p_appearance_monitor_->update(true);
         this->detected_ = true;
 
-        if (!(this->appearance_monitor_.is_appear_))
+        if (!(this->p_appearance_monitor_->is_appear_))
         {
             this->p_estimator_->Reset();
         }
@@ -107,10 +109,20 @@ public:
         this->last_detection_pose = observations[0];
     }
 
+    geometry2d::Odometry GetOdometry()
+    {
+        return odom_;
+    }
+
+    bool IsAppear()
+    {
+        return this->p_appearance_monitor_->is_appear_;
+    }
+
 
 protected:
     PoseKalmanFilter* p_estimator_;
-    AppearanceMonitor appearance_monitor_;
+    AppearanceMonitor* p_appearance_monitor_;
     geometry2d::Odometry odom_;
 
     bool detected_;
@@ -125,20 +137,20 @@ class RobotObserver : public ObserverBase
 {
 public:
     RobotObserver(int robot_id) :
-        ObserverBase(new EnemyEstimator()),
+        ObserverBase(new EnemyEstimator(), new AppearanceMonitor(3.0)),
         robot_id_(robot_id)
     {}
 
     // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
     // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     RobotObserver(const RobotObserver& obj) :
-        ObserverBase(new EnemyEstimator()),
+        ObserverBase(new EnemyEstimator(), new AppearanceMonitor(3.0)),
         robot_id_(obj.robot_id_)
     {}
 
     RobotInfo GetInfo()
     {
-        RobotInfo info(this->robot_id_, this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
+        RobotInfo info(this->robot_id_, this->odom_, this->detected_, !(this->p_appearance_monitor_->is_appear_), this->last_detection_pose, this->p_appearance_monitor_->latest_appeared_time_);
 
         return info;
     }
@@ -154,18 +166,56 @@ class BallObserver : public ObserverBase
 {
 public:
     BallObserver() : 
-        ObserverBase(new BallEstimator())
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
     {}
 
     // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
     // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     BallObserver(const BallObserver& obj) :
-        ObserverBase(new BallEstimator())
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
     {}
+
+    void updateWithConsideringRobot(std::vector<geometry2d::Odometry> robot_odoms)
+    {
+        this->p_appearance_monitor_->update(false);
+        this->detected_ = false;
+        if (!(this->p_appearance_monitor_->is_appear_))
+        {
+            this->p_estimator_->Reset();
+        }
+        else
+        {
+            this->odom_ = this->p_estimator_->estimateWithConsideringOtherRobots(robot_odoms);
+        }
+    }
+
+    void updateWithConsideringRobot(std::vector<geometry2d::Pose> observations, std::vector<geometry2d::Odometry> robot_odoms)
+    {
+        if (observations.size() == 0)
+        {
+            this->update();
+            return;
+        }
+
+        this->p_appearance_monitor_->update(true);
+        this->detected_ = true;
+
+        if (!(this->p_appearance_monitor_->is_appear_))
+        {
+            this->p_estimator_->Reset();
+        }
+        else
+        {
+            this->odom_ = this->p_estimator_->estimateWithConsideringOtherRobots(observations, robot_odoms);
+        }
+
+        // consai2_msgs/RobotInfoへの変換用に保存
+        this->last_detection_pose = observations[0];
+    }
 
     BallInfo GetInfo()
     {
-        BallInfo info(this->odom_, this->detected_, !(this->appearance_monitor_.is_appear_), this->last_detection_pose, this->appearance_monitor_.latest_appeared_time_);
+        BallInfo info(this->odom_, this->detected_, !(this->p_appearance_monitor_->is_appear_), this->last_detection_pose, this->p_appearance_monitor_->latest_appeared_time_);
         return info;
     }
 };
@@ -183,19 +233,31 @@ public:
     {
         for (auto robot_id=0; robot_id <= max_id; ++robot_id)
         {
-            blue_observers_.push_back(RobotObserver(robot_id));
-            yellow_observers_.push_back(RobotObserver(robot_id));
+            this->blue_observers_.push_back(RobotObserver(robot_id));
+            this->yellow_observers_.push_back(RobotObserver(robot_id));
         }
     }
 
     void update(ObservationContainer observation_container)
     {
+        std::vector<geometry2d::Odometry> all_robots_odom;
+        all_robots_odom.reserve(this->blue_observers_.size() + this->yellow_observers_.size());
+
         for (auto robot_id=0; robot_id <= this->max_id_; ++robot_id)
         {
             this->blue_observers_[robot_id].update(observation_container.blue_observations[robot_id]);
+            if (this->blue_observers_[robot_id].IsAppear())
+            {
+                all_robots_odom.push_back(this->blue_observers_[robot_id].GetOdometry());
+            }
+
             this->yellow_observers_[robot_id].update(observation_container.yellow_observations[robot_id]);
+            if (this->yellow_observers_[robot_id].IsAppear())
+            {
+                all_robots_odom.push_back(this->yellow_observers_[robot_id].GetOdometry());
+            }
         }
-        this->ball_observer_.update(observation_container.ball_observations);
+        this->ball_observer_.updateWithConsideringRobot(observation_container.ball_observations, all_robots_odom);
     }
 
     RobotInfo GetBlueInfo(int robot_id)

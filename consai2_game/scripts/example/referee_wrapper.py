@@ -25,6 +25,7 @@ class RefereeWrapper(object):
     def __init__(self):
 
         self._OUR_COLOR = rospy.get_param('consai2_description/our_color', 'blue')
+        self._OUR_SIDE = rospy.get_param('consai2_description/our_side', 'left')
 
         self._sub_ball_info = rospy.Subscriber(
                 'vision_wrapper/ball_info',
@@ -142,7 +143,12 @@ class RefereeWrapper(object):
 
         decoded_msg.referee_id = self._decode_referee_id(msg.command)
         decoded_msg.referee_text = REFEREE_TEXT.get(decoded_msg.referee_id, 'INVALID_COMMAND')
+
+        # サイドチェンジに対応する
         decoded_msg.placement_position = msg.designated_position
+        if self._OUR_SIDE != 'left':
+            decoded_msg.placement_position.x = -decoded_msg.placement_position.x
+            decoded_msg.placement_position.y = -decoded_msg.placement_position.y
 
         # Default Settings
         decoded_msg.can_move_robot = False

@@ -5,14 +5,18 @@ import math
 import copy
 
 from python_qt_binding.QtCore import Qt, QPointF, QRectF
-from python_qt_binding.QtGui import QPainter, QPen ,QColor
+from python_qt_binding.QtGui import QPainter, QPen ,QColor, QPolygonF
 from python_qt_binding.QtGui import QMouseEvent
 from python_qt_binding.QtWidgets import QWidget
+
+from geometry_msgs.msg import Pose2D
 
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
 from consai2_msgs.msg import ControlTarget
 from consai2_msgs.msg import DecodedReferee
+
+import tool
 
 
 class PaintWidget(QWidget):
@@ -271,6 +275,10 @@ class PaintWidget(QWidget):
 
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
+
+        # Referee情報
+        self._draw_referee(painter)
+
         self._draw_ball(painter)
         self._draw_ball_velocity(painter)
 
@@ -280,8 +288,6 @@ class PaintWidget(QWidget):
 
         self._draw_robots(painter)
 
-        # Referee情報
-        self._draw_referee(painter)
 
         # grSim Replacement関連
         if self._replacement_target['ball_pos'] or self._replacement_target['robot_pos']:
@@ -875,19 +881,99 @@ class PaintWidget(QWidget):
 
     def _draw_referee(self, painter):
         # レフェリーの情報を描画する
+        PLACE_RADIUS = 0.15 # meters
+        AVOID_LENGTH = 0.5 # meter
+
 
         if self._decoded_referee is None:
             return 
 
+        ball_pose = self._ball_info.pose
+
+        # ボールプレースメントの進入禁止エリアと設置位置を描画
+        if self._decoded_referee.referee_text == "OUR_BALL_PLACEMENT" \
+                or self._decoded_referee.referee_text == "THEIR_BALL_PLACEMENT":
+            replacement_pose = self._decoded_referee.placement_position
+
+            # 進入禁止エリアを描画
+            # Reference: Rule 8.2.3
+            angle_ball_to_target = tool.get_angle(ball_pose, replacement_pose)
+            dist_ball_to_target = tool.distance_2_poses(ball_pose, replacement_pose)
+            trans_BtoT = tool.Trans(ball_pose, angle_ball_to_target)
+
+            # 進入禁止エリア長方形の角の座標を取得
+            avoid_upper_left = trans_BtoT.inverted_transform(Pose2D(0, AVOID_LENGTH, 0))
+            avoid_lower_left = trans_BtoT.inverted_transform(Pose2D(0, -AVOID_LENGTH, 0))
+            avoid_upper_right = trans_BtoT.inverted_transform(
+                    Pose2D(dist_ball_to_target, AVOID_LENGTH, 0))
+            avoid_lower_right = trans_BtoT.inverted_transform(
+                    Pose2D(dist_ball_to_target, -AVOID_LENGTH, 0))
+
+            # 各座標を描画座標に変換
+            upper_left_point = self._convert_to_view(
+                    avoid_upper_left.x, avoid_upper_left.y)
+            lower_left_point = self._convert_to_view(
+                    avoid_lower_left.x, avoid_lower_left.y)
+            upper_right_point = self._convert_to_view(
+                    avoid_upper_right.x, avoid_upper_right.y)
+            lower_right_point = self._convert_to_view(
+                    avoid_lower_right.x, avoid_lower_right.y)
+            # ポリゴンに追加
+            polygon = QPolygonF()
+            polygon.append(upper_left_point)
+            polygon.append(upper_right_point)
+            polygon.append(lower_right_point)
+            polygon.append(lower_left_point)
+
+            avoid_color = QColor(Qt.red)
+            avoid_color.setAlphaF(0.3)
+            painter.setPen(QPen(Qt.black,1))
+            painter.setBrush(avoid_color)
+            painter.drawPolygon(polygon)
+
+            replace_point = self._convert_to_view(
+                    replacement_pose.x, replacement_pose.y)
+            ball_point = self._convert_to_view(
+                    ball_pose.x, ball_pose.y)
+
+            size = AVOID_LENGTH * self._scale_field_to_view
+            painter.drawEllipse(replace_point, size, size)
+            painter.drawEllipse(ball_point, size, size)
+
+
+            # ボール設置位置を描画
+            size = PLACE_RADIUS * self._scale_field_to_view
+            place_color = QColor(Qt.white)
+            place_color.setAlphaF(0.6)
+            painter.setPen(QPen(Qt.black,2))
+            painter.setBrush(place_color)
+            painter.drawEllipse(replace_point, size, size)
+
+
         # ボール進入禁止エリアを描画
         if self._decoded_referee.keep_out_radius_from_ball != -1:
             point = self._convert_to_view(
-                    self._ball_info.pose.x, self._ball_info.pose.y)
+                    ball_pose.x, ball_pose.y)
             size = self._decoded_referee.keep_out_radius_from_ball * self._scale_field_to_view
 
             ball_color = copy.deepcopy(self._COLOR_BALL)
-            keepout_color = QColor(255, 0, 0, 100)
+            keepout_color = QColor(Qt.red)
+            keepout_color.setAlphaF(0.3)
             painter.setPen(Qt.black)
             painter.setBrush(keepout_color)
             painter.drawEllipse(point, size, size)
+
+        # レフェリーテキストをカーソル周辺に表示する
+        if self._decoded_referee.referee_text:
+            # カーソル座標を取得
+            current_pos = self._convert_to_field(
+                    self._current_mouse_pos.x(), self._current_mouse_pos.y())
+            # 他のテキストと被らないように位置を微調整
+            current_point = self._convert_to_view(current_pos.x() + 0.1, current_pos.y() - 0.15)
+
+            text = self._decoded_referee.referee_text
+
+            painter.setPen(Qt.red)
+            painter.drawText(current_point, text)
+
 

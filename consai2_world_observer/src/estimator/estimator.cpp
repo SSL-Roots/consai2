@@ -6,7 +6,9 @@
 // PoseKalmanFilterクラス
 // 二次元座標での位置と速度のカルマンフィルタ
 
-PoseKalmanFilter::PoseKalmanFilter()
+PoseKalmanFilter::PoseKalmanFilter() : 
+    KIDNAPPED_TIME_THRESH_(1.0),
+    latest_inlier_stamp_(ros::Time(0))
 {
 }
 
@@ -23,6 +25,10 @@ void PoseKalmanFilter::Init(double loop_time)
      ***************************/
     // Continuous Gaussian prior (for Kalman filters)
     this->filter = new ExtendedKalmanFilter(this->prior);
+
+    Pdf<ColumnVector> * posterior = filter->PostGet();
+    this->last_estimation.val = posterior->ExpectedValueGet();
+    this->last_estimation.cov = posterior->CovarianceGet();
 }
 
 geometry2d::Odometry PoseKalmanFilter::estimate()
@@ -42,6 +48,8 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
     // System update by only system model with input
     predict(accel.ToColumnVector());
 
+    bool is_observation_coming = observations.size() > 0;
+
     for (auto observation : observations)
     {
         MatrixWrapper::ColumnVector observation_cv = observation.ToColumnVector();
@@ -52,13 +60,24 @@ geometry2d::Odometry PoseKalmanFilter::estimate(geometry2d::Accel accel, std::ve
         if (isOutlier(observation_cv)) {
             continue;
         }
+        this->latest_inlier_stamp_ = ros::Time::now();
 
         update(observation_cv);
     }
 
+    if (is_observation_coming)
+    {
+        // 観測が全く来ていない（ロボットが存在しないときなど）は誘拐判定しないように
+
+        if ((ros::Time::now() - this->latest_inlier_stamp_) > this->KIDNAPPED_TIME_THRESH_)
+        {
+            // 誘拐状態
+            this->Reset();
+        }
+    }
+
     return convetEstimationToOdometry();
 }
-
 
 void PoseKalmanFilter::Reset()
 {
@@ -287,6 +306,22 @@ void EnemyEstimator::InitPrior(Gaussian** prior)
     *prior = new Gaussian (prior_Mu,prior_Cov);
 }
 
+geometry2d::Odometry EnemyEstimator::estimateWithConsideringOtherRobots(std::vector<geometry2d::Odometry> other_robots)
+{
+    return  this->estimate();
+}
+
+geometry2d::Odometry EnemyEstimator::estimateWithConsideringOtherRobots(std::vector<geometry2d::Pose> observations, std::vector<geometry2d::Odometry> other_robots)
+{
+    return  this->estimate(observations);
+}
+
+geometry2d::Odometry EnemyEstimator::estimateWithConsideringOtherRobots(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations, std::vector<geometry2d::Odometry> other_robots)
+{
+    return  this->estimate(accel, observations);
+}
+
+
 // BallEstimatorクラス
 // ボールの位置・速度推定を担当
 void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf, LinearAnalyticSystemModelGaussianUncertainty** sys_model)
@@ -317,7 +352,7 @@ void BallEstimator::InitSystemModel(LinearAnalyticConditionalGaussian** sys_pdf,
     sysNoise_Mu = 0.0;
 
     // 位置、速度変化はノイズとして表現
-    const double MAX_LINEAR_ACC_MPS = 500.0;    // 6.5[m/s] / 16[ms] = 500
+    const double MAX_LINEAR_ACC_MPS = 100.0;    // 6.5[m/s] / 16[ms] = 500
 
     const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
     const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
@@ -378,6 +413,164 @@ void BallEstimator::InitPrior(Gaussian** prior)
 
     *prior = new Gaussian (prior_Mu,prior_Cov);
 }
+
+geometry2d::Odometry BallEstimator::estimateWithConsideringOtherRobots(std::vector<geometry2d::Odometry> other_robots)
+{
+    return  this->estimate();
+}
+
+geometry2d::Odometry BallEstimator::estimateWithConsideringOtherRobots(std::vector<geometry2d::Pose> observations, std::vector<geometry2d::Odometry> other_robots)
+{
+    geometry2d::Odometry latest_ball_odom = this->convetEstimationToOdometry();
+    bool will_reflection_occur = this->ball_reflection_detector_.WillReflectionOccur(latest_ball_odom, other_robots);
+
+    // TODO: implement
+    if (will_reflection_occur)
+    {
+        this->SetSytemNoiseForReflecting();
+    }
+    else
+    {
+        this->SetSystemNoiseToRolling();
+    }
+
+    return this->estimate(observations);
+}
+
+geometry2d::Odometry BallEstimator::estimateWithConsideringOtherRobots(geometry2d::Accel accel, std::vector<geometry2d::Pose> observations, std::vector<geometry2d::Odometry> other_robots)
+{
+    return  this->estimate(accel, observations);
+}
+
+
+void BallEstimator::SetSytemNoiseForReflecting()
+{
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 500.0;    // 6.5[m/s] / 16[ms] = 500
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+
+    SymmetricMatrix sysNoise_Cov(6);
+    sysNoise_Cov = 0.0;
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(3,3) = 1e9;
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(6,6) = 1e9;
+
+    sys_pdf->AdditiveNoiseSigmaSet(sysNoise_Cov);
+}
+
+void BallEstimator::SetSystemNoiseToRolling()
+{
+    // 位置、速度変化はノイズとして表現
+    const double MAX_LINEAR_ACC_MPS = 10.0;
+
+    const double MAX_LINEAR_MOVEMENT_IN_DT  = MAX_LINEAR_ACC_MPS    / 2 * pow(dt, 2);
+    const double MAX_LINEAR_ACCEL_IN_DT     = MAX_LINEAR_ACC_MPS    * dt;
+
+    SymmetricMatrix sysNoise_Cov(6);
+    sysNoise_Cov = 0.0;
+    sysNoise_Cov(1,1) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(2,2) = pow(MAX_LINEAR_MOVEMENT_IN_DT, 2);
+    sysNoise_Cov(3,3) = 1e9;
+    sysNoise_Cov(4,4) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(5,5) = pow(MAX_LINEAR_ACCEL_IN_DT, 2);
+    sysNoise_Cov(6,6) = 1e9;
+
+    sys_pdf->AdditiveNoiseSigmaSet(sysNoise_Cov);
+}
+
+// BallReflectionDetector クラス
+// ボールがキックまたは跳ね返ることを検出するクラス
+// 急激な速度変化がある際はカルマンフィルタのシステムノイズを大きく設定し、フィルタの追従性を向上させるため、そのサポート役のクラス
+bool BallEstimator::BallReflectionDetector::WillReflectionOccur(geometry2d::Odometry odom_ball, std::vector<geometry2d::Odometry> odom_robots)
+{
+    // ロボットの正面にいる場合、キックされる可能性があるのでTrue
+    for (auto odom_robot : odom_robots)
+    {
+        geometry2d::Pose robot_pose = odom_robot.pose;
+        geometry2d::Pose ball_pose = odom_ball.pose;
+
+
+        if (this->IsBallInFrontOfRobot(robot_pose, ball_pose))
+        {
+            return true;
+        }
+
+        if (this->WillBallContactToRobotSoon(odom_robot, odom_ball))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool BallEstimator::BallReflectionDetector::IsBallInFrontOfRobot(geometry2d::Pose pose_robot, geometry2d::Pose pose_ball)
+{
+    const double ROBOT_FRONT_ANGLE_RANGE = M_PI;    // ロボット正面と判断する範囲
+    const double ROBOT_FRONT_DIST = 0.2;            // ロボット正面と判断する距離
+    geometry2d::Pose robot_to_ball = pose_robot.Transpose(pose_ball);
+    double robot_ball_distance = robot_to_ball.GetNorm();
+    double robot_ball_angle = robot_to_ball.GetAngle();
+
+    if (-(ROBOT_FRONT_ANGLE_RANGE/2) < robot_ball_angle && robot_ball_angle < (ROBOT_FRONT_ANGLE_RANGE/2))
+    {
+        if (robot_ball_distance < ROBOT_FRONT_DIST)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool BallEstimator::BallReflectionDetector::WillBallContactToRobotSoon(geometry2d::Odometry odom_robot, geometry2d::Odometry odom_ball)
+{
+    const double ROBOT_RADIUS_METER = 0.09;
+    const double MARGIN = 0.05;
+    const double CONTACT_TIME_THRESH_SEC = 0.5;
+
+    double velocity_angle = odom_ball.velocity.GetAngle();
+    geometry2d::Pose ball_pose_on_velocity(odom_ball.pose.x, odom_ball.pose.y, velocity_angle);
+    geometry2d::Pose ball_to_robot = ball_pose_on_velocity.Transpose(odom_robot.pose);
+
+    double ball_velocity_norm = odom_ball.velocity.GetNorm();
+    if (ball_velocity_norm < 1e-9) {
+        // ボールが止まっている
+        return false;
+    }
+
+    if (ball_to_robot.x < 0)
+    {
+        // ボールの進行方向の裏にいる
+        return false;
+    }
+
+    if (ball_to_robot.y > (ROBOT_RADIUS_METER+MARGIN))
+    {
+        // ボール軌道から上側にそれた場所にいる
+        return false;
+    }
+
+    if (ball_to_robot.y < -(ROBOT_RADIUS_METER+MARGIN))
+    {
+        // ボール軌道から下側にそれた場所にいる
+        return false;
+    }
+
+    if ((ball_to_robot.x / ball_velocity_norm) > CONTACT_TIME_THRESH_SEC)
+    {
+        // CONTACT_TIME_THRESH_SEC[s] 以内には衝突しない
+        return false;
+    }
+
+    return true;
+}
+
 /**********************************************************
  * This is implementation of EulerAngle class
  ***********************************************************/
