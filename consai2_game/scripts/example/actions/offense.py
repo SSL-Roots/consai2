@@ -214,7 +214,7 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
     # ただし、指定したroleが存在しなければ関係なし
     # can_kick と receive_arrive が両方Trueなら蹴る
     if receive_enable and receiver_role_exist:
-        receive_arrive = False
+        receive_arrive = True #TODO:試合中の強制的な変更
         for robot_id in range(len(robot_info['our'])):
             if arrive_threshold > tool.distance_2_poses(target_pose, robot_info['our'][robot_id].pose):
                 receive_arrive = True
