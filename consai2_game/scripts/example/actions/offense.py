@@ -255,6 +255,7 @@ def _penalty_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
 
     KICK_POWER = kick_power
     SHOOT_TARGET = target_pose
+    DRIBBLE_POWER = 0.5
 
     angle_ball_to_target = tool.get_angle(ball_info.pose, SHOOT_TARGET)
     trans = tool.Trans(ball_info.pose, angle_ball_to_target)
@@ -283,9 +284,9 @@ def _penalty_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
         new_position = trans.inverted_transform(Pose2D(0, 0, 0))
         new_goal_pose = new_position
         new_goal_pose.theta = angle_to_target_side
-        if math.fabs(tool.angle_normalize(my_pose.theta - new_goal_pose.theta)) < 0.2:
-            # ドリブルとキックをオン
-            control_target.kick_power = KICK_POWER
+        # ドリブルとキックをオン
+        control_target.dribble_power = DRIBBLE_POWER
+        control_target.kick_power = KICK_POWER
     else:
         Observer.update_random_zero_one()
         # ボールの裏に移動する
