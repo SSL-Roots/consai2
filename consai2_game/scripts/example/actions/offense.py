@@ -318,7 +318,7 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False, penalty
 def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
     kick_enable = True
-    kick_power = 0.5
+    kick_power = 0.3
 
     # ダイレクトかつ、直接シュートが無理の無い位置だった場合は直シュート
     if direct and ball_info.pose.x < Field.penalty_pose('their','upper_front').x:
