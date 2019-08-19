@@ -88,6 +88,26 @@ CON-SAI2を始めるに当たって、まずはサンプルプログラムを実
 [consai2_examples](https://github.com/SSL-Roots/consai2/tree/master/consai2_examples)
 にサンプロプログラムの実行方法が記載されています。
 
+## Development
+
+いくつかのパッケージ内の`example`ディレクトリはRootsのコード例です。そのため、今後もRootsの意思で中身が大幅に変わる可能性があります。
+
+`master`ブランチの変更を容易にマージするため、以下項目を守ってください。
+
+- `master`からブランチを切り分ける
+- 各パッケージの`example`ディレクトリ内を編集しない
+- 各パッケージの`src`、`scripts`ディレクトリ直下にユーザコードを追加する
+
+## Contribution
+
+CON-SAI2は全ユーザ共通で使用できるコード(`consai2_receiver`や`consai2_sender`など)と、
+各ユーザで作成すべきコード(作成例：`example`ディレクトリ)に分かれています。
+
+全ユーザ共通で扱うコードについてはRoots以外の要望も受け入れたいので、
+**Contribution(issue, pullreq)をお願いします。**
+
+些細な修正や指摘でも良いので、まずはissueの作成から始めてみてください。
+
 ## Author
 
 CON-SAI2はRoboCup SSLに参加している日本人チーム**Roots**が作成しています。
@@ -96,3 +116,5 @@ RoboCup SSLへの参加方法、ロボットに必要な機能、開発環境な
 Rootsのホームページに記載してます。
 
 [Roots - Home](https://github.com/SSL-Roots/Roots_home/wiki)
+
+
