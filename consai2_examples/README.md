@@ -156,3 +156,17 @@ roslaunch consai2_examples game.launch sim:=false
 # grSimのロボットを動かす場合
 roslaunch consai2_examples game.launch sim:=true
 ```
+
+### CON-SAI2 vs CON-SAI2
+
+次のコマンドで、CON-SAI2同士を戦わせることができます。
+
+```sh
+# 青チームで左守り
+roslaunch consai2_examples game.launch sim:=true color:=blue side:=left
+
+# 別の端末で
+# 黄チームで右守り
+roslaunch consai2_examples game.launch sim:=true color:=yellow side:=right
+```
+

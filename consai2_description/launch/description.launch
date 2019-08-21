@@ -1,6 +1,21 @@
 <launch>
+
+  <!-- CON-SAI2 vs CON-SAI2 用の引数 -->
+  <!-- 設定されるとyamlファイルのパラメータを上書きする -->
+  <arg name="side" default="" />
+  <arg name="color" default="" />
+
   <group ns="consai2_description">
     <rosparam command="load" file="$(find consai2_description)/param/game.yaml" />
     <rosparam command="load" file="$(find consai2_description)/param/geometry.yaml" />
+
+    <group unless="$(eval side == '')">
+      <param name="our_side" value="$(arg side)" />
+    </group>
+    <group unless="$(eval color== '')">
+      <param name="our_color" value="$(arg color)" />
+    </group>
   </group>
+
+
 </launch>

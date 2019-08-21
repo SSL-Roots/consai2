@@ -1,26 +1,28 @@
 <launch>
 
-  <!-- Visualizer用のパラメータ -->
-  <!-- <arg name="publish_ball" default="true" />   -->
-  <!-- <arg name="publish_blue" default="true" />   -->
-  <!-- <arg name="publish_yellow" default="true" /> -->
+  <!-- CON-SAI2 vs CON-SAI2 用の引数 -->
+  <!-- 設定されるとconsai2_descriptionのパラメータを上書きする -->
+  <arg name="side" default="" />
+  <arg name="color" default="" />
 
   <!-- grSimのロボットを動かす場合はtrue -->
   <arg name="sim" default="false" />
 
-  <!-- ビジュアライザの起動 -->
-  <include file="$(find consai2_examples)/launch/visualizer.launch">
-    <!-- <arg name="publish_ball" default="$(arg publish_ball)" />     -->
-    <!-- <arg name="publish_blue" default="$(arg publish_blue)" />     -->
-    <!-- <arg name="publish_yellow" default="$(arg publish_yellow)" /> -->
-  </include>
+  <group ns="/$(arg color)$(arg side)">
 
-  <include file="$(find consai2_sender)/launch/sender.launch">
-    <arg name="load_description" value="false" />
-    <arg name="sim" value="$(arg sim)" />
-  </include>
+    <!-- ビジュアライザの起動 -->
+    <include file="$(find consai2_examples)/launch/visualizer.launch">
+      <arg name="side" value="$(arg side)" />
+      <arg name="color" value="$(arg color)" />
+    </include>
 
-  <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+    <include file="$(find consai2_sender)/launch/sender.launch">
+      <arg name="load_description" value="false" />
+      <arg name="sim" value="$(arg sim)" />
+    </include>
 
-  <node name="game" pkg="consai2_game" type="game.py" required="true" output="screen" />
+    <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+
+    <node name="game" pkg="consai2_game" type="game.py" required="true" output="screen" />
+  </group>
 </launch>
