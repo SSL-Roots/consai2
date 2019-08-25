@@ -1,20 +1,19 @@
 <launch>
-  <!-- game用のパラメータ -->
-  <!-- <arg name="publish_ball" default="true" />   -->
-  <!-- <arg name="publish_blue" default="true" />   -->
-  <!-- <arg name="publish_yellow" default="true" /> -->
+
+  <!-- CON-SAI2 vs CON-SAI2 用の引数 -->
+  <!-- 設定されるとconsai2_descriptionのパラメータを上書きする -->
+  <arg name="side" default="" />
+  <arg name="color" default="" />
+
   <!-- その他パラメータの読み込み -->
-  <include file="$(find consai2_description)/launch/description.launch"/>
+  <include file="$(find consai2_description)/launch/description.launch" >
+    <arg name="side" value="$(arg side)" />
+    <arg name="color" value="$(arg color)" />
+  </include>
 
   <include file="$(find consai2_receiver)/launch/receiver.launch" >
     <arg name="load_description" value="false" />
   </include>
-
-  <!-- <node name="vision_wrapper" pkg="consai2_game" type="vision_wrapper.py" required="true" output="screen" > -->
-  <!--   <param name="publish_ball" value="$(arg publish_ball)" />                                               -->
-  <!--   <param name="publish_blue" value="$(arg publish_blue)" />                                               -->
-  <!--   <param name="publish_yellow" value="$(arg publish_yellow)" />                                           -->
-  <!-- </node>                                                                                                   -->
 
   <node name="vision_wrapper" pkg="consai2_world_observer" type="consai2_world_observer" required="true" output="screen" />
 
