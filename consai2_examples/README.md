@@ -161,6 +161,9 @@ roslaunch consai2_examples game.launch sim:=true
 
 次のコマンドで、CON-SAI2同士を戦わせることができます。
 
+Visionのマルチキャストアドレスに
+ローカルループバックアドレスを設定していると正常動作しない場合があるので注意してください。
+
 ```sh
 # 青チームで左守り
 roslaunch consai2_examples game.launch sim:=true color:=blue side:=left
