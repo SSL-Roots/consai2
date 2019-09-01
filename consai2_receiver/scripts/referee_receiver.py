@@ -31,23 +31,33 @@ class RefereeReceiver(object):
         packet_referee.ParseFromString(buf)
 
         referee = Referee()
+        referee.packet_timestamp = packet_referee.packet_timestamp
         referee.stage = packet_referee.stage
+        if packet_referee.HasField('stage_time_left'):
+            referee.stage_time_left = packet_referee.stage_time_left
         referee.command = packet_referee.command
         referee.command_counter = packet_referee.command_counter
-        referee.blue = packet_referee.blue
+        referee.command_timestamp = packet_referee.command_timestamp
         referee.yellow = packet_referee.yellow
+        referee.blue = packet_referee.blue
 
         if packet_referee.HasField('designated_position'):
             referee.designated_position = Point(
                     packet_referee.designated_position.x * 0.001, # millimeter to meter
                     packet_referee.designated_position.y * 0.001, # millimeter to meter
                     0)
+        
+        if packet_referee.HasField('blueTeamOnPositiveHalf'):
+            referee.blue_team_on_positive_half = packet_referee.blueTeamOnPositiveHalf
 
         if packet_referee.HasField('gameEvent'):
             referee.game_event.game_event_type = packet_referee.gameEvent.gameEventType
-            referee.game_event.originator_team = packet_referee.gameEvent.originator.team
-            referee.game_event.originator_bot_id = packet_referee.gameEvent.originator.botId
-            referee.game_event.message = packet_referee.gameEvent.message
+            if packet_referee.gameEvent.HasField('originator'):
+                referee.game_event.originator_team = packet_referee.gameEvent.originator.team
+                if packet_referee.gameEvent.originator.HasField('botId'):
+                    referee.game_event.originator_bot_id = packet_referee.gameEvent.originator.botId
+            if packet_referee.gameEvent.HasField('message'):
+                referee.game_event.message = packet_referee.gameEvent.message
 
         self._pub_referee.publish(referee)
 
