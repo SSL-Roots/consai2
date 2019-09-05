@@ -226,14 +226,8 @@ class RobotNode(object):
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = ball_placement.basic_ball_placement(self._control_target, replace_pose, ball_info, robot_info, self._MY_ID, mode='atk')
-                    # self._control_target, avoid_ball = ball_placement.atk(
-                            # self._my_pose, ball_info, self._control_target, replace_pose, \
-                            # robot_info, self._MY_ID)
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
                     self._control_target, avoid_ball = ball_placement.basic_ball_placement(self._control_target, replace_pose, ball_info, robot_info, self._MY_ID, mode='recv')
-                    # self._control_target, avoid_ball = ball_placement.recv(
-                            # self._my_pose, ball_info, self._control_target, replace_pose, \
-                            # role.ROLE_ID["ROLE_ATTACKER"], robot_info)
                 else:
                     self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(
                             self._my_pose, ball_info, replace_pose, self._control_target)
