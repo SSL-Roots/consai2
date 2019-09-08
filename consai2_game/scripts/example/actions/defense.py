@@ -136,9 +136,9 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
             # ペナルティエリアに侵入しないように+MARGIN_LINE
             target_pose.y += MARGIN_LINE
             # ロボットが左側にいない
-            if my_pose.y < left_penalty_corner.y - 0.5:
+            if my_pose.y < left_penalty_corner.y:
                 # 左側にいないかつ後ろにいる場合は右側を沿う
-                if my_pose.x < left_penalty_corner.x:
+                if my_pose.x < left_penalty_corner.x and my_pose.y < 0:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
                     target_pose.y = right_penalty_corner.y - MARGIN_LINE
                 # 左側にダッシュで移動
@@ -157,9 +157,9 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
             # ペナルティエリアに侵入しないように-MARGIN_LINE
             target_pose.y -= MARGIN_LINE
             # ロボットが右側にいない
-            if my_pose.y > right_penalty_corner.y + 0.5:
+            if my_pose.y > right_penalty_corner.y:
                 # 右側にいないかつ後ろにいる場合は左側を沿う
-                if my_pose.x < left_penalty_corner.x:
+                if my_pose.x < left_penalty_corner.x and my_pose.y > 0:
                     target_pose.x = left_penalty_corner.x + MARGIN_FOR_SPEED
                     target_pose.y = left_penalty_corner.y + MARGIN_LINE
                 # 右側にダッシュで移動
