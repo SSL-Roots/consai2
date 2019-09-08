@@ -67,11 +67,11 @@ def interpose(target_info, control_target,
 
     return control_target
 
-def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, robot_info, zone_enable=False):
-    if role.ROLE_ID['ROLE_DEFENCE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_GOAL_2']:
-        return defence_goal(my_pose, ball_info, control_target, my_role, defence_num)
-    elif role.ROLE_ID['ROLE_DEFENCE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENCE_ZONE_4']:
-        return defence_zone(my_pose, ball_info, control_target, my_role, defence_num, robot_info['their'], zone_enable)
+def defense_decision(my_role, ball_info, control_target, my_pose, defense_num, robot_info, zone_enable=False):
+    if role.ROLE_ID['ROLE_DEFENSE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENSE_GOAL_2']:
+        return defense_goal(my_pose, ball_info, control_target, my_role, defense_num)
+    elif role.ROLE_ID['ROLE_DEFENSE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENSE_ZONE_4']:
+        return defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
     else:
         control_target.path = []
         control_target.path.append(my_pose)
@@ -79,12 +79,12 @@ def defence_decision(my_role, ball_info, control_target, my_pose, defence_num, r
 
 
 # ゴール前ディフェンス
-def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
+def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
     MARGIN_LINE = 0.2
     MARGIN_ROBOT = 0
     MARGIN_FOR_SPEED = 0.5
-    if defence_num > 1:
-        if my_role == role.ROLE_ID["ROLE_DEFENCE_GOAL_1"]:
+    if defense_num > 1:
+        if my_role == role.ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
             MARGIN_ROBOT = 0.15
         else:
             MARGIN_ROBOT = -0.15
@@ -201,11 +201,11 @@ def defence_goal(my_pose, ball_info, control_target, my_role, defence_num):
     
 
 # ゾーンディフェンス
-def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their_robot_info, zone_enable):
+def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
     ROLE_MAX = 7
-    GOAL_DEFENCE_NUM = 2
-    ZONE_DEFENCE_NUM = defence_num - GOAL_DEFENCE_NUM
-    ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]
+    GOAL_DEFENSE_NUM = 2
+    ZONE_DEFENSE_NUM = defense_num - GOAL_DEFENSE_NUM
+    ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]
     ZONE_OFFENCE_POSE = Pose2D(3,0,0)
     MARGIN_CENTER = 0.6
     DRIBBLE_POWER = 0.6
@@ -236,10 +236,10 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     my_role_is_offence = False
     # ボールが相手フィールドにあるとき
     # ゾーンから1台オフェンスに出す
-    if ZONE_DEFENCE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
-        ZONE_DEFENCE_NUM -= 1
-        ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENCE_ZONE_2"]
-        if my_role is role.ROLE_ID["ROLE_DEFENCE_ZONE_1"]:
+    if ZONE_DEFENSE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
+        ZONE_DEFENSE_NUM -= 1
+        ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENSE_ZONE_2"]
+        if my_role is role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]:
             my_role_is_offence = True
 
     # 私はゾーンオフェンスです
@@ -257,11 +257,11 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
                 target_pose.y = float(Field.field('width'))/4.0
         target_pose.theta = angle_to_ball
 
-    if ZONE_DEFENCE_NUM > 0 and not my_role_is_offence:
-        step = float(field_width) / (ZONE_DEFENCE_NUM * 2)
-        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2 + 1))]
+    if ZONE_DEFENSE_NUM > 0 and not my_role_is_offence:
+        step = float(field_width) / (ZONE_DEFENSE_NUM * 2)
+        split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2 + 1))]
         # 今のディフェンス数からゾーンの区切りを変える
-        split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENCE_NUM * 2)) \
+        split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2)) \
                 if i % 2 != 0]
 
         # 参照エラー対策
@@ -312,7 +312,7 @@ def defence_zone(my_pose, ball_info, control_target, my_role, defence_num, their
     return control_target
 
 class Receiving(object):
-    _recenving = [False] * role.ZONE_DEFENCE_NUM
+    _recenving = [False] * role.ZONE_DEFENSE_NUM
 
     @classmethod
     def update_receiving(cls, zone_id, param):

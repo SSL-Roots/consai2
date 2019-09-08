@@ -81,7 +81,7 @@ def get_intersection(pose1, pose2, pose3, pose4):
 
     return output
 
-def is_in_defence_area(pose, team='our'):
+def is_in_defense_area(pose, team='our'):
     PENALTY_UPPER_FRONT = Field.penalty_pose(team, 'upper_front')
     PENALTY_LOWER_FRONT = Field.penalty_pose(team, 'lower_front')
 
