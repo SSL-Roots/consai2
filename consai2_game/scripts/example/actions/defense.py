@@ -288,6 +288,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
             # 自分のゾーンに入っている敵チェック
             # their_robot_infoのposeを抜き出してそれぞれチェック
             # 敵が自陣側にいる、かつ、自分のゾーンの幅の中にいる、を確認
+            # 当てはまらない場合配列は空っぽ
             invader_pose = [i.pose for i in their_robot_info \
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
