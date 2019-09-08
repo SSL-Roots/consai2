@@ -184,43 +184,72 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
 
 # ゾーンディフェンス
 def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
-    ROLE_MAX = 7
+    # ゴールディフェンスに割り当てる台数
     GOAL_DEFENSE_NUM = 2
+    # 現在のディフェンス数 - ゴールディフェンス数 = ゾーンディフェンスに割り当てられる台数
     ZONE_DEFENSE_NUM = defense_num - GOAL_DEFENSE_NUM
+    # ゾーンディフェンスが始まるROLE_ID
     ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]
+    # ゾーンオフェンス用の待機場所
     ZONE_OFFENCE_POSE = Pose2D(3,0,0)
+
+    # センターライン用のマージン
     MARGIN_CENTER = 0.6
+    # ちょっと前進用のマージン
+    MARGIN_LITTLE_FORWARD = 1.0
+
+    # ドリブルパワー
     DRIBBLE_POWER = 0.6
 
+    # ボール位置
     ball_pose = ball_info.pose
 
-    # control_targetの更新(path以外)
-    control_target.kick_power = 0.0
-    control_target.dribble_power = 0.0
-
+    # Field情報からペナルティエリアの情報を取得
+    # フィールド幅
     field_width = Field.field('width')
+    # フィールド幅の半分
     half_field_width = float(field_width) / 2
+    # フィールド幅の1/4
+    quarter_field_width = float(field_width) / 4
+    # フィールド長さ
     field_length = Field.field('length')
+    # フィールド長さの1/4 → 自陣側の長さの半分
     half_our_field_length = -float(field_length) / 4
+    # ゴール中心
     goal_center = Field.goal_pose('our', 'center')
 
     # ペナルティエリアの角
     left_penalty_corner = Field.penalty_pose('our', 'upper_front')
     right_penalty_corner = Field.penalty_pose('our', 'lower_front')
 
+    # 自分からボールへの角度（ボールの方向を向くため）
     angle_to_ball = tool.get_angle(my_pose, ball_pose)
+    # ゴール中心からボールへの角度
     angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
 
+    # ゾーンディフェンス用のID
     zone_id = None
+    # 移動目標点の初期化
     target_pose = Pose2D()
 
-    # 私はゾーンオフェンスですか
+    # ---------------------------------------------------------
+    # キックとドリブルはOFF
+    control_target.kick_power = 0.0
+    control_target.dribble_power = 0.0
+
+    # ゾーンオフェンス判定用フラグ
     my_role_is_offence = False
+
     # ボールが相手フィールドにあるとき
-    # ゾーンから1台オフェンスに出す
+    # ゾーンから1台ゾーンオフェンスに出す
+    # 相手キックオフ時などに前に出ないように
+    # マージンを持って相手フィールド側かを判断している
     if ZONE_DEFENSE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
+        # 1台ディフェンスが減る
         ZONE_DEFENSE_NUM -= 1
+        # ゾーンディフェンスが始まるROLE_IDをずらす
         ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENSE_ZONE_2"]
+        # ROLE_DEFENSE_ZONE_1をゾーンオフェンスとして出す
         if my_role is role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]:
             my_role_is_offence = True
 
@@ -228,32 +257,41 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
     if my_role_is_offence:
         zone_id = 0
         target_pose = ZONE_OFFENCE_POSE
-        if ball_pose.y > 0.1:
-            target_pose.y  =  - float(Field.field('width'))/4.0
-        elif ball_pose.y < 0.1:
-            target_pose.y = float(Field.field('width'))/4.0
+        # 基本的にアタッカーがボールを取りに行くので
+        # ボールが無い方向に移動してこぼれ球が取れるようにする
+        if ball_pose.y > 0:
+            target_pose.y  =  - quarter_field_width
         else:
-            if my_pose.y > 0:
-                target_pose.y  =  - float(Field.field('width'))/4.0
-            else:
-                target_pose.y = float(Field.field('width'))/4.0
+            target_pose.y = quarter_field_width
+        # ボールを向く
         target_pose.theta = angle_to_ball
 
+    # ゾーンオフェンス以外
     if ZONE_DEFENSE_NUM > 0 and not my_role_is_offence:
         step = float(field_width) / (ZONE_DEFENSE_NUM * 2)
+        # ゾーンディフェンスの数でフィールド幅を等分した配列を作る
         split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2 + 1))]
-        # 今のディフェンス数からゾーンの区切りを変える
+        # ゾーンディフェンスの数でフィールド幅を等分した時の
+        # それぞれのゾーンの中心の配列を作る
         split_field_center = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2)) \
                 if i % 2 != 0]
 
-        # 参照エラー対策
+        # 参照エラー対策のtry
         try:
+            # ゾーンIDの計算
+            # ロボットが8台生きていてゾーンオフェンスがいなければ
+            # ゾーンIDは0~3
             zone_id = my_role - ZONE_START_ROLE_ID
+            # ゾーンの中心を目標位置とする
             target_pose.y = split_field_center[zone_id]
+
             # 自分のゾーンに入っている敵チェック
+            # their_robot_infoのposeを抜き出してそれぞれチェック
+            # 敵が自陣側にいる、かつ、自分のゾーンの幅の中にいる、を確認
             invader_pose = [i.pose for i in their_robot_info \
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
+
             # ボールが自分のゾーンの中に入っている, かつzone_enable
             if(zone_enable and \
                     ball_pose.x < 0 and \
@@ -267,8 +305,9 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
                 trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)
                 target_pose = trans.inverted_transform(Pose2D(0.5, 0, 0))
             else:
+                # ボールが敵陣の時はディフェンスちょっと前進
                 if ball_pose.x > MARGIN_CENTER:
-                    target_pose.x = half_our_field_length + 1.0
+                    target_pose.x = half_our_field_length + MARGIN_LITTLE_FORWARD
                 else:
                     target_pose.x = half_our_field_length
         except IndexError:
