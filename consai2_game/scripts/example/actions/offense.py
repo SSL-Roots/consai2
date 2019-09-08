@@ -334,6 +334,7 @@ def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable
         return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,kick_power)
 
 
+# 相手キックオフ時やSTOP時など、アタッカーの待機位置を計算する
 def interpose(target_info, control_target, 
         dist_from_goal=None, dist_from_target=None):
     # 自チームのゴール中心とtarget_info.poseを直線で結び、その直線上に移動する
