@@ -104,7 +104,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
+                    self._control_target = offense.interpose(ball_info,
                             self._control_target, dist_from_target = 0.7)
                     avoid_ball = True
                 else:
@@ -244,7 +244,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
+                    self._control_target = offense.interpose(ball_info,
                             self._control_target, dist_from_target = 0.6)
                     avoid_ball = True
                 else:
@@ -271,7 +271,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
+                    self._control_target = offense.interpose(ball_info,
                             self._control_target, dist_from_target = 0.6)
                     avoid_ball = True
                 else:
@@ -286,7 +286,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
+                    self._control_target = offense.interpose(ball_info,
                             self._control_target, dist_from_target = 0.6)
                     avoid_ball = True
                 else:
@@ -301,7 +301,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target = defense.interpose(ball_info,
+                    self._control_target = offense.interpose(ball_info,
                             self._control_target, dist_from_target = 0.6)
                     avoid_ball = True
                 else:
@@ -316,7 +316,7 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 # elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    # self._control_target = defense.interpose(ball_info,
+                    # self._control_target = offense.interpose(ball_info,
                             # self._control_target, dist_from_target = 0.6)
                     # avoid_ball = True
                 else:
