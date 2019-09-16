@@ -225,13 +225,9 @@ class RobotNode(object):
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
-                    self._control_target, avoid_ball = ball_placement.atk(
-                            self._my_pose, ball_info, self._control_target, replace_pose, \
-                            robot_info, self._MY_ID)
+                    self._control_target, avoid_ball = ball_placement.basic_ball_placement(self._control_target, replace_pose, ball_info, robot_info, self._MY_ID, mode='atk')
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
-                    self._control_target, avoid_ball = ball_placement.recv(
-                            self._my_pose, ball_info, self._control_target, replace_pose, \
-                            role.ROLE_ID["ROLE_ATTACKER"], robot_info)
+                    self._control_target, avoid_ball = ball_placement.basic_ball_placement(self._control_target, replace_pose, ball_info, robot_info, self._MY_ID, mode='recv')
                 else:
                     self._control_target, avoid_ball = ball_placement.avoid_ball_place_line(
                             self._my_pose, ball_info, replace_pose, self._control_target)
@@ -429,7 +425,6 @@ class Game(object):
             self._roledecision.check_ball_dist([i.pose for i in self._robot_info['our']], self._ball_info)
         self._roledecision.event_observer()
         defense_num = self._roledecision._rolestocker._defense_num
-
 
         self._obstacle_avoidance.update_obstacles(self._ball_info, self._robot_info)
         for our_info in self._robot_info['our']:
