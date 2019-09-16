@@ -17,7 +17,7 @@ from field import Field
 
 from observer import Observer
 
-# 後ろに周り込むときの位置取り
+# 後ろに周り込むときの距離
 SET_POSE_ADD_X_ATK = 0.3
 SET_POSE_ADD_X_RECV = 0.1
 # kick_power
@@ -28,7 +28,6 @@ DRIBBLE_POWER = 0.6
 # ボールがplacementされたとみなされる範囲
 # 実際にボールがplacementされたとみなされる範囲は0.15[m]
 BALL_PLACE_TRESHOLD = 0.10
-# BALL_PLACE_AREA = 0.15
 # ボールを置きに行く動作に入るときの範囲(ドリブルしない）
 BALL_PLACE_AREA_NO_DRIBBLE = 0.3
 # ボールに近いと判断する距離
@@ -40,11 +39,12 @@ VEL_THRESHOLD = 0.5
 IS_LOOK_TARGET_ANGLE = 4  # deg
 IS_TOUCH_DIST = 0.20
 
-# 侵入禁止をする範囲(余裕を見て+0.1)
-BALL_MARGIN_DIST = 0.5 + 0.15
+# 侵入禁止範囲
+# 0.5m以内に侵入してはだめなので0.5以上にする
+BALL_MARGIN_DIST = 0.65
 
-# 指定位置に到達したか判定
-def threshold_pose(tr_my_pose):
+# atkが指定位置に到達したか判定
+def atk_arrived_check(tr_my_pose):
 
     flag = False
     if tr_my_pose.x < 0.05 and math.fabs(tr_my_pose.y) < 0.05 and \
@@ -53,8 +53,8 @@ def threshold_pose(tr_my_pose):
 
     return flag
 
-# 指定距離以内に到達したか判定
-def threshold_dist(dist):
+# recvが指定距離以内に到達したか判定
+def recv_arrived_check(dist):
 
     flag = False
     if dist < 0.1:
@@ -62,15 +62,15 @@ def threshold_dist(dist):
     
     return flag
 
-# 目標座標の後ろに座標を生成する
-def generate_target_back_pose(trans, target_pose, margin_value):
+# 目標座標に対してmargin_valueだけ後ろに座標を生成する
+def generating_behind_target_pose(trans, target_pose, margin_value):
 
-    tr_target_back_pose = trans.transform(target_pose)
-    tr_target_back_pose.x = tr_target_back_pose.x + margin_value
-    tr_target_back_pose.y = tr_target_back_pose.y
-    target_back_pose = trans.inverted_transform(tr_target_back_pose)
+    tr_behind_target_pose = trans.transform(target_pose)
+    tr_behind_target_pose.x = tr_behind_target_pose.x + margin_value
+    tr_behind_target_pose.y = tr_behind_target_pose.y
+    behind_target_pose = trans.inverted_transform(tr_behind_target_pose)
     
-    return target_back_pose
+    return behind_target_pose
 
 # target_poseに距離が一番近いロボットがplacementを行うロボットと推定する
 def get_near_robot_id(target_pose, robot_info):
@@ -89,8 +89,7 @@ def get_near_robot_id(target_pose, robot_info):
 
     return robot_id
 
-# ball placementrを行う
-# atkとrecvの2台で行う
+# ball placementrをatkとrecvの2台で行う
 def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_id, mode):
  
     # ペアになるロボットのID
@@ -126,12 +125,11 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
     # ボールとpalcement位置の距離
     dist_ball_to_target = tool.distance_2_poses(ball_info.pose, target_pose)
 
-    # レシーブを行う座標
-    target_back_pose = generate_target_back_pose(trans, target_pose, SET_POSE_ADD_X_RECV)
+    # recvがボールのレシーブを行う座標
+    ball_receiving_pose = generating_behind_target_pose(trans, target_pose, SET_POSE_ADD_X_RECV)
 
     # ボール速度
-    ball_vel = ball_info.velocity
-    v = math.hypot(ball_vel.x, ball_vel.y)
+    ball_velocity = math.hypot(ball_info.velocity.x, ball_info.velocity.y)
 
     # ---------------------------------------
     # placementの行動生成
@@ -146,15 +144,15 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
     if BALL_PLACE_TRESHOLD < dist_ball_to_target:
 
         # 指定位置に到着したかどうか
-        atk_flag = threshold_pose(trans.transform(atk_pose))
-        recv_flag = threshold_dist(tool.distance_2_poses(recv_pose, target_back_pose))
+        is_atk_arrived = atk_arrived_check(trans.transform(atk_pose))
+        is_recv_arrived = recv_arrived_check(tool.distance_2_poses(recv_pose, ball_receiving_pose))
         
         # 蹴ったあとにatkが追いかけない様に対策
-        if VEL_THRESHOLD < v:
+        if VEL_THRESHOLD < ball_velocity:
             new_pose = atk_pose
         
         # atkがボールの後ろにいなければ移動する
-        elif not atk_flag:
+        elif not is_atk_arrived:
             # ボールの後ろに座標を生成
             new_pose = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
             new_pose.theta = angle_ball_to_target
@@ -174,9 +172,8 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
             if BALL_PLACE_AREA_NO_DRIBBLE < dist_ball_to_target:
                 control_target.dribble_power = DRIBBLE_POWER
 
-
         # お互いの位置がセットされたら蹴る
-        elif atk_flag and recv_flag:
+        elif is_atk_arrived and is_recv_arrived:
 
             # ボールを確実に保持するためボールの少し前に移動する
             new_pose = trans.inverted_transform(Pose2D(0.2, 0, 0))
@@ -188,7 +185,6 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
 
         # ボールの後ろに移動
         else:
-            # ボールの後ろに周り込む
             new_pose = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
             new_pose.theta = angle_ball_to_target
 
@@ -221,8 +217,7 @@ def basic_recv(control_target, ball_info, atk_pose, recv_pose, target_pose):
     dist_ball_to_target = tool.distance_2_poses(ball_info.pose, target_pose)
 
     # ボールの速度
-    ball_vel = ball_info.velocity
-    v = math.hypot(ball_vel.x, ball_vel.y)
+    ball_velocity = math.hypot(ball_info.velocity.x, ball_info.velocity.y)
 
     # 目標座標までの角度
     angle_ball_to_target = tool.get_angle(ball_info.pose, target_pose)
@@ -239,7 +234,7 @@ def basic_recv(control_target, ball_info, atk_pose, recv_pose, target_pose):
     if BALL_PLACE_TRESHOLD < dist_ball_to_target:
 
         # 速度が出ている場合レシーブしにいく
-        if VEL_THRESHOLD < v:
+        if VEL_THRESHOLD < ball_velocity:
             
             # レシーブするための座標生成
             new_pose = receive_ball(ball_info, recv_pose)
@@ -249,7 +244,7 @@ def basic_recv(control_target, ball_info, atk_pose, recv_pose, target_pose):
 
         # placement座標の少し後ろに移動する
         else:
-            new_pose = generate_target_back_pose(trans, target_pose, SET_POSE_ADD_X_RECV) 
+            new_pose = generating_behind_target_pose(trans, target_pose, SET_POSE_ADD_X_RECV) 
             new_pose.theta = angle_ball_to_target + math.pi
     else:
         # placement後に離れる
@@ -296,14 +291,13 @@ def avoid_ball_place_line(my_pose, ball_info, target_pose, control_target, force
 # ボール受け取り位置の生成
 def receive_ball(ball_info, my_pose):
     ball_pose = ball_info.pose
-    ball_vel = ball_info.velocity
     _can_receive_dist = 1.0
     _can_receive_hysteresis = 0.3
 
     target_pose = Pose2D()
 
     if Observer.ball_is_moving():
-        angle_velocity = tool.get_angle_from_center(ball_vel)
+        angle_velocity = tool.get_angle_from_center(ball_info.velocity)
         trans = tool.Trans(ball_pose, angle_velocity)
 
         tr_pose = trans.transform(my_pose)
