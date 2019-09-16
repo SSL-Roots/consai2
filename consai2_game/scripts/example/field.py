@@ -7,12 +7,12 @@ from geometry_msgs.msg import Pose2D
 from consai2_msgs.msg import VisionGeometry
 
 class Field(object):
-
-    _goal_dict = {'upper' : Pose2D(), 'center' : Pose2D(), 'lower' : Pose2D()}
-    _goal_pose = {
-            'our': copy.deepcopy(_goal_dict), 
-            'their': copy.deepcopy(_goal_dict)}
     # Division A仕様をデフォルトとして設定
+    _our_goal_dict = {'upper' : Pose2D(-6.0, 0.6, 0), 'center' : Pose2D(-6.0, 0.0, 0), 'lower' : Pose2D(-6.0, -0.6, 0)}
+    _their_goal_dict = {'upper' : Pose2D(6.0, 0.6, 0), 'center' : Pose2D(6.0, 0.0, 0), 'lower' : Pose2D(6.0, -0.6, 0)}
+    _goal_pose = {
+            'our': copy.deepcopy(_our_goal_dict), 
+            'their': copy.deepcopy(_their_goal_dict)}
     _our_penalty_dict = {
             'upper_front' : Pose2D(-4.795, 1.2, 0), 'upper_back' : Pose2D(-5.99, 1.2, 0),
             'lower_front' : Pose2D(-4.795, -1.2, 0), 'lower_back' : Pose2D(-5.99, -1.2, 0),}
@@ -23,8 +23,8 @@ class Field(object):
             'our': copy.deepcopy(_our_penalty_dict), 
             'their': copy.deepcopy(_their_penalty_dict)}
     _field = {
-            'length' : 0,
-            'width' : 0}
+            'length' : 12.0,
+            'width' : 9.0}
     _geometry_field_lines = {}
 
     # _penalty_poseとfield_lines紐付ける辞書
@@ -77,4 +77,3 @@ class Field(object):
     @classmethod
     def field(cls, param='length'):
         return Field._field[param]
-
