@@ -34,7 +34,7 @@ class RoleDecision(object):
         self._event_robot_has_disappeared = False
         self._attacker_id = ROLE_ID["ROLE_ATTACKER"]
         self._attacker_id_pre = ROLE_ID["ROLE_ATTACKER"]
-        self._attacker_disappeared = False
+        self._attacker_had_disappeared = False
 
         self._rolestocker = RoleStocker(max_id, self._ROLE_MAX)
 
@@ -73,9 +73,9 @@ class RoleDecision(object):
                 # マージンを設けて、アタッカーの切り替わりの発振を防ぐ
                 closest_dist = self._dist_to_ball[self._attacker_id] - MARGIN
 
-                # アタッカーが死んでいた場合
+                # 前周期でアタッカーが死んでいた場合
                 # 単純にボールに一番近いロボットをアタッカーに任命
-                if self._attacker_disappeared:
+                if self._attacker_had_disappeared:
                     if dist < dist_min:
                         dist_min = dist
                         self._attacker_id = robot_id
@@ -94,7 +94,7 @@ class RoleDecision(object):
             self._event_closest_to_the_ball = False
 
         # アタッカー生死の判定更新
-        self._attacker_disappeared = self._robot_disappeared[self._attacker_id]
+        self._attacker_had_disappeared = self._robot_disappeared[self._attacker_id]
     
     
     def event_observer(self):
