@@ -39,6 +39,7 @@ class Field(object):
         'their_lower_back' :["RightFieldLeftPenaltyStretch",0],
     }
 
+
     @classmethod
     def update(cls, geometry):
         half_length = geometry.field_length * 0.5
@@ -57,22 +58,30 @@ class Field(object):
         for field_lines_info in geometry.field_lines:
             Field._geometry_field_lines[field_lines_info.name] = [Pose2D(field_lines_info.p1_x, field_lines_info.p1_y, 0), Pose2D(field_lines_info.p2_x, field_lines_info.p2_y, 0)] 
 
+        # geometry.field_linesにペナルティエリアに関する情報が入っていれば、更新する
+        for team_position in Field._field_lines_to_penalty_pose:
+            if Field._field_lines_to_penalty_pose[team_position][0] in Field._geometry_field_lines:
+                geometry_field_lines_name = Field._field_lines_to_penalty_pose[team_position][0]
+                geometry_field_lines_p_num = Field._field_lines_to_penalty_pose[team_position][1]
+                # "team_position"をteamとpositionに分割
+                team = team_position.split('_',1)[0]
+                position = team_position.split('_',1)[1]
+                Field._penalty_pose[team][position] = Field._geometry_field_lines[geometry_field_lines_name][geometry_field_lines_p_num]
+
         # フィールドサイズ取得
         Field._field['length'] = geometry.field_length
         Field._field['width'] = geometry.field_width
+
 
     @classmethod
     def goal_pose(cls, team='our', position='center'):
         return Field._goal_pose[team][position]
 
+
     @classmethod
     def penalty_pose(cls, team='our', position='upper_front'):
-        # geometry.field_linesにペナルティエリアに関する情報が入っていれば、更新する
-        if Field._field_lines_to_penalty_pose[team + '_' + position][0] in Field._geometry_field_lines:
-            geometry_field_lines_name = Field._field_lines_to_penalty_pose[team + '_' + position][0]
-            geometry_field_lines_p_num = Field._field_lines_to_penalty_pose[team + '_' + position][1]
-            Field._penalty_pose[team][position] = Field._geometry_field_lines[geometry_field_lines_name][geometry_field_lines_p_num]
         return Field._penalty_pose[team][position]
+
 
     @classmethod
     def field(cls, param='length'):
