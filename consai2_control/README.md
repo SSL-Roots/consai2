@@ -52,16 +52,16 @@ PID制御器から生成されたロボットの目標速度は、さきほど�
 
 ## Subscribe topics
 
-- vision_wrapper/robot_info_* (consai2_msgs/RobotInfo)
-- consai2_game/control_target_* (consai2_msgs/ControlTarget)
+- `vision_wrapper/robot_info_*` (consai2_msgs/RobotInfo)
+- `consai2_game/control_target_*` (consai2_msgs/ControlTarget)
 
 ## Publish topics
 
-- is_arrived_* (std_msgs/Bool)
+- `is_arrived_*` (std_msgs/Bool)
   - 目標位置到達フラグ
   - ロボットが経路の最終地点に到達したら`True`
-- command_velocity_* (geometry_msgs/Pose2D)
+- `command_velocity_*` (geometry_msgs/Pose2D)
   - フィールド座標系での制御速度
   - 位置情報のフィルタリングや制御のデバッグに使用する
-- robot_commands (consai2_msgs/RobotCommands)
+- `robot_commands` (consai2_msgs/RobotCommands)
   - ロボットへの動作指令
