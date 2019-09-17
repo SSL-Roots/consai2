@@ -101,4 +101,4 @@
 
 - `consai2_game/control_target_*` (consai2_msgs/ControlTarget)
   - ロボットの行動目標値
-  - 移動経路やキック・ドリブルのフラグ等を含まれる
+  - 移動経路やキック・ドリブルのフラグ等を含む。
