@@ -14,8 +14,8 @@ import tool
 sys.path.append(os.pardir)
 from field import Field
 
-
-# 直線の傾きと接点を算出
+# 直線の傾きと切片を算出
+# 2点の座標から算出する
 def _get_line_pram(pose1, pose2):
 
     x1 = pose1.x
@@ -23,10 +23,13 @@ def _get_line_pram(pose1, pose2):
     x2 = pose2.x
     y2 = pose2.y
 
+    # 0になるとエラーになるのでその対策
     if x1 - x2 == 0:
         x1 += 1e-12
-
-    slope = (y2 - y1)/(x2 - x1)
+    
+    # 傾きの算出
+    slope = (y2 - y1) / (x2 - x1)
+    # 切片の算出
     intercept = y2 - slope * x2
     
     return slope, intercept
@@ -85,10 +88,7 @@ def interpose(ball_info, robot_info, control_target):
     # 敵ロボットとボールの距離が近い場合は敵とボールの直線を使う
     if dist[min_dist_id] < DIST_ROBOT_TO_BALL_THRESHOLD and robot_pose.x < 0:
         
-        if robot_pose.theta == 0:
-            slope = 1e-12
-        else:
-            slope = math.tan(robot_pose.theta)
+        slope = math.tan(robot_pose.theta)
         intercept = robot_pose.y - slope * robot_pose.x 
 
     # ボールの速度がある場合かつ近づいてくる場合はボールの向かう直線を使う
