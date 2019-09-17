@@ -57,7 +57,7 @@ message SSL_Referee_Game_Event {
         DOUBLE_TOUCH = 16;
 
         // Law 13-17: Attacker not too close to the opponent's penalty area when ball enters play
-        ATTACKER_TO_DEFENCE_AREA = 17;
+        ATTACKER_TO_DEFENSE_AREA = 17;
 
         // Law 13-17: Keeping the correct distance to the ball during opponents freekicks
         DEFENDER_TO_KICK_POINT_DISTANCE = 18;
