@@ -4,7 +4,8 @@
 
 # Example
 
-`example/example_control.py`がサンプルコードです。
+[`scripts/example/example_control.py`](https://github.com/SSL-Roots/consai2/blob/master/consai2_control/scripts/example/example_control.py)
+がサンプルコードです。
 
 ## 概要
 
