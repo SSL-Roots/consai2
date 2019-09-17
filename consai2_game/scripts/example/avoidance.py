@@ -21,7 +21,7 @@ class ObstacleAvoidance(object):
         # ロボット情報の初期化
         self._robot_info = RobotInfo()
 
-        # 障害物検出の幅
+        # 障害物検出の幅[m]
         self._range_tr_y = 0.5
         self._range_tr_x = 0.2
 
@@ -43,7 +43,7 @@ class ObstacleAvoidance(object):
         new_target_path.append(target_path[-1]) 
 
         # 中間パスを生成
-        avoid_pose = self.basic_avoid(my_pose, new_target_path, ball_avoid_flag)
+        avoid_pose = self._basic_avoid(my_pose, new_target_path, ball_avoid_flag)
 
         # 中間パスが生成された場合はパスに追加
         if avoid_pose is not None:
@@ -53,25 +53,25 @@ class ObstacleAvoidance(object):
         return new_target_path
 
     # 回避用の関数
-    def basic_avoid(self, my_pose, target_path, ball_avoid_flag):
+    def _basic_avoid(self, my_pose, target_path, ball_avoid_flag):
 
         # 使いやすいよう変数に格納しておく
         target_pose = target_path[-1]
         ball_pose = self._ball_info.pose
 
         # ロボットから目標地点の角度
-        angle_robot_to_target = tool.get_angle(my_pose, target_pose)
+        angle_i_to_target = tool.get_angle(my_pose, target_pose)
         # ロボットからみた座標系に変換するクラス
-        trans = tool.Trans(my_pose, angle_robot_to_target)
+        trans = tool.Trans(my_pose, angle_i_to_target)
 
         # 近いロボットに対して中間パスを生成
-        avoid_pose, dist_i_to_robot = self.test_(trans, my_pose, target_pose)
+        avoid_pose, dist_i_to_robot = self._generate_avoid_pose_to_near_robot(trans, my_pose, target_pose)
 
         # ボールを避けるフラグがTureのときにすでに生成しているavoid_poseと比較する
         if ball_avoid_flag:
 
             # ボールが進路上に存在しているか調べる
-            ball_detect_flag = self.detect_object_on_trajectory(trans, my_pose, target_pose, ball_pose)
+            ball_detect_flag = self._detect_object_on_trajectory(trans, target_pose, ball_pose)
 
             # ボールが進路上に存在している場合は処理を行う
             if ball_detect_flag == True:
@@ -79,11 +79,12 @@ class ObstacleAvoidance(object):
                 
                 # 中間パスがない or ボールの方が近い場合はボールに対して中間パスを生成
                 if avoid_pose is None or dist_i_to_ball < dist_i_to_robot:
-                    avoid_pose = self.generate_avoid_pose(trans, my_pose, ball_pose)
+                    avoid_pose = self._generate_avoid_pose(trans, my_pose, ball_pose)
 
         return avoid_pose
 
-    def test_(self, trans, my_pose, target_pose):
+    # 近いロボットに対して中間パスを生成
+    def _generate_avoid_pose_to_near_robot(self, trans, my_pose, target_pose):
 
         # ロボット中心に座標変換
         tr_my_pose = trans.transform(my_pose)
@@ -100,7 +101,7 @@ class ObstacleAvoidance(object):
                 # ロボットが検出できている場合
                 if info.disappeared is False:
                     # 進路上にロボットが居る場合
-                    flag = self.detect_object_on_trajectory(trans, my_pose, target_pose, info.pose)
+                    flag = self._detect_object_on_trajectory(trans, target_pose, info.pose)
                     if flag:
                         # 距離が近い場合更新
                         dist = tool.distance_2_poses(info.pose, my_pose)
@@ -111,28 +112,27 @@ class ObstacleAvoidance(object):
 
         # 進路上に障害物が存在していた場合は中間パスを生成
         if obst_pose is not None:
-            avoid_pose = self.generate_avoid_pose(trans, my_pose, obst_pose)
+            avoid_pose = self._generate_avoid_pose(trans, my_pose, obst_pose)
 
         return avoid_pose, obst_dist
     
     # 目標位置との間に障害物があるか判定
-    def detect_object_on_trajectory(self, trans, my_pose, target_pose, object_pose):
+    def _detect_object_on_trajectory(self, trans, target_pose, object_pose):
         
         # 自分と障害物と目標地点の座標変換
-        tr_my_pose = trans.transform(my_pose)
         tr_object_pose = trans.transform(object_pose)
         tr_target_pose = trans.transform(target_pose)
 
         # 進路上にいる障害物の存在を調べる(しきい値は__init__()で決定)
         flag = False
-        if tr_my_pose.x + self._range_tr_x < tr_object_pose.x and tr_object_pose.x < tr_target_pose.x and \
-                tr_my_pose.y - self._range_tr_y < tr_object_pose.y and tr_object_pose.y < tr_my_pose.y + self._range_tr_y:
+        if self._range_tr_x < tr_object_pose.x and tr_object_pose.x < tr_target_pose.x and \
+                -self._range_tr_y < tr_object_pose.y and tr_object_pose.y < self._range_tr_y:
             flag = True
 
         return flag
     
     # 障害物を避ける位置を生成
-    def generate_avoid_pose(self, trans, my_pose, obst_pose):
+    def _generate_avoid_pose(self, trans, my_pose, obst_pose):
     
         # ロボット中心の座標系に変換
         tr_my_pose = trans.transform(my_pose)
