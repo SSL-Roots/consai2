@@ -43,6 +43,12 @@ PID制御器から生成されたロボットの目標速度は、さきほど�
 
 制御速度はフィールド座標系で更新した後、ロボット座標系に変換し、`RobotCommand`に格納しています。
 
+### ロボット座標系
+
+ロボット座標系は右手系です。
+
+![robotCoordinate](https://github.com/SSL-Roots/consai2/blob/images/images/robotCoordinate.png)
+
 ## Subscribe topics
 
 - vision_wrapper/robot_info_* (consai2_msgs/RobotInfo)
