@@ -16,7 +16,7 @@ from field import Field
 
 # 直線の傾きと切片を算出
 # 2点の座標から算出する
-def _get_line_pram(pose1, pose2):
+def _get_line_prameter(pose1, pose2):
 
     x1 = pose1.x
     y1 = pose1.y
@@ -85,19 +85,18 @@ def interpose(ball_info, robot_info, control_target):
     ball_pose_next = Pose2D(
             ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
 
-    # 敵ロボットとボールの距離が近い場合は敵とボールの直線を使う
+    # 敵ロボットとボールの距離が近い場合は敵の向いている直線を使う
     if dist[min_dist_id] < DIST_ROBOT_TO_BALL_THRESHOLD and robot_pose.x < 0:
-        
         slope = math.tan(robot_pose.theta)
         intercept = robot_pose.y - slope * robot_pose.x 
 
     # ボールの速度がある場合かつ近づいてくる場合はボールの向かう直線を使う
     elif MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
-        slope, intercept = _get_line_pram(ball_pose, ball_pose_next)
+        slope, intercept = _get_line_prameter(ball_pose, ball_pose_next)
 
-    # その他はゴール中心とボールを結ぶ線を使う
+    # その他はゴール中心とボールを結ぶ直線を使う
     else:
-        slope, intercept = _get_line_pram(ball_pose, OUR_GOAL_POSE)
+        slope, intercept = _get_line_prameter(ball_pose, OUR_GOAL_POSE)
     
     # ゴーリの新しい座標
     goalie_pose_x = OUR_GOAL_POSE.x + MARGIN_DIST_X
