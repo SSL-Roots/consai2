@@ -18,6 +18,11 @@
     <rosparam command="load" file="$(find consai2_examples)/param/joy_ps4.yaml" />
   </node>
 
+  <include file="$(find consai2_sender)/launch/sender.launch">
+    <arg name="sim" value="$(arg sim)" />
+    <arg name="load_description" value="false" />
+  </include>
+
   <group ns="/$(arg color)$(arg side)">
 
     <!-- ビジュアライザの起動 -->
