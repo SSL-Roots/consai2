@@ -52,7 +52,6 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
 
     kick_flag = False
     # ボールがしきい値内かどうか判定
-    # print(dist, angle_rb)
     if dist < dist_th and abs(angle_rb) < ang_th:
         # print(ball_get_state, dist, angle_rb)
         if ball_get_state == 1:
@@ -63,7 +62,6 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
             target_pose.y = ball_pose.y + dy
             control_target.path.append(target_pose)
             ball_get_state = 2
-            print('1')
            
         elif ball_get_state == 2: 
 
@@ -71,7 +69,6 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
             control_target.path.append(target_pose)
             if distance_2_poses(_robot_pose, target_pose) < 0.03:
                 ball_get_state = 3
-            print('2')
         else:
             # 角度調整
             command.robot_id = target_id
@@ -87,7 +84,6 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
                 kick_flag = True
             else:
                 command.kick_power = 0
-            print('3')
 
             robot_commands.commands.append(copy.deepcopy(command))
             joy_wrapper._pub_commands.publish(robot_commands)
@@ -100,7 +96,6 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
         control_target.kick_power = 0
         target_pose = coordinate.get_target_pose()
         control_target.path.append(target_pose)
-        print('4')
 
     return control_target, kick_flag
 
@@ -182,7 +177,7 @@ def main():
     topic_id = hex(TARGET_ID)[2:]
     topic_name = 'consai2_game/control_target_' + COLOR +'_' + topic_id
 
-    topic_name_robot_info = 'vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
+    topic_name_robot_info = 'blueleft/vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
 
     _coordinate = coordinate.Coordinate()
 

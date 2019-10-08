@@ -15,7 +15,7 @@
     <param name="direct" value="$(arg direct)" />
     <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
     <!-- ひとつのボタンに複数の機能を割り当てています -->
-    <rosparam command="load" file="$(find consai2_examples)/param/joy_ps4.yaml" />
+    <rosparam command="load" file="$(find consai2_examples)/param/joy_f710.yaml" />
   </node>
 
   <group ns="/$(arg color)$(arg side)">
