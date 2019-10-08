@@ -72,11 +72,11 @@ def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
         else:
             # 角度調整
             command.robot_id = target_id
-            command.vel_surge = 0 
+            command.vel_surge = 0.1
             command.vel_sway = 0
             command.vel_angular = ang_vel * math.pi * 0.25
 
-            command.dribble_power = 0.5
+            command.dribble_power = 1.0
             # 指定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and button:
                 command.kick_power = 0.3
@@ -171,13 +171,14 @@ def main():
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 0 # 0 ~ MAX_ID
+    TARGET_ID = 1 # 0 ~ MAX_ID
+    SIDE = "left"
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
-    topic_name = 'consai2_game/control_target_' + COLOR +'_' + topic_id
+    topic_name = COLOR + SIDE + '/consai2_game/control_target_' + COLOR +'_' + topic_id
 
-    topic_name_robot_info = 'blueleft/vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
+    topic_name_robot_info = COLOR + SIDE + '/vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
 
     _coordinate = coordinate.Coordinate()
 
@@ -186,7 +187,7 @@ def main():
     pub_joy = rospy.Publisher('consai2_examples/joy_target', ControlTarget, queue_size=1)
 
     # ballの位置を取得する
-    sub_ball = rospy.Subscriber('vision_wrapper/ball_info', BallInfo, BallPose)
+    sub_ball = rospy.Subscriber(COLOR + SIDE +'/vision_wrapper/ball_info', BallInfo, BallPose)
     # Robotの位置を取得する
     sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
 
