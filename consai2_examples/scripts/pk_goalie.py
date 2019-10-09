@@ -1,46 +1,53 @@
 #!/usr/bin/env python2
 # coding: UTF-8
 
-import rospy
+import os
+import sys
 import copy
+import math
 
+import rospy
 from consai2_msgs.msg import ControlTarget, RobotCommands, RobotCommand
 from geometry_msgs.msg import Pose2D
 from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
 
 import joystick_example
 
-import math
+from os.path import expanduser
 
-robot_pose = Pose2D()
+# ボール情報
+ball_info = BallInfo()
+# ロボット情報
+robot_info = RobotInfo()
+# ゴール情報
 our_goal_pose = Pose2D()
 our_goal_upper = 0
 our_goal_lower = 0
 
+# ゴール前までの距離[m]
+MARGIN_DIST_X = 0.1
 
-# ゴーリーのコントロールJ?
-def make_path(target_id, joy_wrapper, button_lb, button_rb):
+# ボタン操作で目標に生成する移動距離
+MOVE_DISTANCE = 0.1
+
+# ゴーリーのコントロール
+def make_path(control_target, joy_wrapper, button_lb, button_rb):
     # 制御目標値を生成
-    global robot_pose, our_goal_pose, our_goal_upper, our_goal_lower
+    global robot_info, our_goal_pose, our_goal_upper, our_goal_lower
+    global MARGIN_DIST_X, MOVE_DISTANCE
 
-    # control_targetの生成
-    control_target = ControlTarget()
+    robot_pose = robot_info.pose
 
-    # ロボットID
-    control_target.robot_id = target_id
     # Trueで走行開始
     control_target.control_enable = True
-
-    # ゴールライン上ではなく一定距離[m]前を守るための変数
-    MARGIN_DIST_X = 0.1
 
     # ゴーリーの位置を生成
     target_pose = Pose2D(our_goal_pose.x, robot_pose.y, 0)
     target_pose.x += MARGIN_DIST_X
     if button_lb:
-        target_pose.y += 0.1
+        target_pose.y += MOVE_DISTANCE
     if button_rb:
-        target_pose.y -= 0.1
+        target_pose.y -= MOVE_DISTANCE
 
     # 行き過ぎを抑制する
     if our_goal_upper < target_pose.y:
@@ -54,14 +61,14 @@ def make_path(target_id, joy_wrapper, button_lb, button_rb):
     return control_target
 
 # 特定のボタンを押すとゴール中心へ移動
-def move_goal_center(target_id):
+def move_goal_center(control_target):
 
     global our_goal_pose
 
+    # ゴール中心から一定距離前に出る
     target_pose = our_goal_pose
+    target_pose.x += MOVE_DISTANCE
 
-    control_target = ControlTarget()
-    control_target.robot_id = target_id
     control_target.control_enable = True
     control_target.path = []
     control_target.path.append(target_pose)
@@ -69,35 +76,38 @@ def move_goal_center(target_id):
     return control_target
 
 # コントローラを離しているときは停止
-def stop(target_id):
-    global robot_pose    
+def stop(control_target):
+    global robot_info
 
-    target_pose = robot_pose
+    # 現在の自分の位置を代入
+    target_pose = robot_info.pose
 
-    control_target = ControlTarget()
-    control_target.robot_id = target_id
     control_target.control_enable = True
     control_target.path = []
     control_target.path.append(target_pose)
 
     return control_target
 
-def RobotPose(data):
-    global robot_pose
-    robot_pose = data.pose
+# ボールの情報を取得
+def get_ball_info(msg):
+    global ball_info
+    ball_info = msg
+
+# ロボットの情報を取得
+def get_robot_info(msg):
+    global robot_info
+    robot_info = msg
 
 # フィールドの情報取得
 def get_field_info(data):
     global our_goal_pose, our_goal_upper, our_goal_lower
-
+    
+    # フィールド長
     field_length = data.field_length
-    field_width  = data.field_width
 
     # ゴール幅
-    our_goal_upper = 0.5
-    our_goal_lower = -0.5
-    # our_goal_upper = data.goal_width/2
-    # our_goal_lower = -data.goal_width/2
+    our_goal_upper = data.goal_width/2
+    our_goal_lower = -data.goal_width/2
 
     # ゴール座標
     our_goal_pose.x = -field_length/2
@@ -105,6 +115,8 @@ def get_field_info(data):
 
 
 def main():
+    
+    global robot_info, ball_info
 
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
@@ -123,21 +135,26 @@ def main():
     pub_joy = rospy.Publisher('consai2_examples/joy_target', ControlTarget, queue_size=1)
 
     # Robotの位置を取得する
-    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
+    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, get_robot_info)
 
     # フィールドの情報をもらう
     sub_vision = rospy.Subscriber(topic_vision, VisionGeometry, get_field_info)
 
+    # ボールの位置を取得
+    sub_ball_info = rospy.Subscriber(
+            'vision_wrapper/ball_info', BallInfo,
+            get_ball_info, queue_size=1)
+
     # joystick
     joy_wrapper = joystick_example.JoyWrapper()
 
-    rospy.sleep(3.0)
+    # CotrolTargetの生成
+    control_target = ControlTarget()
+    # ロボットIDを設定
+    control_target.robot_id = TARGET_ID
 
     # 制御目標値を生成
     r = rospy.Rate(60)
-
-    # 制御目標値を生成
-    button_flag = 0
     while 1:
         # ボタン情報の取得
         if joy_wrapper.get_button_status() != None:
@@ -150,18 +167,18 @@ def main():
             button_rb = 0
             button_x  = 0
 
+        # LB or RBボタンでゴール前を左右に移動
         if button_lb or button_rb:
             # パスの生成
-            control_target = make_path(
-                                    TARGET_ID,
-                                    joy_wrapper,
-                                    button_lb,
-                                    button_rb,
-                                )
+            control_target = make_path(control_target, joy_wrapper, button_lb, button_rb)
+
+        # Xボタンを押すとゴール前の真ん中へ移動
         elif button_x:
-            control_target = move_goal_center(TARGET_ID)
+            control_target = move_goal_center(control_target)
+
+        # 何も押していないときは止まる
         else:
-            control_target = stop(TARGET_ID)
+            control_target = stop(control_target)
 
         pub.publish(control_target)
 
