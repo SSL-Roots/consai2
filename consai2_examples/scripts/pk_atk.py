@@ -73,6 +73,9 @@ def make_path(control_target, coordinate, kick_enable, ang_1, ang_2):
 
             # 指定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and kick_enable:
+                target_pose.x += 0.1 * math.cos(target_pose.theta)
+                target_pose.y += 0.1 * math.sin(target_pose.theta)
+
                 control_target.kick_power = 0.3
                 ball_get_state = 1
                 kick_flag = True
@@ -188,7 +191,7 @@ def main():
     control_target.robot_id = TARGET_ID
 
     # ボールを取りに行くクラス
-    _coordinate = coordinate.Coordinate()
+    _coordinate = coordinate.Coordinate(ATK_COLOR, ATK_SIDE)
 
     # 制御目標値を生成
     r = rospy.Rate(60)

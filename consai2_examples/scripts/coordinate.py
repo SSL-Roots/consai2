@@ -1,25 +1,25 @@
 #!/usr/bin/env python2
 # coding: UTF-8
 
+import rospy
 import math
 import tool
+
+from consai2_msgs.msg import ControlTarget, RobotCommands, RobotCommand
+from geometry_msgs.msg import Pose2D
+from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotInfo
 
 from geometry_msgs.msg import Pose2D
 
 RobotRadius = 0.09
 BallRadius = 0.0215
 
-OUR_GOAL_X = 0.9
-OUR_GOAL_Y = 0
-FRONT_GOAL_X = -0.9
-FRONT_GOAL_Y = 0
-
 class Coordinate(object):
     # Coordinateクラスは、フィールド状況をもとに移動目標位置、目標角度を生成する
     # Coordinateクラスには、移動目標の生成方法をsetしなければならない
     # Coordinateクラスのposeが生成された移動目標である
 
-    def __init__(self):
+    def __init__(self, color, side):
         self.pose = Pose2D() # pos_x, pos_y, thta
 
         self._robot_pose = Pose2D()
@@ -43,11 +43,32 @@ class Coordinate(object):
 
         self.approach_state = 0
 
+        # ゴール位置取得
+        topic_vision = color + side + '/vision_receiver/raw_vision_geometry'
+        sub_vision = rospy.Subscriber(topic_vision, VisionGeometry, self.get_field_info)
+
     def _update_robot_pose(self, robot_pose):
         self._robot_pose = robot_pose
 
     def _update_ball_pose(self, ball_pose):
         self._ball_pose = ball_pose
+
+    def get_field_info(self, msg):
+        
+        # フィールド長
+        field_length = msg.field_length
+
+        # ゴール幅
+        our_goal_upper = msg.goal_width/2
+        our_goal_lower = -msg.goal_width/2
+
+        # ゴール座標
+        self.our_goal_x = -field_length/2
+        self.our_goal_y = 0
+
+        self.front_goal_x = field_length/2
+        self.front_goal_y = 0
+
 
     def get_target_pose(self):
         return self.target_pose
@@ -56,12 +77,12 @@ class Coordinate(object):
         # Reference to this idea
         # http://wiki.robocup.org/images/f/f9/Small_Size_League_-_RoboCup_2014_-_ETDP_RoboDragons.pdf
 
-        _target_pose = Pose2D(FRONT_GOAL_X, FRONT_GOAL_Y,0)
+        _target_pose = Pose2D(self.front_goal_x, self.front_goal_y, 0)
         _role_pose = self._robot_pose
 
         if _target_pose is None or _role_pose is None:
             return False
-
+ 
         # ボールからターゲットを見た座標系で計算する
         angle_ball_to_target = tool.getAngle(self._ball_pose, _target_pose)
         trans = tool.Trans(self._ball_pose, angle_ball_to_target)
