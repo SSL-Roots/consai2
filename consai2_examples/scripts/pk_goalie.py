@@ -13,7 +13,13 @@ from consai2_msgs.msg import VisionDetections, VisionGeometry, BallInfo, RobotIn
 
 import joystick_example
 
-from os.path import expanduser
+current_dir = os.path.dirname(__file__)
+game_dir = os.path.join(
+                    current_dir,
+                    '../../consai2_game/scripts/example'
+                )
+sys.path.append(game_dir)
+from actions import goalie
 
 # ボール情報
 ball_info = BallInfo()
@@ -127,10 +133,10 @@ def main():
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
     topic_name = COLOR + SIDE + '/consai2_game/control_target_' + COLOR +'_' + topic_id
-    topic_name_robot_info = COLOR + SIDE + '/vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
+    topic_name_robot_info = COLOR + SIDE + '/vision_wrapper/robot_info_' + COLOR + '_' + topic_id
     topic_vision = COLOR + SIDE + '/vision_receiver/raw_vision_geometry'
 
-     # print sub
+    # print sub
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
     pub_joy = rospy.Publisher('consai2_examples/joy_target', ControlTarget, queue_size=1)
 
@@ -162,19 +168,21 @@ def main():
             button_lb = _joy_msg.buttons[4]
             button_rb = _joy_msg.buttons[5]
             button_x  = _joy_msg.buttons[0]
+            button_lt = _joy_msg.buttons[6]
+            button_rt = _joy_msg.buttons[7]
+            button_a  = _joy_msg.buttons[1]
         else:
             button_lb = 0
             button_rb = 0
             button_x  = 0
+            button_lt = 0
+            button_rt = 0
+            button_a  = 0
 
         # LB or RBボタンでゴール前を左右に移動
         if button_lb or button_rb:
             # パスの生成
             control_target = make_path(control_target, joy_wrapper, button_lb, button_rb)
-
-        # Xボタンを押すとゴール前の真ん中へ移動
-        elif button_x:
-            control_target = move_goal_center(control_target)
 
         # 何も押していないときは止まる
         else:
