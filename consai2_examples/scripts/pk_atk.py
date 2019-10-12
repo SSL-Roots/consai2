@@ -13,111 +13,103 @@ import coordinate
 
 import math
 
-ball_pose = Pose2D()
-robot_pose = Pose2D()
-target_pose = Pose2D()
-
-# 制御目標値を生成
-control_target = ControlTarget()
-command = RobotCommand()
+ball_info = BallInfo()
+robot_info = RobotInfo()
 
 # ボールを取得したかどうかのFlag
 ball_get_state = 1
 
-def path_example(target_id, coordinate, joy_wrapper, button, ang_vel):
+# def path_example(control_target, coordinate, joy_wrapper, button, ang_vel):
+def make_path(control_target, coordinate, kick_enable, ang_1, ang_2):
     # 制御目標値を生成
-    global control_target, target_pose, command, robot_pose, ball_pose, ball_get_state
-    control_target = ControlTarget()
+    global robot_info, ball_info, ball_get_state
 
-    robot_commands = RobotCommands()
-    robot_commands.header.stamp = rospy.Time.now()
+    robot_pose = robot_info.pose
+    ball_pose = ball_info.pose
 
-    _robot_pose = robot_pose
-    _ball_pose = ball_pose
+    target_pose = Pose2D()
+    target_pose = robot_pose
 
-    # ロボットID
-    control_target.robot_id = target_id
     # Trueで走行開始
     control_target.control_enable = True
 
     # 経路生成
     coordinate._update_approach_to_shoot()
     # ロボットとボールの間の距離
-    dist = distance_2_poses(_robot_pose, _ball_pose)
+    dist = distance_2_poses(robot_pose, ball_pose)
     # ロボットとボール間の相対角度(degで取得)
-    angle_rb = angle_2_diff(_robot_pose.theta, angle_2_poses(_robot_pose, _ball_pose), unit='deg')
+    angle_rb = angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg')
 
     dist_th = 0.13
     ang_th = 30
 
     kick_flag = False
     # ボールがしきい値内かどうか判定
+    control_target.dribble_power = 0.0
+    control_target.kick_power = 0.0
     if dist < dist_th and abs(angle_rb) < ang_th:
-        # print(ball_get_state, dist, angle_rb)
         if ball_get_state == 1:
-            ang = angle_2_poses(_robot_pose, _ball_pose)
+
+            ang = angle_2_poses(robot_pose, ball_pose)
             dx = 0.05 * math.cos(ang*math.pi/180)
             dy = 0.05 * math.sin(ang*math.pi/180)
+
             target_pose.x = ball_pose.x + dx
             target_pose.y = ball_pose.y + dy
-            control_target.path.append(target_pose)
+
             ball_get_state = 2
            
         elif ball_get_state == 2: 
-
-            control_target.dribble_power = 0
-            control_target.path.append(target_pose)
-            if distance_2_poses(_robot_pose, target_pose) < 0.03:
+            if distance_2_poses(robot_pose, target_pose) < 0.03:
                 ball_get_state = 3
         else:
             # 角度調整
-            command.robot_id = target_id
-            command.vel_surge = 0.1
-            command.vel_sway = 0
-            command.vel_angular = ang_vel * math.pi * 0.25
+            if ang_1:
+                target_pose.theta = target_pose.theta + math.pi * 0.25
+            elif ang_2:
+                target_pose.theta =target_pose.theta - math.pi * 0.25
 
-            command.dribble_power = 1.0
+            control_target.dribble_power = 1.0
+
             # 指定角度以内 + ボタン入力がある場合蹴る
-            if abs(angle_rb) < 20 and button:
-                command.kick_power = 0.3
+            if abs(angle_rb) < 20 and kick_enable:
+                control_target.kick_power = 0.3
                 ball_get_state = 1
                 kick_flag = True
-            else:
-                command.kick_power = 0
-
-            robot_commands.commands.append(copy.deepcopy(command))
-            joy_wrapper._pub_commands.publish(robot_commands)
 
     # しきい値内では無い場合経路生成してボールまで行く
     else:
         ball_get_state = 1
-
-        control_target.dribble_power = 0
-        control_target.kick_power = 0
         target_pose = coordinate.get_target_pose()
-        control_target.path.append(target_pose)
+
+    control_target.path = []
+    control_target.path.append(target_pose)
 
     return control_target, kick_flag
 
 # コントローラを離しているときは停止
-def stop(target_id):
-    
-    global control_target
-    
-    control_target.robot_id = target_id
-    control_target.control_enable = False
-    
+def stop(control_target):
+    global robot_info, ball_get_state
+
+    control_target.control_enable = True
+    control_target.path = []
+    control_target.path.append(robot_info.pose)
+
+    if ball_get_state == 1 or ball_get_state == 2:
+        control_target.dribble_power = 0.0
+        control_target.kick_power = 0.0
+
     return control_target
 
 
-def BallPose(data):
-    global ball_pose
-    ball_pose = data.pose
+def get_ball_info(msg):
+    global ball_info
+    ball_info = msg
 
 
-def RobotPose(data):
-    global robot_pose
-    robot_pose = data.pose
+def get_robot_info(msg):
+    global robot_info
+    robot_info = msg
 
 
 # 2つの角度の差分を取る
@@ -142,9 +134,7 @@ def angle_normalize(angle):
 
     return angle
 
-
-# 角度を計算する
-# ２点間の直線と水平線との角度
+# ２点間の直線と水平線との角度を計算
 def angle_2_poses(pose1, pose2):
     diff_pose = Pose2D()
 
@@ -156,9 +146,6 @@ def angle_2_poses(pose1, pose2):
 
 # 2点間の距離を計算する
 def distance_2_poses(pose1, pose2):
-    # 2点間の距離を取る
-    # pose.theta は使用しない
-
     diff_pose = Pose2D()
 
     diff_pose.x = pose1.x - pose2.x
@@ -168,78 +155,81 @@ def distance_2_poses(pose1, pose2):
 
 
 def main():
+    global ball_info, robot_info
+    
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
-    COLOR = "blue" # 'blue' or 'yellow'
-    TARGET_ID = 1 # 0 ~ MAX_ID
-    SIDE = "left"
+    TARGET_ID = 0 # 0 ~ MAX_ID
+    ATK_COLOR = "yellow" # 'blue' or 'yellow'
+    ATK_SIDE = "right"
+    GOALIE_COLOR = "blue" # 'blue' or 'yellow'
+    GOALIE_SIDE = "left"
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
-    topic_name = COLOR + SIDE + '/consai2_game/control_target_' + COLOR +'_' + topic_id
-
-    topic_name_robot_info = COLOR + SIDE + '/vision_wrapper/robot_info_' + COLOR + '_' + str(TARGET_ID)
-
-    _coordinate = coordinate.Coordinate()
 
     # print sub
+    topic_name = ATK_COLOR + ATK_SIDE + '/consai2_game/control_target_' + ATK_COLOR +'_' + topic_id
     pub = rospy.Publisher(topic_name, ControlTarget, queue_size=1)
     pub_joy = rospy.Publisher('consai2_examples/joy_target', ControlTarget, queue_size=1)
 
     # ballの位置を取得する
-    sub_ball = rospy.Subscriber(COLOR + SIDE +'/vision_wrapper/ball_info', BallInfo, BallPose)
+    sub_ball = rospy.Subscriber(ATK_COLOR + ATK_SIDE +'/vision_wrapper/ball_info', BallInfo, get_ball_info)
+
     # Robotの位置を取得する
-    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, RobotPose)
+    topic_name_robot_info = ATK_COLOR + ATK_SIDE + '/vision_wrapper/robot_info_' + ATK_COLOR + '_' + topic_id
+    sub_robot = rospy.Subscriber(topic_name_robot_info, RobotInfo, get_robot_info)
 
     # joy_
     joy_wrapper = joystick_example.JoyWrapper()
-    print 'control_exmaple start'
 
-    rospy.sleep(3.0)
+    # control_target
+    control_target = ControlTarget()
+    control_target.robot_id = TARGET_ID
+
+    # ボールを取りに行くクラス
+    _coordinate = coordinate.Coordinate()
 
     # 制御目標値を生成
     r = rospy.Rate(60)
-
     kick_flag = False
     button_flag = 0
     while 1:
         if joy_wrapper.get_button_status() != None:
             _joy_msg = joy_wrapper.get_button_status()
             button_lb = _joy_msg.buttons[4]
+            button_rb = _joy_msg.buttons[5]
             button_x  = _joy_msg.buttons[0]
-            ang_vel   = _joy_msg.axes[3] 
+            button_a  = _joy_msg.buttons[1]
         else:
             button_lb = 0
+            button_rb = 0
             button_x  = 0
-            ang_vel   = 0
+            button_a  = 0
 
-        _coordinate._update_robot_pose(robot_pose)
-        _coordinate._update_ball_pose(ball_pose)
+        _coordinate._update_robot_pose(robot_info.pose)
+        _coordinate._update_ball_pose(ball_info.pose)
 
-        if button_lb and kick_flag == False:
+        if (button_a or button_lb or button_rb or button_x) and kick_flag == False:
             # パスの生成
-            control_target, kick_flag = path_example(
-                                                TARGET_ID,
+            control_target, kick_flag = make_path(
+                                                control_target,
                                                 _coordinate,
-                                                joy_wrapper,
                                                 button_x,
-                                                ang_vel)
-
+                                                button_lb,
+                                                button_rb)
+                                                # ang_vel)
             pub.publish(control_target)
-            
-        elif button_flag == 1 and button_lb == 0:
-            kick_flag = False
+        # 停止    
         else:
-            control_target = stop(TARGET_ID)
+            control_target = stop(control_target)
             pub.publish(control_target)
-            pub_joy.publish(control_target)
+        if button_flag == 1 and button_a == 0:
+            kick_flag = False
 
-        button_flag = button_lb
+        button_flag = button_a
 
         r.sleep()
-
-    print 'control_exmaple finish'
-
 
 if __name__ == '__main__':
     main()
