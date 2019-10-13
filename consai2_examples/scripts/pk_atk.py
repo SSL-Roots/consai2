@@ -15,20 +15,29 @@ import math
 
 ball_info = BallInfo()
 robot_info = RobotInfo()
+ball_get_pose = Pose2D()
 
 # ボールを取得したかどうかのFlag
 ball_get_state = 1
 
-# def path_example(control_target, coordinate, joy_wrapper, button, ang_vel):
-def make_path(control_target, coordinate, kick_enable, ang_1, ang_2):
+# パスの生成
+def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2):
     # 制御目標値を生成
-    global robot_info, ball_info, ball_get_state
+    global robot_info, ball_info, ball_get_state, ball_get_pose
 
+    # ボールとロボットの位置を取得
     robot_pose = robot_info.pose
     ball_pose = ball_info.pose
 
+    # 新しいパスを格納する変数
     target_pose = Pose2D()
-    target_pose = robot_pose
+    # target_pose = robot_pose
+
+    # 角度調整用
+    robot_commands = RobotCommands()
+    robot_commands.header.stamp = rospy.Time.now()
+
+    command = RobotCommand()
 
     # Trueで走行開始
     control_target.control_enable = True
@@ -40,52 +49,67 @@ def make_path(control_target, coordinate, kick_enable, ang_1, ang_2):
     # ロボットとボール間の相対角度(degで取得)
     angle_rb = angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg')
 
-    dist_th = 0.13
+    dist_th = 0.20
     ang_th = 30
 
     kick_flag = False
-    # ボールがしきい値内かどうか判定
     control_target.dribble_power = 0.0
     control_target.kick_power = 0.0
+    # ボールがしきい値内かどうか判定して各動作を生成
     if dist < dist_th and abs(angle_rb) < ang_th:
+        # ボールの少し前に前進する
         if ball_get_state == 1:
+            control_target.dribble_power = 0.5
+            
+            # ボール位置まで移動してボールを確実に保持する
+            target_pose.x = ball_pose.x
+            target_pose.y = ball_pose.y
+            target_pose.theta = angle_2_poses(robot_pose, ball_pose)
 
-            ang = angle_2_poses(robot_pose, ball_pose)
-            dx = 0.05 * math.cos(ang*math.pi/180)
-            dy = 0.05 * math.sin(ang*math.pi/180)
-
-            target_pose.x = ball_pose.x + dx
-            target_pose.y = ball_pose.y + dy
-
+            ball_get_pose = target_pose
             ball_get_state = 2
-           
-        elif ball_get_state == 2: 
-            if distance_2_poses(robot_pose, target_pose) < 0.03:
+
+        if ball_get_state == 2:
+            target_pose = ball_get_pose
+            control_target.dribble_power = 0.5
+            if distance_2_poses(robot_pose, ball_get_pose) < 0.1:
                 ball_get_state = 3
         else:
             # 角度調整
+            # command.robot_id = control_target.robot_id
+            # command.dribble_power = 0.5
+            # command.vel_surge = 0 
+            # command.vel_sway = 0
+            target_pose = robot_pose
+            control_target.dribble_power = 0.5
             if ang_1:
-                target_pose.theta = target_pose.theta + math.pi * 0.25
+                target_pose.theta = target_pose.theta + math.pi * 0.2
+                # command.vel_angular = math.pi * 1.0
             elif ang_2:
-                target_pose.theta =target_pose.theta - math.pi * 0.25
+                target_pose.theta = target_pose.theta - math.pi * 0.2
+                # command.vel_angular = -math.pi * 1.0
 
-            control_target.dribble_power = 1.0
-
-            # 指定角度以内 + ボタン入力がある場合蹴る
+            # 判定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and kick_enable:
-                target_pose.x += 0.1 * math.cos(target_pose.theta)
-                target_pose.y += 0.1 * math.sin(target_pose.theta)
-
+                # command.kick_power = 0.3
                 control_target.kick_power = 0.3
                 ball_get_state = 1
                 kick_flag = True
 
-    # しきい値内では無い場合経路生成してボールまで行く
+            # robot_commands.commands.append(copy.deepcopy(command))
+            # joy_wrapper._pub_commands.publish(robot_commands)
+
+    # しきい値内で無い場合経路生成してボールまで行く
     else:
         ball_get_state = 1
+        control_target.dribble_power = 0.0
+        control_target.kick_power = 0.0
         target_pose = coordinate.get_target_pose()
 
+    # print(ball_get_state)
+
     control_target.path = []
+    # if ball_get_state != 3:
     control_target.path.append(target_pose)
 
     return control_target, kick_flag
@@ -158,7 +182,7 @@ def distance_2_poses(pose1, pose2):
 
 
 def main():
-    global ball_info, robot_info
+    global ball_info, robot_info, bal_get_state
     
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
@@ -190,7 +214,7 @@ def main():
     control_target = ControlTarget()
     control_target.robot_id = TARGET_ID
 
-    # ボールを取りに行くクラス
+    # ボールを取りに行くcoordinateクラス
     _coordinate = coordinate.Coordinate(ATK_COLOR, ATK_SIDE)
 
     # 制御目標値を生成
@@ -210,6 +234,7 @@ def main():
             button_x  = 0
             button_a  = 0
 
+        # coordinateのアップデート
         _coordinate._update_robot_pose(robot_info.pose)
         _coordinate._update_ball_pose(ball_info.pose)
 
@@ -217,20 +242,22 @@ def main():
             # パスの生成
             control_target, kick_flag = make_path(
                                                 control_target,
+                                                joy_wrapper,
                                                 _coordinate,
                                                 button_x,
                                                 button_lb,
                                                 button_rb)
-                                                # ang_vel)
+            # if ball_get_state != 3:
             pub.publish(control_target)
         # 停止    
         else:
             control_target = stop(control_target)
             pub.publish(control_target)
-        if button_flag == 1 and button_a == 0:
+        # 蹴ったあとに追いかける対策
+        if button_flag == 1 and button_x == 0:
             kick_flag = False
 
-        button_flag = button_a
+        button_flag = button_x
 
         r.sleep()
 
