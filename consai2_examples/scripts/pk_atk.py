@@ -25,6 +25,8 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # 制御目標値を生成
     global robot_info, ball_info, ball_get_state, ball_get_pose
 
+    DRIBBLE_P = 0.5
+
     # ボールとロボットの位置を取得
     robot_pose = robot_info.pose
     ball_pose = ball_info.pose
@@ -49,7 +51,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # ロボットとボール間の相対角度(degで取得)
     angle_rb = angle_2_diff(robot_pose.theta, angle_2_poses(robot_pose, ball_pose), unit='deg')
 
-    dist_th = 0.20
+    dist_th = 0.25
     ang_th = 30
 
     kick_flag = False
@@ -58,7 +60,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # ボールがしきい値内かどうか判定して各動作を生成
     if dist < dist_th and abs(angle_rb) < ang_th:
         # とりあえずドリブルする
-        control_target.dribble_power = 0.5
+        control_target.dribble_power = DRIBBLE_P
         # ボールの少し前に前進する
         if ball_get_state == 1:
             # ボール位置まで移動してボールを確実に保持する
@@ -75,27 +77,27 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
                 ball_get_state = 3
         else:
             # 角度調整
-            # command.robot_id = control_target.robot_id
-            # command.dribble_power = 0.5
-            # command.vel_surge = 0 
-            # command.vel_sway = 0
+            command.robot_id = control_target.robot_id
+            command.dribble_power = DRIBBLE_P
+            command.vel_surge = 0 
+            command.vel_sway = 0
             target_pose = robot_pose
             if ang_1:
-                target_pose.theta = target_pose.theta + math.pi * 0.2
-                # command.vel_angular = math.pi * 1.0
+                # target_pose.theta = target_pose.theta + math.pi * 0.2
+                command.vel_angular = math.pi * 1.0
             elif ang_2:
-                target_pose.theta = target_pose.theta - math.pi * 0.2
-                # command.vel_angular = -math.pi * 1.0
+                # target_pose.theta = target_pose.theta - math.pi * 0.2
+                command.vel_angular = -math.pi * 1.0
 
             # 判定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and kick_enable:
-                # command.kick_power = 0.3
-                control_target.kick_power = 0.3
+                command.kick_power = 0.3
+                # control_target.kick_power = 0.3
                 ball_get_state = 1
                 kick_flag = True
 
-            # robot_commands.commands.append(copy.deepcopy(command))
-            # joy_wrapper._pub_commands.publish(robot_commands)
+            robot_commands.commands.append(copy.deepcopy(command))
+            joy_wrapper._pub_commands.publish(robot_commands)
 
     # しきい値内で無い場合経路生成してボールまで行く
     else:
@@ -119,6 +121,7 @@ def stop(control_target):
     control_target.control_enable = True
     control_target.path = []
     control_target.path.append(robot_info.pose)
+    control_target.dribble_power = 0.0
 
     if ball_get_state == 1 or ball_get_state == 2:
         control_target.dribble_power = 0.0
