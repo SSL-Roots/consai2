@@ -21,7 +21,7 @@ ball_get_pose = Pose2D()
 ball_get_state = 1
 
 # パスの生成
-def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2):
+def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2, atk_color):
     # 制御目標値を生成
     global robot_info, ball_info, ball_get_state, ball_get_pose
 
@@ -38,6 +38,8 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # 角度調整用
     robot_commands = RobotCommands()
     robot_commands.header.stamp = rospy.Time.now()
+    if atk_color == "yellow":
+        robot_commands.is_yellow = True
 
     command = RobotCommand()
 
@@ -247,7 +249,8 @@ def main():
                                                 _coordinate,
                                                 button_x,
                                                 button_lb,
-                                                button_rb)
+                                                button_rb,
+                                                ATK_COLOR)
             # if ball_get_state != 3:
             pub.publish(control_target)
         # 停止    
