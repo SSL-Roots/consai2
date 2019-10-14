@@ -34,7 +34,7 @@ our_goal_lower = 0
 MARGIN_DIST_X = 0.1
 
 # ボタン操作で目標に生成する移動距離
-MOVE_DISTANCE = 0.1
+MOVE_DISTANCE = 0.3
 
 # ゴーリーのコントロール
 def make_path(control_target, joy_wrapper, button_lb, button_rb):
