@@ -84,10 +84,10 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
             target_pose = robot_pose
             if ang_1:
                 # target_pose.theta = target_pose.theta + math.pi * 0.2
-                command.vel_angular = math.pi * 1.0
+                command.vel_angular = math.pi * 0.75
             elif ang_2:
                 # target_pose.theta = target_pose.theta - math.pi * 0.2
-                command.vel_angular = -math.pi * 1.0
+                command.vel_angular = -math.pi * 0.75
 
             # 判定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and kick_enable:
