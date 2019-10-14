@@ -57,10 +57,10 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     control_target.kick_power = 0.0
     # ボールがしきい値内かどうか判定して各動作を生成
     if dist < dist_th and abs(angle_rb) < ang_th:
+        # とりあえずドリブルする
+        control_target.dribble_power = 0.5
         # ボールの少し前に前進する
         if ball_get_state == 1:
-            control_target.dribble_power = 0.5
-            
             # ボール位置まで移動してボールを確実に保持する
             target_pose.x = ball_pose.x
             target_pose.y = ball_pose.y
@@ -71,7 +71,6 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
 
         if ball_get_state == 2:
             target_pose = ball_get_pose
-            control_target.dribble_power = 0.5
             if distance_2_poses(robot_pose, ball_get_pose) < 0.1:
                 ball_get_state = 3
         else:
@@ -81,7 +80,6 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
             # command.vel_surge = 0 
             # command.vel_sway = 0
             target_pose = robot_pose
-            control_target.dribble_power = 0.5
             if ang_1:
                 target_pose.theta = target_pose.theta + math.pi * 0.2
                 # command.vel_angular = math.pi * 1.0
