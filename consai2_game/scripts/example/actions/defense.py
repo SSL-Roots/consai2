@@ -17,13 +17,13 @@ import tool
 
 
 # defenseのroleによって行動を切り替える
-def defense_decision(my_role, ball_info, control_target, my_pose, defense_num, robot_info, zone_enable=False):
+def defense_decision(my_role, ball_info, control_target, my_pose, defense_num, robot_info, zone_enable=False, is_stop=False):
     # ゴール前ディフェンス
     if role.ROLE_ID['ROLE_DEFENSE_GOAL_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENSE_GOAL_2']:
-        return defense_goal(my_pose, ball_info, control_target, my_role, defense_num)
+        return defense_goal(my_pose, ball_info, control_target, my_role, defense_num, is_stop)
     # ゾーンディフェンス
     elif role.ROLE_ID['ROLE_DEFENSE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_DEFENSE_ZONE_4']:
-        return defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
+        return defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable, is_stop)
     # 例外だった場合はその場にいる
     else:
         control_target.path = []
@@ -32,7 +32,7 @@ def defense_decision(my_role, ball_info, control_target, my_pose, defense_num, r
 
 
 # ゴール前ディフェンス
-def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
+def defense_goal(my_pose, ball_info, control_target, my_role, defense_num, is_stop):
     # ゴール前ディフェンスは、ペナルティエリアに沿って守備を行う
     # ボールとゴールを結ぶ直線と、ペナルティエリアのラインの交点を基準に移動
     # ボールの位置によって、ライン左、ライン正面、ライン右のどのラインの前に移動するか変わる
@@ -78,6 +78,12 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
     right_penalty_goalside = Field.penalty_pose('our', 'lower_back')
     # ゴールの中心
     goal_center = Field.goal_pose('our', 'center')
+
+    if is_stop and ball_pose.x < left_penalty_corner.x + 1.0:
+        if my_role == role.ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
+            MARGIN_ROBOT = 1.0
+        else:
+            MARGIN_ROBOT = -1.0
 
     # ゴール中心からペナルティエリア左角への角度
     angle_to_left_penalty_corner =  tool.get_angle(goal_center, left_penalty_corner)
@@ -184,7 +190,7 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
     
 
 # ゾーンディフェンス
-def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
+def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable, is_stop):
     # ゴールディフェンスに割り当てる台数
     GOAL_DEFENSE_NUM = 2
     # 現在のディフェンス数 - ゴールディフェンス数 = ゾーンディフェンスに割り当てられる台数
@@ -295,7 +301,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
                     i.pose.x < 0]
 
             # ボールが自分のゾーンの中に入っている, かつzone_enable
-            if(zone_enable and \
+            if((zone_enable or is_stop) and \
                     ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)

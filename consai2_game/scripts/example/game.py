@@ -110,7 +110,7 @@ class RobotNode(object):
                 else:
                     self._control_target = defense.defense_decision(
                             self._my_role, ball_info, self._control_target, 
-                            self._my_pose, defense_num, robot_info)
+                            self._my_pose, defense_num, robot_info, is_stop=True)
             elif referee.referee_id == ref.REFEREE_ID["OUR_KICKOFF_PREPARATION"]:
                 rospy.logdebug("OUR_KICKOFF_PREPARATION")
 
