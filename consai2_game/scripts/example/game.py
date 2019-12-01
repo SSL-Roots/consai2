@@ -185,8 +185,13 @@ class RobotNode(object):
                             receive_enable=True, receiver_role_exist=Observer.role_is_exist(role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]),
                             robot_info=robot_info, direct=True)
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]:
-                    self._control_target = normal.move_to(
-                            self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
+                    if ball_info.pose.x < 1.0:
+                        self._control_target = normal.move_to(
+                                self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
+                    else:
+                        self._control_target = defense.defense_decision(
+                            self._my_role, ball_info, self._control_target, 
+                            self._my_pose, defense_num, robot_info)
                 else:
                     self._control_target = defense.defense_decision(
                             self._my_role, ball_info, self._control_target, 
