@@ -258,7 +258,9 @@ class RobotNode(object):
                 else:
                     self._control_target, remake_path = normal.make_line(
                             self._my_role, ball_info, self._control_target,
-                            start_x=-5, start_y=-3, add_x=0.4, add_y=0)
+                            start_x=-Field.field("length")*0.5, 
+                            start_y=Field.field("width")*0.4, 
+                            add_x=0.4, add_y=0)
             elif referee.referee_id == ref.REFEREE_ID["THEIR_DIRECT_FREE"]:
                 rospy.logdebug("THEIR_DIRECT")
 
