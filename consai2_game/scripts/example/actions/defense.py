@@ -192,7 +192,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
     # ゾーンディフェンスが始まるROLE_ID
     ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]
     # ゾーンオフェンス用の待機場所
-    ZONE_OFFENCE_POSE = Pose2D(3,0,0)
+    ZONE_OFFENCE_POSE = Pose2D(Field.field('length')*0.25 ,0,0)
 
     # センターライン用のマージン
     MARGIN_CENTER = 0.6
