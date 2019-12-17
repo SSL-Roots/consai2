@@ -181,6 +181,24 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
     control_target.path.append(target_pose)
 
     return control_target
+
+def _get_avoid_ball_pose(ball_pose, target_pose):
+    # target_poseがボールの半径0.5 m以内にある場合、
+    # ボールから離れたtarget_poseを生成する
+
+    THRESHOLD_DIST = 0.5 # meters
+    AVOID_DIST = 0.6 # meters
+
+    avoid_target_pose = target_pose
+
+    if tool.distance_2_poses(ball_pose, target_pose) < THRESHOLD_DIST:
+        angle_to_target = tool.get_angle(ball_pose, target_pose)
+        trans = tool.Trans(ball_pose, angle_to_target)
+        avoid_target_pose = trans.inverted_transform(Pose2D(AVOID_DIST, 0, 0))
+        # 目標角度を再設定
+        avoid_target_pose.theta = target_pose.theta
+
+    return avoid_target_pose
     
 
 # ゾーンディフェンス
@@ -312,6 +330,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
                     target_pose.x = half_our_field_length + MARGIN_LITTLE_FORWARD
                 else:
                     target_pose.x = half_our_field_length
+
         except IndexError:
             target_pose = my_pose
         target_pose.theta = angle_to_ball
@@ -323,6 +342,9 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
             # ドリブラー回す
             control_target.dribble_power = DRIBBLE_POWER
             target_pose = receive_target_pose
+        else:
+            # ボールに近づいてたら離れる
+            target_pose = _get_avoid_ball_pose(ball_pose, target_pose)
 
     # ペナルティエリアには入らない
     if((left_penalty_corner.y + 0.2 > target_pose.y > right_penalty_corner.y - 0.2) and \
