@@ -181,12 +181,12 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            Pose2D(3, 0, 0),
+                            Pose2D(Field.field('length')*0.25, 0, 0),
                             receive_enable=True, receiver_role_exist=Observer.role_is_exist(role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]),
                             robot_info=robot_info, direct=True)
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]:
                     self._control_target = normal.move_to(
-                            self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
+                            self._control_target, Pose2D(Field.field('length')*0.25,0,0), ball_info, look_ball=True)
                 else:
                     self._control_target = defense.defense_decision(
                             self._my_role, ball_info, self._control_target, 
@@ -201,12 +201,12 @@ class RobotNode(object):
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_pass(
                             self._my_pose, ball_info, self._control_target,
-                            Pose2D(3, 0, 0),
+                            Pose2D(Field.field('length')*0.25, 0, 0),
                             receive_enable=True, receiver_role_exist=Observer.role_is_exist(role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]),
                             robot_info=robot_info)
                 elif self._my_role == role.ROLE_ID["ROLE_DEFENSE_ZONE_1"]:
                     self._control_target = normal.move_to(
-                            self._control_target, Pose2D(3,0,0), ball_info, look_ball=True)
+                            self._control_target, Pose2D(Field.field('length')*0.25,0,0), ball_info, look_ball=True)
                 else:
                     self._control_target = defense.defense_decision(
                             self._my_role, ball_info, self._control_target, 
