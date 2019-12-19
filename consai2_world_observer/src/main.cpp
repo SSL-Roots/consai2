@@ -166,13 +166,13 @@ class BallObserver : public ObserverBase
 {
 public:
     BallObserver() : 
-        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(1.0))
     {}
 
     // FIXME: コピーコンストラクタで、新しいBallEstimatorを生成している
     // 本当は同じ内容を持つ別のBallEstimatorを生成すべきな気がする
     BallObserver(const BallObserver& obj) :
-        ObserverBase(new BallEstimator(), new AppearanceMonitor(60.0))
+        ObserverBase(new BallEstimator(), new AppearanceMonitor(1.0))
     {}
 
     void updateWithConsideringRobot(std::vector<geometry2d::Odometry> robot_odoms)
