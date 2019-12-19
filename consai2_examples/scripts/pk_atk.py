@@ -26,6 +26,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     global robot_info, ball_info, ball_get_state, ball_get_pose
 
     DRIBBLE_P = 0.5
+    KICK_P = 0.5
 
     # ボールとロボットの位置を取得
     robot_pose = robot_info.pose
@@ -93,7 +94,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
 
             # 判定角度以内 + ボタン入力がある場合蹴る
             if abs(angle_rb) < 20 and kick_enable:
-                command.kick_power = 0.3
+                command.kick_power = KICK_P
                 # control_target.kick_power = 0.3
                 ball_get_state = 1
                 kick_flag = True
