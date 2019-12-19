@@ -45,12 +45,35 @@ class ObstacleAvoidance(object):
         # 中間パスを生成
         avoid_pose = self._basic_avoid(my_pose, new_target_path, ball_avoid_flag)
 
+        # IREXの（やべぇ）柱を回避する
+        avoid_pose = self._avoid_crazy_pillar(my_pose, new_target_path)
+
         # 中間パスが生成された場合はパスに追加
         if avoid_pose is not None:
             avoid_pose.theta = target_path[-1].theta
             new_target_path.insert(0, avoid_pose)
 
         return new_target_path
+
+    # IREX会場の（頭おかしい）柱を回避する
+    def _avoid_crazy_pillar(self, my_pose, target_path):
+        PILLARS = [Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0)]
+
+        THRESHOLD_DIST = 0.3 # meters 回避判定の距離
+        AVOID_DIST = 0.4 # meters 回避位置の距離
+
+        target_pose = target_path[-1]
+        
+        for pillar in PILLARS:
+            if tool.distance_2_poses(pillar, target_pose) < THRESHOLD_DIST:
+                # angle_to_target = tool.get_angle(pillar, target_pose)
+                # trans = tool.Trans(pillar, angle_to_target)
+                angle_to_my_pose = tool.get_angle(pillar, my_pose)
+                trans = tool.Trans(pillar, angle_to_my_pose)
+                avoid_pose = trans.inverted_transform(Pose2D(AVOID_DIST, 0, 0))
+
+                return avoid_pose
+
 
     # 回避用の関数
     def _basic_avoid(self, my_pose, target_path, ball_avoid_flag):
