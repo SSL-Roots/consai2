@@ -1,0 +1,41 @@
+<launch>
+  <arg name="joydev" default="/dev/input/js0" />
+  <!-- grSimのロボットを動かす場合はtrue -->
+  <arg name="sim" default="false" />
+  <!-- controllerを経由せず直接操作する場合はtrue -->
+  <arg name="direct" default="true" />
+  <!-- その他パラメータの読み込み -->
+  <include file="$(find consai2_description)/launch/description.launch"/>
+
+  <node name="joy_core" pkg="joy" type="joy_node" required="true">
+    <param name="dev" type="string" value="$(arg joydev)" />
+  </node>
+
+  <node name="pk_atk" pkg="consai2_examples" type="pk_atk.py" required="true" output="screen">
+    <param name="direct" value="$(arg direct)" />
+    <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
+    <!-- ひとつのボタンに複数の機能を割り当てています -->
+    <rosparam command="load" file="$(find consai2_examples)/param/joy_f710.yaml" />
+  </node>
+
+  <include file="$(find consai2_sender)/launch/sender.launch">
+    <arg name="sim" value="$(arg sim)" />
+    <arg name="load_description" value="false" />
+  </include>
+
+  <group ns="/$(arg color)$(arg side)">
+
+    <!-- ビジュアライザの起動 -->
+    <include file="$(find consai2_examples)/launch/visualizer.launch">
+      <arg name="side" value="$(arg side)" />
+      <arg name="color" value="$(arg color)" />
+    </include>
+
+    <include file="$(find consai2_sender)/launch/sender.launch">
+      <arg name="load_description" value="false" />
+      <arg name="sim" value="$(arg sim)" />
+    </include>
+
+    <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+  </group>
+</launch>

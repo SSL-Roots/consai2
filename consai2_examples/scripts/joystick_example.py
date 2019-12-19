@@ -350,7 +350,12 @@ class JoyWrapper(object):
 
         self._pub_joy_target.publish(self._joy_target)
 
-
+    def get_button_status(self):
+        # メッセージを取得してない場合は抜ける
+        if self._joy_msg is None:
+            return
+            
+        return self._joy_msg
 
     def update(self):
         if self._DIRECT:
