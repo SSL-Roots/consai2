@@ -276,6 +276,9 @@ class PaintWidget(QWidget):
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
 
+        # IREX会場の（:help_me:な）柱と回避範囲を描画する
+        self._draw_crazy_pillars(painter)
+
         # Referee情報
         self._draw_referee(painter)
 
@@ -626,6 +629,28 @@ class PaintWidget(QWidget):
             end_angle = math.degrees(arc["a2"]) * 16
             span_angle = end_angle - start_angle
             painter.drawArc(top_left.x(), top_left.y(), size, size, start_angle, span_angle)
+
+    def _draw_crazy_pillars(self, painter):
+        # IREX会場の（:thinking_face:な）柱と回避範囲を描画する
+        PILLARS = [Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0)]
+        PILLAR_RADIUS = 0.075
+        AVOID_RADIUS = 0.3 # meters 回避位置の距離
+
+        for pillar in PILLARS:
+            point = self._convert_to_view(pillar.x, pillar.y)
+
+            # 柱の描画
+            size = PILLAR_RADIUS * self._scale_field_to_view
+            painter.setPen(Qt.black)
+            painter.setBrush(Qt.black)
+            painter.drawEllipse(point, size, size)
+
+            # 回避エリアの描画
+            avoid_size = AVOID_RADIUS * self._scale_field_to_view
+            keepout_color = QColor(Qt.blue)
+            keepout_color.setAlphaF(0.3)
+            painter.setBrush(keepout_color)
+            painter.drawEllipse(point, avoid_size, avoid_size)
 
     
     def _draw_ball(self, painter):
