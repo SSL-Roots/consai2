@@ -1,4 +1,6 @@
 <launch>
+  <arg name="side" default="blue" />
+  <arg name="color" default="left" />
   <arg name="joydev" default="/dev/input/js0" />
   <!-- grSimのロボットを動かす場合はtrue -->
   <arg name="sim" default="false" />
@@ -12,12 +14,15 @@
   </node>
 
   <node name="pk_atk" pkg="consai2_examples" type="pk_atk.py" required="true" output="screen">
+    <param name="side" value="$(arg side)" />
+    <param name="color" value="$(arg color)" />
     <param name="direct" value="$(arg direct)" />
     <!-- 使用するジョイスティックコントローラに合わせてvalueを変更してください -->
     <!-- ひとつのボタンに複数の機能を割り当てています -->
     <rosparam command="load" file="$(find consai2_examples)/param/joy_f710.yaml" />
   </node>
 
+  <!-- ジョイスティックの司令を送信するために必要 -->
   <include file="$(find consai2_sender)/launch/sender.launch">
     <arg name="sim" value="$(arg sim)" />
     <arg name="load_description" value="false" />
@@ -37,6 +42,9 @@
     </include>
 
     <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
-    <node name="pk_goalie_auto" pkg="consai2_examples" type="pk_goalie_auto.py" required="true" output="screen" />
+    <node name="pk_goalie_auto" pkg="consai2_examples" type="pk_goalie_auto.py" required="true" output="screen">
+      <param name="side" value="$(arg side)" />
+      <param name="color" value="$(arg color)" />
+    </node>
   </group>
 </launch>

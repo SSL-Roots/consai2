@@ -70,9 +70,9 @@ def kill_mode(control_target):
     # ロボットがボールを持っていると判断するしきい値[m]
     DIST_ROBOT_TO_BALL_THRESHOLD = 0.2
     # ゴールライン上ではなく一定距離[m]前を守るための変数
-    MARGIN_DIST_X = 0.1
+    MARGIN_DIST_X = -0.1
 
-    # ゴールの位置(自陣のゴールのx座標は絶対負になる)
+    # ゴールの位置(自陣のゴールのx座標は絶対負になるのは過去の話)
     OUR_GOAL_POSE = our_goal_pose
     OUR_GOAL_UPPER = our_goal_upper
     OUR_GOAL_LOWER = our_goal_lower
@@ -101,12 +101,12 @@ def kill_mode(control_target):
             ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
 
     # 敵ロボットとボールの距離が近い場合は敵の向いている直線を使う
-    if dist < DIST_ROBOT_TO_BALL_THRESHOLD and robot_pose.x < 0:
+    if dist < DIST_ROBOT_TO_BALL_THRESHOLD and robot_pose.x > 0:
         slope = math.tan(robot_pose.theta)
         intercept = robot_pose.y - slope * robot_pose.x 
 
     # ボールの速度がある場合かつ近づいてくる場合はボールの向かう直線を使う
-    elif MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+    elif MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x > 0:
         slope, intercept = _get_line_parameters(ball_pose, ball_pose_next)
 
     # その他はゴール中心とボールを結ぶ直線を使う
@@ -124,7 +124,7 @@ def kill_mode(control_target):
         goalie_pose_y = OUR_GOAL_LOWER
 
     # ゴーリの新しい座標
-    new_goalie_pose = Pose2D(goalie_pose_x, goalie_pose_y, 0)
+    new_goalie_pose = Pose2D(goalie_pose_x, goalie_pose_y, math.pi)
 
     control_target.path = []
     control_target.path.append(new_goalie_pose)
@@ -158,7 +158,7 @@ def get_field_info(data):
     our_goal_lower = -data.goal_width/2
 
     # ゴール座標
-    our_goal_pose.x = -field_length/2
+    our_goal_pose.x = field_length/2
     our_goal_pose.y = 0
 
 
@@ -168,10 +168,17 @@ def main():
 
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
-    COLOR = "blue" # 'blue' or 'yellow'
-    THEIR_COLOR = "yellow" # 'blue' or 'yellow'
+    THEIR_COLOR = rospy.get_param('~color', 'blue')
+
+    # アタッカ＝の反対のcolorをゴーリーにセットする
+    COLOR = 'yellow' # 'blue' or 'yellow'
+    if THEIR_COLOR == 'yellow':
+        COLOR = 'blue'
+
+    # COLOR = "blue" # 'blue' or 'yellow'
+    # THEIR_COLOR = "yellow" # 'blue' or 'yellow'
+
     TARGET_ID = 0 # 0 ~ MAX_ID
-    SIDE = "left"
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
@@ -211,7 +218,7 @@ def main():
 
     # 制御目標値を生成
     r = rospy.Rate(60)
-    while 1:
+    while not rospy.is_shutdown():
         control_target = kill_mode(control_target)
         # control_target = goalie.interpose(ball_info, robot_info, control_target)
         pub.publish(control_target)

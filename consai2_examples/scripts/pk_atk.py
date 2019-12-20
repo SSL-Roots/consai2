@@ -39,6 +39,8 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # 角度調整用
     robot_commands = RobotCommands()
     robot_commands.header.stamp = rospy.Time.now()
+
+    robot_commands.is_yellow = False
     if atk_color == "yellow":
         robot_commands.is_yellow = True
 
@@ -60,6 +62,8 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     kick_flag = False
     control_target.dribble_power = 0.0
     control_target.kick_power = 0.0
+
+    use_control_target = True
     # ボールがしきい値内かどうか判定して各動作を生成
     if dist < dist_th and abs(angle_rb) < ang_th:
         # とりあえずドリブルする
@@ -101,6 +105,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
 
             robot_commands.commands.append(copy.deepcopy(command))
             joy_wrapper._pub_commands.publish(robot_commands)
+            use_control_target = False
 
     # しきい値内で無い場合経路生成してボールまで行く
     else:
@@ -115,7 +120,7 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # if ball_get_state != 3:
     control_target.path.append(target_pose)
 
-    return control_target, kick_flag
+    return use_control_target, control_target, kick_flag
 
 # コントローラを離しているときは停止
 def stop(control_target):
@@ -124,7 +129,7 @@ def stop(control_target):
     control_target.control_enable = True
     control_target.path = []
     control_target.path.append(robot_info.pose)
-    control_target.dribble_power = 0.0
+    # control_target.dribble_power = 0.0
 
     if ball_get_state == 1 or ball_get_state == 2:
         control_target.dribble_power = 0.0
@@ -191,10 +196,12 @@ def main():
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     TARGET_ID = 0 # 0 ~ MAX_ID
-    ATK_COLOR = "yellow" # 'blue' or 'yellow'
-    ATK_SIDE = "right"
-    GOALIE_COLOR = "blue" # 'blue' or 'yellow'
-    GOALIE_SIDE = "left"
+    # ATK_COLOR = "yellow" # 'blue' or 'yellow'
+    # ATK_SIDE = "right"
+    ATK_COLOR = rospy.get_param('~color', 'blue')
+    ATK_SIDE = rospy.get_param('~side', 'right')
+    # GOALIE_COLOR = "blue" # 'blue' or 'yellow'
+    # GOALIE_SIDE = "left"
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
@@ -225,7 +232,7 @@ def main():
     r = rospy.Rate(60)
     kick_flag = False
     button_flag = 0
-    while 1:
+    while not rospy.is_shutdown():
         if joy_wrapper.get_button_status() != None:
             _joy_msg = joy_wrapper.get_button_status()
             button_lb = _joy_msg.buttons[4]
@@ -244,7 +251,7 @@ def main():
 
         if (button_a or button_lb or button_rb or button_x) and kick_flag == False:
             # パスの生成
-            control_target, kick_flag = make_path(
+            use_control_target, control_target, kick_flag = make_path(
                                                 control_target,
                                                 joy_wrapper,
                                                 _coordinate,
@@ -253,7 +260,11 @@ def main():
                                                 button_rb,
                                                 ATK_COLOR)
             # if ball_get_state != 3:
-            pub.publish(control_target)
+            if use_control_target:
+                rospy.loginfo("approach")
+                pub.publish(control_target)
+            else:
+                rospy.loginfo("shoot")
         # 停止    
         else:
             control_target = stop(control_target)
