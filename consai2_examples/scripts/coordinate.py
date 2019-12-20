@@ -41,6 +41,14 @@ class Coordinate(object):
         self._pose_max.x = BallRadius + self._tuning_param_x
         self._pose_max.y = BallRadius + RobotRadius + self._tuning_param_y
 
+        # デフォルト値をセット
+        FIELD_LENGTH = 6.0
+        self.our_goal_x = -FIELD_LENGTH * 0.5
+        self.our_goal_y = 0
+
+        self.front_goal_x = FIELD_LENGTH * 0.5
+        self.front_goal_y = 0
+
         self.approach_state = 0
 
         # ゴール位置取得
