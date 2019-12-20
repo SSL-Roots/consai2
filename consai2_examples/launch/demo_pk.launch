@@ -41,6 +41,9 @@
     </include>
 
     <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
-    <node name="pk_goalie_auto" pkg="consai2_examples" type="pk_goalie_auto.py" required="true" output="screen" />
+    <node name="pk_goalie_auto" pkg="consai2_examples" type="pk_goalie_auto.py" required="true" output="screen">
+      <param name="side" value="$(arg side)" />
+      <param name="color" value="$(arg color)" />
+    </node>
   </group>
 </launch>
