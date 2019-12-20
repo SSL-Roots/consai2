@@ -39,6 +39,8 @@ def make_path(control_target, joy_wrapper, coordinate, kick_enable, ang_1, ang_2
     # 角度調整用
     robot_commands = RobotCommands()
     robot_commands.header.stamp = rospy.Time.now()
+
+    robot_commands.is_yellow = False
     if atk_color == "yellow":
         robot_commands.is_yellow = True
 
@@ -191,10 +193,12 @@ def main():
     rospy.init_node('control_example')
     MAX_ID = rospy.get_param('consai2_description/max_id', 15)
     TARGET_ID = 0 # 0 ~ MAX_ID
-    ATK_COLOR = "yellow" # 'blue' or 'yellow'
-    ATK_SIDE = "right"
-    GOALIE_COLOR = "blue" # 'blue' or 'yellow'
-    GOALIE_SIDE = "left"
+    # ATK_COLOR = "yellow" # 'blue' or 'yellow'
+    # ATK_SIDE = "right"
+    ATK_COLOR = rospy.get_param('~color', 'blue')
+    ATK_SIDE = rospy.get_param('~side', 'right')
+    # GOALIE_COLOR = "blue" # 'blue' or 'yellow'
+    # GOALIE_SIDE = "left"
 
     # 末尾に16進数の文字列をつける
     topic_id = hex(TARGET_ID)[2:]
