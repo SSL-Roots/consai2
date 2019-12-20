@@ -218,7 +218,7 @@ def main():
 
     # 制御目標値を生成
     r = rospy.Rate(60)
-    while 1:
+    while not rospy.is_shutdown():
         control_target = kill_mode(control_target)
         # control_target = goalie.interpose(ball_info, robot_info, control_target)
         pub.publish(control_target)
