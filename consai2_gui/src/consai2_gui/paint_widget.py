@@ -632,7 +632,10 @@ class PaintWidget(QWidget):
 
     def _draw_crazy_pillars(self, painter):
         # IREX会場の（:thinking_face:な）柱と回避範囲を描画する
-        PILLARS = [Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0)]
+        PILLARS = [
+                Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0),
+                Pose2D(-3.3, -1.75, 0), Pose2D(3.3, -1.75, 0)
+                ]
         PILLAR_RADIUS = 0.075
         AVOID_RADIUS = 0.3 # meters 回避位置の距離
 

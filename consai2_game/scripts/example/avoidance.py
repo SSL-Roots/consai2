@@ -57,7 +57,10 @@ class ObstacleAvoidance(object):
 
     # IREX会場の（頭おかしい）柱を回避する
     def _avoid_crazy_pillar(self, my_pose, target_path):
-        PILLARS = [Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0)]
+        PILLARS = [
+                Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0),
+                Pose2D(-3.3, -1.75, 0), Pose2D(3.3, -1.75, 0)
+                ]
 
         THRESHOLD_DIST = 0.3 # meters 回避判定の距離
         AVOID_DIST = 0.4 # meters 回避位置の距離
