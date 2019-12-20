@@ -29,6 +29,12 @@ class ObstacleAvoidance(object):
         self._tr_move_x = 0.2
         self._tr_move_y = 0.5
 
+        # IREX会場の柱
+        self._PILLARS = [
+                Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0),
+                Pose2D(-3.3, -1.75, 0), Pose2D(3.3, -1.75, 0)
+                ]
+
     # フィールドのボールとロボットの情報を更新
     def update_obstacles(self, ball_info, robot_info):
         self._ball_info = ball_info
@@ -45,8 +51,9 @@ class ObstacleAvoidance(object):
         # 中間パスを生成
         avoid_pose = self._basic_avoid(my_pose, new_target_path, ball_avoid_flag)
 
-        # IREXの（やべぇ）柱を回避する
-        avoid_pose = self._avoid_crazy_pillar(my_pose, new_target_path)
+        # 中間パスが生成されなければ、目標位置が柱近くにないかチェックする
+        if avoid_pose is None:
+            avoid_pose = self._generate_avoid_crazy_pillar_pose(my_pose, new_target_path)
 
         # 中間パスが生成された場合はパスに追加
         if avoid_pose is not None:
@@ -55,27 +62,26 @@ class ObstacleAvoidance(object):
 
         return new_target_path
 
-    # IREX会場の（頭おかしい）柱を回避する
-    def _avoid_crazy_pillar(self, my_pose, target_path):
-        PILLARS = [
-                Pose2D(-3.3, 1.75, 0), Pose2D(3.3, 1.75, 0),
-                Pose2D(-3.3, -1.75, 0), Pose2D(3.3, -1.75, 0)
-                ]
+    # 目標位置が柱近くにないかチェックし、柱に近ければ目標位置を変更する
+    def _generate_avoid_crazy_pillar_pose(self, my_pose, target_path):
 
         THRESHOLD_DIST = 0.3 # meters 回避判定の距離
         AVOID_DIST = 0.4 # meters 回避位置の距離
 
         target_pose = target_path[-1]
+
+        avoid_pose = None
         
-        for pillar in PILLARS:
+        for pillar in self._PILLARS:
             if tool.distance_2_poses(pillar, target_pose) < THRESHOLD_DIST:
                 # angle_to_target = tool.get_angle(pillar, target_pose)
                 # trans = tool.Trans(pillar, angle_to_target)
                 angle_to_my_pose = tool.get_angle(pillar, my_pose)
                 trans = tool.Trans(pillar, angle_to_my_pose)
                 avoid_pose = trans.inverted_transform(Pose2D(AVOID_DIST, 0, 0))
+                continue
 
-                return avoid_pose
+        return avoid_pose
 
 
     # 回避用の関数
@@ -106,6 +112,20 @@ class ObstacleAvoidance(object):
                 # 中間パスがない or ボールの方が近い場合はボールに対して中間パスを生成
                 if avoid_pose is None or dist_i_to_ball < dist_i_to_robot:
                     avoid_pose = self._generate_avoid_pose(trans, my_pose, ball_pose)
+
+        # IREXの柱を回避する
+        for pillar in self._PILLARS:
+            pillar_detect_flag = self._detect_object_on_trajectory(trans, target_pose, pillar)
+        
+            # 軌道上に柱が存在している場合は処理を行う
+            if pillar_detect_flag is True:
+                dist_i_to_pillar = tool.distance_2_poses(pillar, my_pose)
+        
+                # 中間パスがない or 柱の方が近い場合は柱に対して中間パスを生成
+                if avoid_pose is None or dist_i_to_pillar < dist_i_to_robot:
+                    avoid_pose = self._generate_avoid_pose(trans, my_pose, pillar)
+                    # 他の柱を見る必要はないのでループを抜ける
+                    continue
 
         return avoid_pose
 
