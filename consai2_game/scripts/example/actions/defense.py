@@ -171,6 +171,17 @@ def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
                 target_pose.x += MARGIN_ROBOT
         else:
             target_pose = Pose2D()
+
+    # ボールが来てたらボールを受け取る
+    receive_ball_result, receive_target_pose = update_receive_ball(ball_info, my_pose, (my_role-1))
+    if receive_ball_result:
+        # ドリブラー回す
+        control_target.dribble_power = 0.3
+        target_pose = receive_target_pose
+    else:
+        # ボールに近づいてたら離れる
+        target_pose = _get_avoid_ball_pose(ball_pose, target_pose)
+
     # フィールドから出ないように
     if target_pose.x < goal_center.x:
         target_pose.x = goal_center.x
