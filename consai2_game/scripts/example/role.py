@@ -8,10 +8,13 @@ ROLE_ID = {
     "ROLE_ATTACKER"       : 1,
     "ROLE_DEFENSE_GOAL_1" : 2,
     "ROLE_DEFENSE_GOAL_2" : 3,
-    "ROLE_DEFENSE_ZONE_1" : 4,
-    "ROLE_DEFENSE_ZONE_2" : 5,
-    "ROLE_DEFENSE_ZONE_3" : 6,
-    "ROLE_DEFENSE_ZONE_4" : 7,
+    "ROLE_SUB_ATTACKER"   : 4,
+    "ROLE_DEFENSE_ZONE_1" : 5,
+    "ROLE_DEFENSE_ZONE_2" : 6,
+    "ROLE_DEFENSE_ZONE_3" : 7,
+    "ROLE_DEFENSE_ZONE_4" : 8,
+    "ROLE_MAN_MARK_1"     : 9,
+    "ROLE_MAN_MARK_2"     : 10,
     "ROLE_NONE"           : 99,
 }
 
@@ -114,7 +117,7 @@ class RoleDecision(object):
             self._rolestocker.set_my_role(self._attacker_id_pre, ROLE_ID["ROLE_NONE"])
             self._rolestocker.set_my_role(self._attacker_id, ROLE_ID["ROLE_ATTACKER"])
 
-        # Defense
+        # 残りは優先度順に決定
         for role_id in range(defense_start_num, self._ROLE_MAX):
             if self._rolestocker.get_role_exist(role_id) == False:
                 role_set_robot_id = -1
