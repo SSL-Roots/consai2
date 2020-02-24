@@ -1,21 +1,21 @@
 # coding: UTF-8
 # role.pyでは、フィールド情報から各ロボットのmy_loleを定義する
 
-from actions import tool
+from actions import tool, defence, center_back, zone, man_mark
 
 ROLE_ID = {
-    "ROLE_GOALIE"         : 0,
-    "ROLE_ATTACKER"       : 1,
-    "ROLE_DEFENSE_GOAL_1" : 2,
-    "ROLE_DEFENSE_GOAL_2" : 3,
-    "ROLE_SUB_ATTACKER"   : 4,
-    "ROLE_DEFENSE_ZONE_1" : 5,
-    "ROLE_DEFENSE_ZONE_2" : 6,
-    "ROLE_DEFENSE_ZONE_3" : 7,
-    "ROLE_DEFENSE_ZONE_4" : 8,
-    "ROLE_MAN_MARK_1"     : 9,
-    "ROLE_MAN_MARK_2"     : 10,
-    "ROLE_NONE"           : 99,
+    "ROLE_GOALIE"        : 0,
+    "ROLE_ATTACKER"      : 1,
+    "ROLE_CENTER_BACK_1" : 2,
+    "ROLE_CENTER_BACK_2" : 3,
+    "ROLE_SUB_ATTACKER"  : 4,
+    "ROLE_ZONE_1"        : 5,
+    "ROLE_ZONE_2"        : 6,
+    "ROLE_ZONE_3"        : 7,
+    "ROLE_ZONE_4"        : 8,
+    "ROLE_MAN_MARK_1"    : 9,
+    "ROLE_MAN_MARK_2"    : 10,
+    "ROLE_NONE"          : 99,
 }
 
 ZONE_DEFENSE_NUM = 4
@@ -108,7 +108,7 @@ class RoleDecision(object):
 
     def update_role(self):
         # Goalie, Attaker 以外
-        defense_start_num = ROLE_ID["ROLE_DEFENSE_GOAL_1"]
+        defense_start_num = ROLE_ID["ROLE_CENTER_BACK_1"]
 
         # Goalie
         self._rolestocker.set_my_role(self._GOALIE_ID, ROLE_ID["ROLE_GOALIE"])
@@ -140,7 +140,7 @@ class RoleStocker(object):
     def __init__(self, max_id, max_role):
         self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_id + 1)
         self._role_is_exist = [False] * (max_role + 1)
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
+        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
                 ROLE_ID["ROLE_NONE"]] if i is True])
 
     def set_my_role(self, robot_id, role_num):
@@ -149,7 +149,7 @@ class RoleStocker(object):
         self._my_role[robot_id] = role_num
         if role_num != ROLE_ID["ROLE_NONE"]:
             self._role_is_exist[role_num] = True
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
+        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
                 ROLE_ID["ROLE_NONE"]] if i is True])
 
     def get_my_role(self, robot_id):
@@ -157,3 +157,21 @@ class RoleStocker(object):
 
     def get_role_exist(self, role_id):
         return self._role_is_exist[role_id]
+
+
+def role_decision(my_role, ball_info, control_target, my_pose, defense_num, robot_info, zone_enable=False):
+     # ゴール前ディフェンス
+    if ROLE_ID['ROLE_CENTER_BACK_1'] <= my_role <= ROLE_ID['ROLE_CENTER_BACK_2']:
+        return center_back.center_back(my_pose, ball_info, control_target, my_role, defense_num)
+    elif ROLE_ID['ROLE_SUB_ATTACKER']:
+        pass
+    # ゾーンディフェンス
+    elif ROLE_ID['ROLE_ZONE_1'] <= my_role <= ROLE_ID['ROLE_ZONE_4']:
+        return defence.defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
+    elif ROLE_ID['ROLE_MAN_MARK_1'] <= my_role <= ROLE_ID['ROLE_MAN_MARK_2']:
+        pass
+    # 例外だった場合はその場にいる
+    else:
+        control_target.path = []
+        control_target.path.append(my_pose)
+        return control_target
