@@ -1,18 +1,18 @@
 # coding: UTF-8
 # role.pyでは、フィールド情報から各ロボットのmy_loleを定義する
 
-from actions import tool, defence, center_back, zone, man_mark
+from actions import tool, center_back, zone, man_mark
 
 ROLE_ID = {
     "ROLE_GOALIE"        : 0,
     "ROLE_ATTACKER"      : 1,
     "ROLE_CENTER_BACK_1" : 2,
     "ROLE_CENTER_BACK_2" : 3,
-    "ROLE_SUB_ATTACKER"  : 4,
-    "ROLE_ZONE_1"        : 5,
-    "ROLE_ZONE_2"        : 6,
-    "ROLE_ZONE_3"        : 7,
-    "ROLE_ZONE_4"        : 8,
+    "ROLE_ZONE_1"        : 4,
+    "ROLE_ZONE_2"        : 5,
+    "ROLE_ZONE_3"        : 6,
+    "ROLE_ZONE_4"        : 7,
+    "ROLE_SUB_ATTACKER"  : 8,
     "ROLE_MAN_MARK_1"    : 9,
     "ROLE_MAN_MARK_2"    : 10,
     "ROLE_NONE"          : 99,
@@ -167,7 +167,7 @@ def role_decision(my_role, ball_info, control_target, my_pose, defense_num, robo
         pass
     # ゾーンディフェンス
     elif ROLE_ID['ROLE_ZONE_1'] <= my_role <= ROLE_ID['ROLE_ZONE_4']:
-        return defence.defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
+        return zone.defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
     elif ROLE_ID['ROLE_MAN_MARK_1'] <= my_role <= ROLE_ID['ROLE_MAN_MARK_2']:
         pass
     # 例外だった場合はその場にいる
