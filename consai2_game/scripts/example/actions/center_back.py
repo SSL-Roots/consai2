@@ -16,23 +16,8 @@ import role
 import tool
 
 
-# defenseのroleによって行動を切り替える
-def defense_decision(my_role, ball_info, control_target, my_pose, defense_num, robot_info, zone_enable=False):
-    # ゴール前ディフェンス
-    if role.ROLE_ID['ROLE_CENTER_BACK_1'] <= my_role <= role.ROLE_ID['ROLE_CENTER_BACK_2']:
-        return defense_goal(my_pose, ball_info, control_target, my_role, defense_num)
-    # ゾーンディフェンス
-    elif role.ROLE_ID['ROLE_ZONE_1'] <= my_role <= role.ROLE_ID['ROLE_ZONE_4']:
-        return defense_zone(my_pose, ball_info, control_target, my_role, defense_num, robot_info['their'], zone_enable)
-    # 例外だった場合はその場にいる
-    else:
-        control_target.path = []
-        control_target.path.append(my_pose)
-        return control_target
-
-
 # ゴール前ディフェンス
-def defense_goal(my_pose, ball_info, control_target, my_role, defense_num):
+def center_back(my_pose, ball_info, control_target, my_role, defense_num):
     # ゴール前ディフェンスは、ペナルティエリアに沿って守備を行う
     # ボールとゴールを結ぶ直線と、ペナルティエリアのラインの交点を基準に移動
     # ボールの位置によって、ライン左、ライン正面、ライン右のどのラインの前に移動するか変わる
