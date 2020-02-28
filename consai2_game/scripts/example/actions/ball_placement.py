@@ -90,8 +90,8 @@ def get_near_robot_id(target_pose, robot_info):
     return robot_id
 
 # ball placementrをatkとrecvの2台で行う
-def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_id, mode):
- 
+def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_id, mode, field_size):
+
     # ペアになるロボットのID
     # target_poseに一番距離が一番近いロボットを使う
     if mode == 'atk':
@@ -107,23 +107,29 @@ def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_
 
     # placementを行うための座標などを生成する
     if mode == 'atk':
-        control_target, avoid_ball = basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose)
+        control_target, avoid_ball = basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field_size)
     else:
         control_target, avoid_ball = basic_recv(control_target, ball_info, atk_pose, recv_pose, target_pose)
     
     return control_target, avoid_ball
 
 # ball_placement(atkロボット)の動作
-def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
+def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field_size):
 
-    # 目標座標までの角度
+    # ボールからみた目標座標までの角度
     angle_ball_to_target = tool.get_angle(ball_info.pose, target_pose)
+    
+    # 目標座標からみたボールまでの角度
+    angle_target_to_ball = tool.get_angle(target_pose, ball_info.pose)
 
     # 目標位置はボールの前方にし、目標角度は、自己位置からみたボール方向にする
     trans = tool.Trans(ball_info.pose, angle_ball_to_target)
 
     # ボールとpalcement位置の距離
     dist_ball_to_target = tool.distance_2_poses(ball_info.pose, target_pose)
+
+    # ボールとロボットの距離
+    dist_ball_to_atk = tool.distance_2_poses(ball_info.pose, atk_pose)
 
     # recvがボールのレシーブを行う座標
     ball_receiving_pose = generating_behind_target_pose(trans, target_pose, SET_POSE_ADD_X_RECV)
@@ -150,6 +156,25 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
         # 蹴ったあとにatkが追いかけない様に対策
         if VEL_THRESHOLD < ball_velocity:
             new_pose = atk_pose
+
+        # ボールが壁際にある場合はドリブルしながら下がる
+        elif field_size[1]/2 - 0.3 < ball_info.pose.y:
+            if -field_size[1]/2 + 0.2 > -ball_info.pose.y:
+                # ボールを保持して下がる
+                if dist_ball_to_atk < 0.11:
+                    control_target.dribble_power = DRIBBLE_POWER
+                    new_pose = trans.inverted_transform(Pose2D(0.2, 0, 0))
+                    new_pose.theta = angle_target_to_ball
+                # ボールの後ろまで移動する
+                else:
+                    control_target.dribble_power = 0
+                    new_pose = trans.inverted_transform(Pose2D(0.1, 0, 0))
+                    new_pose.theta = angle_target_to_ball
+            # 壁からある程度離れたらロボットは一度下がる(avoidanceの邪魔にならないように)
+            else:
+                control_target.dribble_power = 0
+                new_pose = trans.inverted_transform(Pose2D(0.4, 0.2, 0))
+                new_pose.theta = angle_target_to_ball
         
         # atkがボールの後ろにいなければ移動する
         elif not is_atk_arrived:
