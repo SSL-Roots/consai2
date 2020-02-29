@@ -63,9 +63,9 @@ class RoleDecision(object):
             if self._robot_disappeared[robot_id] == False and \
                     robot_id != self._GOALIE_ID:
                 # ロボットとボールの距離を計算
-                # ボールが消える可能性を考慮して、last_detection_poseを使う
+                # もともとlast_detection_poseを使用していたが、不要と思われるのでposeにした
                 dist = tool.distance_2_poses(our_pose[robot_id], 
-                        ball_info.last_detection_pose)
+                        ball_info.pose)
                 # 距離の更新
                 self._dist_to_ball[robot_id] = dist
 
