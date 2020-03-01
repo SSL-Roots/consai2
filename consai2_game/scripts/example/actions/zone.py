@@ -1,5 +1,4 @@
 # coding: UTF-8
-# defense.pyでは、ボールを蹴らないactionを定義する
 
 import math
 import rospy
@@ -70,37 +69,9 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
     control_target.kick_power = 0.0
     control_target.dribble_power = 0.0
 
-    # ゾーンオフェンス判定用フラグ
-    my_role_is_offence = False
-
-    # ボールが相手フィールドにあるとき
-    # ゾーンから1台ゾーンオフェンスに出す
-    # 相手キックオフ時などに前に出ないように
-    # マージンを持って相手フィールド側かを判断している
-    if ZONE_DEFENSE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
-        # 1台ディフェンスが減る
-        ZONE_DEFENSE_NUM -= 1
-        # ゾーンディフェンスが始まるROLE_IDをずらす
-        ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_ZONE_2"]
-        # ROLE_ZONE_1をゾーンオフェンスとして出す
-        if my_role is role.ROLE_ID["ROLE_ZONE_1"]:
-            my_role_is_offence = True
-
-    # 私はゾーンオフェンスです
-    if my_role_is_offence:
-        zone_id = 0
-        target_pose = ZONE_OFFENCE_POSE
-        # 基本的にアタッカーがボールを取りに行くので
-        # ボールが無い方向に移動してこぼれ球が取れるようにする
-        if ball_pose.y > 0:
-            target_pose.y  =  - quarter_field_width
-        else:
-            target_pose.y = quarter_field_width
-        # ボールを向く
-        target_pose.theta = angle_to_ball
 
     # ゾーンオフェンス以外
-    if ZONE_DEFENSE_NUM > 0 and not my_role_is_offence:
+    if ZONE_DEFENSE_NUM > 0:
         step = float(field_width) / (ZONE_DEFENSE_NUM * 2)
         # ゾーンディフェンスの数でフィールド幅を等分した配列を作る
         split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2 + 1))]
@@ -151,7 +122,8 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
 
     # ボールが来てたらボールを受け取る
     if zone_id != None:
-        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, zone_id)
+        # TODO: update_receive_ball
+        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, zone_id + 1)
         if receive_ball_result:
             # ドリブラー回す
             control_target.dribble_power = DRIBBLE_POWER

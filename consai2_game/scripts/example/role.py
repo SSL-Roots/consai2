@@ -8,17 +8,18 @@ ROLE_ID = {
     "ROLE_ATTACKER"      : 1,
     "ROLE_CENTER_BACK_1" : 2,
     "ROLE_CENTER_BACK_2" : 3,
-    "ROLE_ZONE_1"        : 4,
-    "ROLE_ZONE_2"        : 5,
-    "ROLE_ZONE_3"        : 6,
-    "ROLE_ZONE_4"        : 7,
-    "ROLE_SUB_ATTACKER"  : 8,
+    "ROLE_SUB_ATTACKER"  : 4,
+    "ROLE_ZONE_1"        : 5,
+    "ROLE_ZONE_2"        : 6,
+    "ROLE_ZONE_3"        : 7,
+    "ROLE_ZONE_4"        : 8,
     "ROLE_MAN_MARK_1"    : 9,
     "ROLE_MAN_MARK_2"    : 10,
     "ROLE_NONE"          : 99,
 }
 
-ZONE_DEFENSE_NUM = 4
+# TODO: 名前が正しくない
+ZONE_DEFENSE_NUM = 5
 
 # Roleの計算をするクラス
 class RoleDecision(object):
@@ -140,8 +141,11 @@ class RoleStocker(object):
     def __init__(self, max_id, max_role):
         self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_id + 1)
         self._role_is_exist = [False] * (max_role + 1)
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
-                ROLE_ID["ROLE_SUB_ATTACKER"]] if i is True])
+        self._center_back_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
+                (ROLE_ID["ROLE_CENTER_BACK_2"] + 1)] if i is True])
+        self._zone_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_ZONE_1"]:
+                (ROLE_ID["ROLE_ZONE_4"] + 1)] if i is True])
+        self._defense_num = self._center_back_num + self._zone_num
 
     def set_my_role(self, robot_id, role_num):
         if self._my_role[robot_id] != ROLE_ID["ROLE_NONE"]:
@@ -149,8 +153,11 @@ class RoleStocker(object):
         self._my_role[robot_id] = role_num
         if role_num != ROLE_ID["ROLE_NONE"]:
             self._role_is_exist[role_num] = True
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
-                ROLE_ID["ROLE_SUB_ATTACKER"]] if i is True])
+        self._center_back_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
+                (ROLE_ID["ROLE_CENTER_BACK_2"] + 1)] if i is True])
+        self._zone_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_ZONE_1"]:
+                (ROLE_ID["ROLE_ZONE_4"] + 1)] if i is True])
+        self._defense_num = self._center_back_num + self._zone_num
 
     def get_my_role(self, robot_id):
         return self._my_role[robot_id]
