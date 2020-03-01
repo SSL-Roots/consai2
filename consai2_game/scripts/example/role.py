@@ -4,15 +4,18 @@
 from actions import tool
 
 ROLE_ID = {
-    "ROLE_GOALIE"         : 0,
-    "ROLE_ATTACKER"       : 1,
-    "ROLE_DEFENSE_GOAL_1" : 2,
-    "ROLE_DEFENSE_GOAL_2" : 3,
-    "ROLE_DEFENSE_ZONE_1" : 4,
-    "ROLE_DEFENSE_ZONE_2" : 5,
-    "ROLE_DEFENSE_ZONE_3" : 6,
-    "ROLE_DEFENSE_ZONE_4" : 7,
-    "ROLE_NONE"           : 99,
+    "ROLE_GOALIE"        : 0,
+    "ROLE_ATTACKER"      : 1,
+    "ROLE_CENTER_BACK_1" : 2,
+    "ROLE_CENTER_BACK_2" : 3,
+    "ROLE_ZONE_1"        : 4,
+    "ROLE_ZONE_2"        : 5,
+    "ROLE_ZONE_3"        : 6,
+    "ROLE_ZONE_4"        : 7,
+    "ROLE_SUB_ATTACKER"  : 8,
+    "ROLE_MAN_MARK_1"    : 9,
+    "ROLE_MAN_MARK_2"    : 10,
+    "ROLE_NONE"          : 99,
 }
 
 ZONE_DEFENSE_NUM = 4
@@ -63,9 +66,9 @@ class RoleDecision(object):
             if self._robot_disappeared[robot_id] == False and \
                     robot_id != self._GOALIE_ID:
                 # ロボットとボールの距離を計算
-                # ボールが消える可能性を考慮して、last_detection_poseを使う
+                # もともとlast_detection_poseを使用していたが、不要と思われるのでposeにした
                 dist = tool.distance_2_poses(our_pose[robot_id], 
-                        ball_info.last_detection_pose)
+                        ball_info.pose)
                 # 距離の更新
                 self._dist_to_ball[robot_id] = dist
 
@@ -105,7 +108,7 @@ class RoleDecision(object):
 
     def update_role(self):
         # Goalie, Attaker 以外
-        defense_start_num = ROLE_ID["ROLE_DEFENSE_GOAL_1"]
+        defense_start_num = ROLE_ID["ROLE_CENTER_BACK_1"]
 
         # Goalie
         self._rolestocker.set_my_role(self._GOALIE_ID, ROLE_ID["ROLE_GOALIE"])
@@ -114,7 +117,7 @@ class RoleDecision(object):
             self._rolestocker.set_my_role(self._attacker_id_pre, ROLE_ID["ROLE_NONE"])
             self._rolestocker.set_my_role(self._attacker_id, ROLE_ID["ROLE_ATTACKER"])
 
-        # Defense
+        # 残りは優先度順に決定
         for role_id in range(defense_start_num, self._ROLE_MAX):
             if self._rolestocker.get_role_exist(role_id) == False:
                 role_set_robot_id = -1
@@ -137,8 +140,8 @@ class RoleStocker(object):
     def __init__(self, max_id, max_role):
         self._my_role = [ROLE_ID["ROLE_NONE"]] * (max_id + 1)
         self._role_is_exist = [False] * (max_role + 1)
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
-                ROLE_ID["ROLE_NONE"]] if i is True])
+        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
+                ROLE_ID["ROLE_SUB_ATTACKER"]] if i is True])
 
     def set_my_role(self, robot_id, role_num):
         if self._my_role[robot_id] != ROLE_ID["ROLE_NONE"]:
@@ -146,8 +149,8 @@ class RoleStocker(object):
         self._my_role[robot_id] = role_num
         if role_num != ROLE_ID["ROLE_NONE"]:
             self._role_is_exist[role_num] = True
-        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_DEFENSE_GOAL_1"]:
-                ROLE_ID["ROLE_NONE"]] if i is True])
+        self._defense_num = len([i for i in self._role_is_exist[ROLE_ID["ROLE_CENTER_BACK_1"]:
+                ROLE_ID["ROLE_SUB_ATTACKER"]] if i is True])
 
     def get_my_role(self, robot_id):
         return self._my_role[robot_id]
