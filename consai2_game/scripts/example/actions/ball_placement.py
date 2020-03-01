@@ -137,6 +137,24 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field
     # ボール速度
     ball_velocity = math.hypot(ball_info.velocity.x, ball_info.velocity.y)
 
+    # 壁際と判定するしきい値
+    wall_decision_dist = [0.3, 0.2]
+
+    # フィールドの情報をまとめる(上、下、左、右の位置)
+    field_pose = [field_size[0]/2,
+                  -field_size[0]/2,
+                  field_size[1]/2,
+                  -field_size[1]/2]
+
+    # 壁際にあるか判定しておく
+    wall_decision_result = [False, False]
+    for i, val in enumerate(wall_decision_dist):
+        if field_pose[0] - val < ball_info.pose.x or \
+                ball_info.pose.x < field_pose[1] + val or \
+                field_pose[2] - val < ball_info.pose.y or \
+                ball_info.pose.y < field_pose[3] + val:
+            wall_decision_result[i] = True
+
     # ---------------------------------------
     # placementの行動生成
 
@@ -158,8 +176,8 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field
             new_pose = atk_pose
 
         # ボールが壁際にある場合はドリブルしながら下がる
-        elif field_size[1]/2 - 0.3 < ball_info.pose.y:
-            if -field_size[1]/2 + 0.2 > -ball_info.pose.y:
+        elif wall_decision_result[0]:
+            if wall_decision_result[1]:
                 # ボールを保持して下がる
                 if dist_ball_to_atk < 0.11:
                     control_target.dribble_power = DRIBBLE_POWER
@@ -173,7 +191,7 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field
             # 壁からある程度離れたらロボットは一度下がる(avoidanceの邪魔にならないように)
             else:
                 control_target.dribble_power = 0
-                new_pose = trans.inverted_transform(Pose2D(0.4, 0.2, 0))
+                new_pose = trans.inverted_transform(Pose2D(0.4, 0.4, 0))
                 new_pose.theta = angle_target_to_ball
         
         # atkがボールの後ろにいなければ移動する
