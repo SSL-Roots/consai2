@@ -69,12 +69,17 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
 
     # 私はゾーンオフェンスです
     target_pose = ZONE_OFFENCE_POSE
-    # 基本的にアタッカーがボールを取りに行くので
-    # ボールが無い方向に移動してこぼれ球が取れるようにする
-    if ball_pose.y > 0:
-        target_pose.y  =  - quarter_field_width
+    if zone_enable:
+        # 基本的にアタッカーがボールを取りに行くので
+        # ボールが無い方向に移動してこぼれ球が取れるようにする
+        if ball_pose.y > 0:
+            target_pose.y  =  - quarter_field_width
+        else:
+            target_pose.y = quarter_field_width
     else:
-        target_pose.y = quarter_field_width
+        target_pose.x = -1.5
+        target_pose.y = 0
+
     # ボールを向く
     target_pose.theta = angle_to_ball
 
