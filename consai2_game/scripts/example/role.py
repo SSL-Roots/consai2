@@ -19,7 +19,7 @@ ROLE_ID = {
 }
 
 # TODO: 名前が正しくない
-ZONE_DEFENSE_NUM = 5
+FIELD_PLAYER_NUM = 10
 
 # Roleの計算をするクラス
 class RoleDecision(object):

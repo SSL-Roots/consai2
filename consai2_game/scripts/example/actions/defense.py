@@ -34,17 +34,17 @@ def get_avoid_ball_pose(ball_pose, target_pose):
 
 # ボールレシーブ情報保持用のクラス
 class Receiving(object):
-    _recenving = [False] * role.ZONE_DEFENSE_NUM
+    _recenving = [False] * role.FIELD_PLAYER_NUM
 
     @classmethod
-    def update_receiving(cls, zone_id, param):
-        Receiving._recenving[zone_id] = param
+    def update_receiving(cls, role_id, param):
+        Receiving._recenving[(role_id - 1)] = param
     @classmethod
-    def receiving(cls, zone_id):
-        return Receiving._recenving[zone_id]
+    def receiving(cls, role_id):
+        return Receiving._recenving[(role_id - 1)]
 
 
-def update_receive_ball(ball_info, my_pose, zone_id):
+def update_receive_ball(ball_info, my_pose, role_id):
     # ボール位置
     ball_pose = ball_info.pose
     # ボールスピード
@@ -70,16 +70,16 @@ def update_receive_ball(ball_info, my_pose, zone_id):
         fabs_y = math.fabs(tr_pose.y)
 
         # 受け取れる判定
-        if Receiving.receiving(zone_id) == False and \
+        if Receiving.receiving(role_id) == False and \
                 fabs_y < _can_receive_dist - _can_receive_hysteresis:
-            Receiving.update_receiving(zone_id, True)
+            Receiving.update_receiving(role_id, True)
         # 受け取れない判定
-        elif Receiving.receiving(zone_id) == True and \
+        elif Receiving.receiving(role_id) == True and \
                 fabs_y > _can_receive_dist + _can_receive_hysteresis:
-            Receiving.update_receiving(zone_id, False)
+            Receiving.update_receiving(role_id, False)
 
         # 受け取れるかつボールが向かう方向にいる
-        if Receiving.receiving(zone_id) and tr_pose.x > 0.0:
+        if Receiving.receiving(role_id) and tr_pose.x > 0.0:
             tr_pose.y = 0.0
             inv_pose = trans.inverted_transform(tr_pose)
             angle_to_ball = tool.get_angle(inv_pose, ball_pose)

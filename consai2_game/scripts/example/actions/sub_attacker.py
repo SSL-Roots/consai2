@@ -73,8 +73,7 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
     target_pose.theta = angle_to_ball
 
     # ボールが来てたらボールを受け取る
-    # TODO: update_receive_ball
-    receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, 0)
+    receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, my_role)
     if receive_ball_result:
         # ドリブラー回す
         control_target.dribble_power = DRIBBLE_POWER

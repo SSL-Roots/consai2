@@ -122,8 +122,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
 
     # ボールが来てたらボールを受け取る
     if zone_id != None:
-        # TODO: update_receive_ball
-        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, zone_id + 1)
+        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, my_role)
         if receive_ball_result:
             # ドリブラー回す
             control_target.dribble_power = DRIBBLE_POWER
