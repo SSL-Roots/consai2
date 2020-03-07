@@ -25,6 +25,9 @@ KICK_POWER = 0.3
 # dorrible_power
 DRIBBLE_POWER = 0.6
 
+# 壁際と判定するしきい値
+WALL_DECISION_DIST = 0.3
+
 # ボールがplacementされたとみなされる範囲
 # 実際にボールがplacementされたとみなされる範囲は0.15[m]
 BALL_PLACE_TRESHOLD = 0.10
@@ -90,8 +93,8 @@ def get_near_robot_id(target_pose, robot_info):
     return robot_id
 
 # ball placementrをatkとrecvの2台で行う
-def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_id, mode):
- 
+def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_id, mode, field_size):
+
     # ペアになるロボットのID
     # target_poseに一番距離が一番近いロボットを使う
     if mode == 'atk':
@@ -107,29 +110,53 @@ def basic_ball_placement(control_target, target_pose, ball_info, robot_info, my_
 
     # placementを行うための座標などを生成する
     if mode == 'atk':
-        control_target, avoid_ball = basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose)
+        control_target, avoid_ball = basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field_size)
     else:
         control_target, avoid_ball = basic_recv(control_target, ball_info, atk_pose, recv_pose, target_pose)
     
     return control_target, avoid_ball
 
 # ball_placement(atkロボット)の動作
-def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
+def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose, field_size):
 
-    # 目標座標までの角度
+    # ボールからみた目標座標までの角度
     angle_ball_to_target = tool.get_angle(ball_info.pose, target_pose)
-
-    # 目標位置はボールの前方にし、目標角度は、自己位置からみたボール方向にする
-    trans = tool.Trans(ball_info.pose, angle_ball_to_target)
+    # 目標座標からみたボールまでの角度
+    angle_target_to_ball = tool.get_angle(target_pose, ball_info.pose)
+    # ボールからみたATKまでの角度
+    angle_ball_to_atk = tool.get_angle(ball_info.pose, atk_pose)
 
     # ボールとpalcement位置の距離
     dist_ball_to_target = tool.distance_2_poses(ball_info.pose, target_pose)
+    # ボールとATKの距離
+    dist_ball_to_atk = tool.distance_2_poses(ball_info.pose, atk_pose)
+    # ボールとATKの距離
+    dist_atk_to_target = tool.distance_2_poses(atk_pose, target_pose)
+
+    # ローカル座標系に変換する、ボールから目標位置を向く
+    trans_ball_to_target = tool.Trans(ball_info.pose, angle_ball_to_target)
+    # ローカル座標系に変換する、ボールからATKを向く
+    trans_ball_to_atk = tool.Trans(ball_info.pose, angle_ball_to_atk)
 
     # recvがボールのレシーブを行う座標
-    ball_receiving_pose = generating_behind_target_pose(trans, target_pose, SET_POSE_ADD_X_RECV)
+    ball_receiving_pose = generating_behind_target_pose(trans_ball_to_target, target_pose, SET_POSE_ADD_X_RECV)
 
     # ボール速度
     ball_velocity = math.hypot(ball_info.velocity.x, ball_info.velocity.y)
+
+    # フィールドの情報をまとめる(上、下、左、右の位置)
+    field_pose = [field_size[0]/2,
+                  -field_size[0]/2,
+                  field_size[1]/2,
+                  -field_size[1]/2]
+
+    # 壁際にあるか判定
+    wall_decision_result = False
+    if field_pose[0] - WALL_DECISION_DIST < ball_info.pose.x or \
+            ball_info.pose.x < field_pose[1] + WALL_DECISION_DIST or \
+            field_pose[2] - WALL_DECISION_DIST < ball_info.pose.y or \
+            ball_info.pose.y < field_pose[3] + WALL_DECISION_DIST:
+        wall_decision_result = True
 
     # ---------------------------------------
     # placementの行動生成
@@ -144,19 +171,44 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
     if BALL_PLACE_TRESHOLD < dist_ball_to_target:
 
         # 指定位置に到着したかどうか
-        is_atk_arrived = atk_arrived_check(trans.transform(atk_pose))
+        is_atk_arrived = atk_arrived_check(trans_ball_to_target.transform(atk_pose))
         is_recv_arrived = recv_arrived_check(tool.distance_2_poses(recv_pose, ball_receiving_pose))
         
         # 蹴ったあとにatkが追いかけない様に対策
         if VEL_THRESHOLD < ball_velocity:
             new_pose = atk_pose
-        
-        # atkがボールの後ろにいなければ移動する
+
+        # ボールが壁際にある場合はドリブルしながら下がる
+        elif wall_decision_result:
+            # ボールを保持して下がる
+            if dist_ball_to_atk < 0.11:
+                control_target.dribble_power = DRIBBLE_POWER
+                new_pose = trans_ball_to_target.inverted_transform(Pose2D(0.2, 0, 0))
+                new_pose.theta = angle_target_to_ball
+            # ボールの後ろまで移動する
+            else:
+                control_target.dribble_power = 0
+                new_pose = trans_ball_to_target.inverted_transform(Pose2D(0.1, 0, 0))
+                new_pose.theta = angle_target_to_ball
+
+        # atkがボールの後ろに移動する
         elif not is_atk_arrived:
-            # ボールの後ろに座標を生成
-            new_pose = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
+            # ATKの位置ボールとターゲットの間の場合
+            if 0 < trans_ball_to_target.transform(atk_pose).x:
+                # ボールとATKの位置が近い場合は下がる
+                if dist_ball_to_atk < 0.2:
+                    new_pose = trans_ball_to_atk.inverted_transform(Pose2D(0.3, 0, 0))
+                # ある程度離れていればボールの後ろへ回り込む
+                else:
+                    new_pose = trans_ball_to_atk.inverted_transform(Pose2D(0.3, 0.3, 0))
+            # ボールとATKの位置がある程度離れている
+            else:
+                # ボールの後ろに座標を生成
+                new_pose = trans_ball_to_target.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
+
+            # 目標地点のほうを向く
             new_pose.theta = angle_ball_to_target
-            
+            # 障害物回避する
             avoid_ball = True
 
         # もしボールとゴールに近い場合はアタッカーが置きにいく
@@ -176,7 +228,7 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
         elif is_atk_arrived and is_recv_arrived:
 
             # ボールを確実に保持するためボールの少し前に移動する
-            new_pose = trans.inverted_transform(Pose2D(0.2, 0, 0))
+            new_pose = trans_ball_to_target.inverted_transform(Pose2D(0.2, 0, 0))
             new_pose.theta = angle_ball_to_target
 
             # ドリブルとキックをオン
@@ -185,7 +237,7 @@ def basic_atk(control_target, ball_info, atk_pose, recv_pose, target_pose):
 
         # ボールの後ろに移動
         else:
-            new_pose = trans.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
+            new_pose = trans_ball_to_target.inverted_transform(Pose2D(-SET_POSE_ADD_X_ATK, 0, 0))
             new_pose.theta = angle_ball_to_target
 
             avoid_ball = True
