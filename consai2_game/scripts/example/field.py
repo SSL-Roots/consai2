@@ -23,8 +23,12 @@ class Field(object):
             'our': copy.deepcopy(_our_penalty_dict), 
             'their': copy.deepcopy(_their_penalty_dict)}
     _field = {
-            'length' : 12.0,
-            'width' : 9.0}
+            'length':         12.0,
+            'width':          9.0,
+            'half_length':    6.0,
+            'quarter_length': 3.0,
+            'half_width':     4.5,
+            'quarter_width':  2.25}
     _geometry_field_lines = {}
 
     # _penalty_poseとfield_lines紐付ける辞書
@@ -71,6 +75,10 @@ class Field(object):
         # フィールドサイズ取得
         Field._field['length'] = geometry.field_length
         Field._field['width'] = geometry.field_width
+        Field._field['half_length'] = half_length
+        Field._field['quarter_length'] = half_length * 0.5
+        Field._field['half_width'] = half_width
+        Field._field['quarter_width'] = half_width * 0.5
 
 
     @classmethod
