@@ -20,11 +20,6 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
     # ゾーンオフェンス用の待機場所
     ZONE_OFFENCE_POSE = Pose2D(Field.field('length')*0.25 ,0,0)
 
-    # センターライン用のマージン
-    MARGIN_CENTER = 0.6
-    # ちょっと前進用のマージン
-    MARGIN_LITTLE_FORWARD = 1.0
-
     # ドリブルパワー
     DRIBBLE_POWER = 0.6
 
@@ -54,8 +49,6 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
     # ゴール中心からボールへの角度
     angle_to_ball_from_goal = tool.get_angle(goal_center, ball_pose)
 
-    # ゾーンディフェンス用のID
-    zone_id = 0
     # 移動目標点の初期化
     target_pose = Pose2D()
 
@@ -64,10 +57,6 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
     control_target.kick_power = 0.0
     control_target.dribble_power = 0.0
 
-    # ゾーンオフェンス判定用フラグ
-    my_role_is_offence = False
-
-    # 私はゾーンオフェンスです
     target_pose = ZONE_OFFENCE_POSE
     if role_action_enable:
         # 基本的にアタッカーがボールを取りに行くので
