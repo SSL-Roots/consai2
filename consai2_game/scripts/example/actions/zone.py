@@ -15,7 +15,7 @@ import defense
 
 
 # ゾーンディフェンス
-def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
+def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, role_action_enable):
     # ゴールディフェンスに割り当てる台数
     GOAL_DEFENSE_NUM = 2
     # 現在のディフェンス数 - ゴールディフェンス数 = ゾーンディフェンスに割り当てられる台数
@@ -97,14 +97,14 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
 
-            # ボールが自分のゾーンの中に入っている, かつzone_enable
-            if(zone_enable and \
+            # ボールが自分のゾーンの中に入っている, かつrole_action_enable
+            if(role_action_enable and \
                     ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
                 target_pose = trans.inverted_transform(Pose2D(-0.9, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
-            elif zone_enable and invader_pose != []:
+            elif role_action_enable and invader_pose != []:
                 # 敵とボールの間に割り込む
                 angle_to_ball_from_invader = tool.get_angle(invader_pose[0], ball_pose)
                 trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)

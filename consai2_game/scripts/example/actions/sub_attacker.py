@@ -16,7 +16,7 @@ import defense
 
 
 # サブアタッカー
-def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
+def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, role_action_enable):
     # ゾーンオフェンス用の待機場所
     ZONE_OFFENCE_POSE = Pose2D(Field.field('length')*0.25 ,0,0)
 
@@ -69,7 +69,7 @@ def sub_attacker(my_pose, ball_info, control_target, my_role, defense_num, their
 
     # 私はゾーンオフェンスです
     target_pose = ZONE_OFFENCE_POSE
-    if zone_enable:
+    if role_action_enable:
         # 基本的にアタッカーがボールを取りに行くので
         # ボールが無い方向に移動してこぼれ球が取れるようにする
         if ball_pose.y > 0:
