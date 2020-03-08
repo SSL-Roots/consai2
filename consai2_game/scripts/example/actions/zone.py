@@ -1,5 +1,4 @@
 # coding: UTF-8
-# defense.pyでは、ボールを蹴らないactionを定義する
 
 import math
 import rospy
@@ -16,7 +15,7 @@ import defense
 
 
 # ゾーンディフェンス
-def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, zone_enable):
+def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their_robot_info, role_action_enable):
     # ゴールディフェンスに割り当てる台数
     GOAL_DEFENSE_NUM = 2
     # 現在のディフェンス数 - ゴールディフェンス数 = ゾーンディフェンスに割り当てられる台数
@@ -70,37 +69,9 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
     control_target.kick_power = 0.0
     control_target.dribble_power = 0.0
 
-    # ゾーンオフェンス判定用フラグ
-    my_role_is_offence = False
-
-    # ボールが相手フィールドにあるとき
-    # ゾーンから1台ゾーンオフェンスに出す
-    # 相手キックオフ時などに前に出ないように
-    # マージンを持って相手フィールド側かを判断している
-    if ZONE_DEFENSE_NUM > 1 and ball_pose.x > MARGIN_CENTER:
-        # 1台ディフェンスが減る
-        ZONE_DEFENSE_NUM -= 1
-        # ゾーンディフェンスが始まるROLE_IDをずらす
-        ZONE_START_ROLE_ID = role.ROLE_ID["ROLE_ZONE_2"]
-        # ROLE_ZONE_1をゾーンオフェンスとして出す
-        if my_role is role.ROLE_ID["ROLE_ZONE_1"]:
-            my_role_is_offence = True
-
-    # 私はゾーンオフェンスです
-    if my_role_is_offence:
-        zone_id = 0
-        target_pose = ZONE_OFFENCE_POSE
-        # 基本的にアタッカーがボールを取りに行くので
-        # ボールが無い方向に移動してこぼれ球が取れるようにする
-        if ball_pose.y > 0:
-            target_pose.y  =  - quarter_field_width
-        else:
-            target_pose.y = quarter_field_width
-        # ボールを向く
-        target_pose.theta = angle_to_ball
 
     # ゾーンオフェンス以外
-    if ZONE_DEFENSE_NUM > 0 and not my_role_is_offence:
+    if ZONE_DEFENSE_NUM > 0:
         step = float(field_width) / (ZONE_DEFENSE_NUM * 2)
         # ゾーンディフェンスの数でフィールド幅を等分した配列を作る
         split_field = [i * step - half_field_width for i in range(0,(ZONE_DEFENSE_NUM * 2 + 1))]
@@ -126,14 +97,14 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
                     if split_field[zone_id * 2] < i.pose.y < split_field[(zone_id + 1) * 2] and \
                     i.pose.x < 0]
 
-            # ボールが自分のゾーンの中に入っている, かつzone_enable
-            if(zone_enable and \
+            # ボールが自分のゾーンの中に入っている, かつrole_action_enable
+            if(role_action_enable and \
                     ball_pose.x < 0 and \
                     split_field[zone_id * 2] < ball_pose.y < split_field[(zone_id + 1) * 2]):
                 trans = tool.Trans(ball_pose, angle_to_ball_from_goal)
                 target_pose = trans.inverted_transform(Pose2D(-0.9, 0, 0))
             # 自分のゾーンにボールはないけど敵がいる場合は割り込む
-            elif zone_enable and invader_pose != []:
+            elif role_action_enable and invader_pose != []:
                 # 敵とボールの間に割り込む
                 angle_to_ball_from_invader = tool.get_angle(invader_pose[0], ball_pose)
                 trans = tool.Trans(invader_pose[0], angle_to_ball_from_invader)
@@ -151,7 +122,7 @@ def defense_zone(my_pose, ball_info, control_target, my_role, defense_num, their
 
     # ボールが来てたらボールを受け取る
     if zone_id != None:
-        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, zone_id)
+        receive_ball_result, receive_target_pose = defense.update_receive_ball(ball_info, my_pose, my_role)
         if receive_ball_result:
             # ドリブラー回す
             control_target.dribble_power = DRIBBLE_POWER
