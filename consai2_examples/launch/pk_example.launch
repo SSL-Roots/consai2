@@ -1,0 +1,28 @@
+<launch>
+  <!-- 設定されるとconsai2_descriptionのパラメータを上書きする -->
+  <arg name="side" default="left" />
+  <arg name="sim" default="false" />
+  <arg name="joydev" default="/dev/input/js0" />
+
+  <node name="joy_core" pkg="joy" type="joy_node" required="true">
+    <param name="dev" type="string" value="$(arg joydev)" />
+  </node>
+
+  <include file="$(find consai2_description)/launch/description.launch" >
+    <arg name="side" value="$(arg side)" />
+  </include>
+
+  <include file="$(find consai2_receiver)/launch/receiver.launch" >
+    <arg name="load_description" value="false" />
+  </include>
+  <node name="vision_wrapper" pkg="consai2_world_observer" type="consai2_world_observer" required="true" output="screen" />
+  <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" />
+
+  <node name="pk_example" pkg="consai2_examples" type="pk_example.py" required="true" output="screen" />
+
+  <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
+  <include file="$(find consai2_sender)/launch/sender.launch">
+      <arg name="load_description" value="false" />
+      <arg name="sim" value="$(arg sim)" />
+  </include>
+</launch>
