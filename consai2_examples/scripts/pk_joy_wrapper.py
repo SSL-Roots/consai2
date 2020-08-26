@@ -1,5 +1,4 @@
 
-import rospy
 from sensor_msgs.msg import Joy
 
 class JoyWrapper(object):
@@ -27,14 +26,14 @@ class JoyWrapper(object):
     def get_kazasu_right(self):
         return 0.0
 
-    def get_foot_switch_pressed(self):
+    def get_foot_switch_has_pressed(self):
         return False
 
     def get_attacker_can_move(self):
-        return False
+        return True
 
     def get_goalie_can_move(self):
-        return False
+        return True
 
     def get_attacker_can_use_kazasu_foot(self):
         return False

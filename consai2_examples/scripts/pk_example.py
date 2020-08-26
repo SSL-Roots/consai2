@@ -7,6 +7,8 @@ from consai2_msgs.msg import ControlTarget
 from consai2_msgs.msg import RobotInfo
 from consai2_msgs.msg import VisionGeometry
 from geometry_msgs.msg import Pose2D
+from pk_goalie import PkGoalie
+from pk_attacker import PkAttacker
 from pk_joy_wrapper import JoyWrapper
 from sensor_msgs.msg import Joy
 
@@ -69,7 +71,6 @@ def publish_control_target(blue_publisher_list, yellow_publisher_list, is_yellow
     else:
         blue_publisher_list[robot_id].publish(control_target)
 
-
 def main():
     global joy_msg_
     global ball_info_
@@ -117,18 +118,22 @@ def main():
     prev_attacker_is_yellow = False
     prev_goalie_id = 0
     prev_attacker_id = 0
-    start_time_secs = rospy.get_rostime().secs
+    pk_goalie = None
+    pk_attacker = None
     while not rospy.is_shutdown():
+        # ジョイコントローラのコマンドを分解
         joy_wrapper.update(joy_msg_)
-
         goalie_id = joy_wrapper.get_goalie_id()
         attacker_id = joy_wrapper.get_attacker_id()
         goalie_is_yellow = joy_wrapper.get_goalie_is_yellow()
         attacker_is_yellow = joy_wrapper.get_attacker_is_yellow()
+        kazasu_left = joy_wrapper.get_kazasu_left()
+        kazasu_right = joy_wrapper.get_kazasu_right()
+        foot_switch_has_pressed = joy_wrapper.get_foot_switch_has_pressed()
 
+        # ゴーリー、アタッカーの位置情報を取得
         goalie_info = get_robot_info(goalie_id, goalie_is_yellow)
         attacker_info = get_robot_info(attacker_id, attacker_is_yellow)
-
         if goalie_info is False:
             rospy.logwarn("No goalie robot info.")
             continue
@@ -137,28 +142,44 @@ def main():
             rospy.logwarn("No attacker robot info.")
             continue
 
+        # フィールド情報を取得
         field_length, field_width, goal_width = get_field_size()
-
         if not field_length or not field_width or not goal_width:
             rospy.logwarn("No field info.")
             continue
 
-        # 5秒経ったらIDとカラーを変える
-        if rospy.get_rostime().secs - start_time_secs > 4:
-            attacker_is_yellow = True
-            goalie_is_yellow = True
-            attacker_id = 4
-            goalie_id = 3
-
+        # ゴーリーの制御目標値を生成
         goalie_control_target = ControlTarget()
+        if joy_wrapper.get_goalie_can_move():
+            if pk_goalie is None:
+                pk_goalie = PkGoalie()
+            
+            goalie_control_target = pk_goalie.get_control_target(
+                goalie_info, ball_info_,
+                field_length, field_width, goal_width,
+                kazasu_left, kazasu_right)
+        else:
+            pk_goalie = None
+            goalie_control_target.goal_velocity = Pose2D()
         goalie_control_target.control_enable = True
         goalie_control_target.robot_id = goalie_id
-        goalie_control_target.goal_velocity = Pose2D(0, 0, 3.14)
 
+        # アタッカーの制御目標値を生成
         attacker_control_target = ControlTarget()
+        if joy_wrapper.get_attacker_can_move():
+            if pk_attacker is None:
+                pk_attacker = PkAttacker(rospy.get_rostime())
+
+            attacker_control_target = pk_attacker.get_control_target(
+                goalie_info, ball_info_,
+                field_length, field_width,
+                kazasu_left, kazasu_right, foot_switch_has_pressed,
+                rospy.get_rostime())
+        else:
+            pk_attacker = None
+            attacker_control_target.goal_velocity = Pose2D()
         attacker_control_target.control_enable = True
         attacker_control_target.robot_id = attacker_id
-        attacker_control_target.goal_velocity = Pose2D(0, 0, -3.14)
 
         # 制御目標値の送信
         publish_control_target(
