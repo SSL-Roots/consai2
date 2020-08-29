@@ -173,3 +173,18 @@ roslaunch consai2_examples game.launch sim:=true color:=blue side:=left
 roslaunch consai2_examples game.launch sim:=true color:=yellow side:=right
 ```
 
+## MFT2020
+
+MakerFaireTokyo 2020で実施したデモプログラムです。
+
+1 vs 1のPKを行います。
+
+次のコマンドでノードを起動します。
+
+```sh
+# 例：シミュレータ上で、左から右に攻める
+$ roslaunch consai2_examples pk_example.launch sim:=true side:=left
+
+# 例：実機で、右から左に攻める
+$ roslaunch consai2_examples pk_example.launch sim:=false side:=right
+```
