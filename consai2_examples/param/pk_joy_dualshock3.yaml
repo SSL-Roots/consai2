@@ -4,12 +4,12 @@ axis_kazasu_left_y : 1
 axis_kazasu_right_x : 3
 axis_kazasu_right_y : 4
 
-button_attacker_enable : 7
-button_goalie_enable : 6
+button_attacker_config_enable : 7
+button_goalie_config_enable : 6
 button_attacker_can_move : 9
 button_goalie_can_move : 8
-
-button_can_use_kazasu_foot : 1
+button_attacker_kazafoo_available : 1
+button_goalie_kazafoo_available : 3
 
 analog_d_pad            : false
 d_pad_up                : 13
