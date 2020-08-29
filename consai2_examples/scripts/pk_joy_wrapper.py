@@ -1,8 +1,10 @@
 
+import rospy
 from sensor_msgs.msg import Joy
 
 class JoyWrapper(object):
     def __init__(self):
+        rospy.loginfo(rospy.get_param('~button_foot_switch'))
         pass
 
     def update(self, joy_msg):
