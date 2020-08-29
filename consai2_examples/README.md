@@ -179,6 +179,11 @@ MakerFaireTokyo 2020で実施したデモプログラムです。
 
 1 vs 1のPKを行います。
 
+ジョイコントローラが必要です。下記のコントローラに対応しています。
+
+- [Logicool Wireless Gamepad F710](https://gaming.logicool.co.jp/ja-jp/products/gamepads/f710-wireless-gamepad.html#940-0001440)
+- [SONY DUALSHOCK 3](https://www.jp.playstation.com/ps3/peripheral/cechzc2j.html)
+
 次のコマンドでノードを起動します。
 
 ```sh
@@ -187,4 +192,42 @@ $ roslaunch consai2_examples pk_example.launch sim:=true side:=left
 
 # 例：実機で、右から左に攻める
 $ roslaunch consai2_examples pk_example.launch sim:=false side:=right
+
+# 例：シミュレータ上で、/dev/input/js0に接続されたDUALSHOCK3コントローラを使う
+$ roslaunch consai2_examples pk_example.launch sim:=true joydev:=/dev/input/js0 joyconfig:=dualshock3
+
+# 例：実機で、/dev/input/js1に接続されたF710コントローラを使う
+$ roslaunch consai2_examples pk_example.launch sim:=false joydev:=/dev/input/js1 joyconfig:=f710
 ```
+
+### KeyConfig
+
+かざすセンサ、フットスイッチ
+
+|Key combination|Function|
+|:---|:---|
+|`L stick ↑↓←→`| kazasu_left (0.0 ~ 1.0) の生成|
+|`R stick ↑↓←→`| kazasu_right (0.0 ~ 1.0) の生成|
+|`L1`| foot_switch (Bool) の生成|
+
+アタッカー
+
+|Key combination|Function|
+|:---|:---|
+|`START`| 動作停止 |
+|`R2` + `START`| 動作開始/停止の切り替え|
+|`R2` + `D-Pad ↑↓`|IDの変更 (0 ~ `max_id`)|
+|`R2` + `D-Pad →`|チームカラーの切り替え (blue or yellow)|
+|`○`|かざすセンサ、フットスイッチを**使用しない**|
+|`R2` + `○`|かざすセンサ、フットスイッチ使用/未使用の切り替え|
+
+キーパー
+
+|Key combination|Function|
+|:---|:---|
+|`SELECT`| 動作停止 |
+|`L2` + `SELECT`| 動作開始/停止の切り替え|
+|`L2` + `D-Pad ↑↓`|IDの変更 (0 ~ `max_id`)|
+|`L2` + `D-Pad →`|チームカラーの切り替え (blue or yellow)|
+|`□`|かざすセンサ、フットスイッチを**使用しない**|
+|`L2` + `□`|かざすセンサ、フットスイッチ使用/未使用の切り替え|
