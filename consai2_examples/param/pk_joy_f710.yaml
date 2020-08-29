@@ -1,0 +1,25 @@
+button_foot_switch : 4
+axis_kazasu_left_x : 0
+axis_kazasu_left_y : 1
+axis_kazasu_right_x : 2
+axis_kazasu_right_y : 3
+
+button_attacker_config_enable : 7
+button_goalie_config_enable : 6
+button_attacker_can_move : 9
+button_goalie_can_move : 8
+button_attacker_kazafoo_available : 2
+button_goalie_kazafoo_available : 0
+
+analog_d_pad            : true
+d_pad_up                : 5
+d_pad_down              : 5
+d_pad_left              : 4
+d_pad_right             : 4
+# for analog_d_pad 
+d_pad_up_is_positive    : true
+d_pad_right_is_positive : false
+
+d_pad_id_increment : "up"
+d_pad_id_decrement : "down"
+d_pad_color_toggle : "right"
