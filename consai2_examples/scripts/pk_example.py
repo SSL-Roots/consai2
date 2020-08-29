@@ -121,15 +121,27 @@ def main():
     pk_goalie = None
     pk_attacker = None
     while not rospy.is_shutdown():
+        # TODO: かざすセンサとフットスイッチから値を得ること
+        goalie_kazasu_left = attacker_kazasu_left = 0.0
+        goalie_kazasu_right = attacker_kazasu_right = 0.0
+        goalie_foot_switch_has_pressed = attacker_foot_switch_has_pressed = False
+
         # ジョイコントローラのコマンドを分解
         joy_wrapper.update(joy_msg_)
         goalie_id = joy_wrapper.get_goalie_id()
         attacker_id = joy_wrapper.get_attacker_id()
         goalie_is_yellow = joy_wrapper.get_goalie_is_yellow()
         attacker_is_yellow = joy_wrapper.get_attacker_is_yellow()
-        kazasu_left = joy_wrapper.get_kazasu_left()
-        kazasu_right = joy_wrapper.get_kazasu_right()
-        foot_switch_has_pressed = joy_wrapper.get_foot_switch_has_pressed()
+        # ジョイスティックの信号をkazasu & switchに上書きする
+        if joy_wrapper.get_goalie_can_use_kazasu_foot():
+            goalie_kazasu_left = joy_wrapper.get_kazasu_left()
+            goalie_kazasu_right = joy_wrapper.get_kazasu_right()
+            goalie_foot_switch_has_pressed = joy_wrapper.get_foot_switch_has_pressed()
+
+        if joy_wrapper.get_attacker_can_use_kazasu_foot():
+            attacker_kazasu_left = joy_wrapper.get_kazasu_left()
+            attacker_kazasu_right = joy_wrapper.get_kazasu_right()
+            attacker_foot_switch_has_pressed = joy_wrapper.get_foot_switch_has_pressed()
 
         # ゴーリー、アタッカーの位置情報を取得
         goalie_info = get_robot_info(goalie_id, goalie_is_yellow)
@@ -153,11 +165,11 @@ def main():
         if joy_wrapper.get_goalie_can_move():
             if pk_goalie is None:
                 pk_goalie = PkGoalie()
-            
+
             goalie_control_target = pk_goalie.get_control_target(
                 goalie_info, ball_info_,
                 field_length, field_width, goal_width,
-                kazasu_left, kazasu_right)
+                goalie_kazasu_left, goalie_kazasu_right)
         else:
             pk_goalie = None
             goalie_control_target.goal_velocity = Pose2D()
@@ -173,7 +185,8 @@ def main():
             attacker_control_target = pk_attacker.get_control_target(
                 goalie_info, ball_info_,
                 field_length, field_width,
-                kazasu_left, kazasu_right, foot_switch_has_pressed,
+                attacker_kazasu_left, attacker_kazasu_right,
+                attacker_foot_switch_has_pressed,
                 rospy.get_rostime())
         else:
             pk_attacker = None
