@@ -143,6 +143,10 @@ def main():
             attacker_kazasu_right = joy_wrapper.get_kazasu_right()
             attacker_foot_switch_has_pressed = joy_wrapper.get_foot_switch_has_pressed()
 
+        # # デバッグ用なので後で消すこと
+        # print("attacker:" + str(joy_wrapper.get_attacker_can_use_kazasu_foot())
+        #     + ", goalie:" + str(joy_wrapper.get_goalie_can_use_kazasu_foot()))
+
         # ゴーリー、アタッカーの位置情報を取得
         goalie_info = get_robot_info(goalie_id, goalie_is_yellow)
         attacker_info = get_robot_info(attacker_id, attacker_is_yellow)
