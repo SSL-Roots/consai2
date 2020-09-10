@@ -7,42 +7,87 @@ from consai2_msgs.msg import VisionGeometry
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 
+import math
+
 class PkGoalie(object):
     def __init__(self):
+        # ゴールライン上から一定距離[m]前を守るための変数
+        self.MARGIN_DIST_X = 0.2
+        # ボールが動いていると判定する速度[m/s]
+        self.MOVE_BALL_VELOCITY_THRESHOLD =  0.5
 
-        self.ball_info = None
-        self.vision_geometry = None
-
-        # ボール情報をもらう
-        sub_ball_info = rospy.Subscriber('vision_wrapper/ball_info',
-            BallInfo, callback_ball_info, queue_size=1)
-
-        # フィールド情報をもらう
-        sub_field_info = rospy.Subscriber('vision_receiver/raw_vision_geometry',
-            VisionGeometry, _callback_vision_geometry)
-
-        # フィールドサイズを取得
-        self.field_length, self.field_width, self.goal_width = get_field_size()
-
-    def _callback_ball_info(self, msg):
-        self.ball_info = msg
-
-    def _callback_vision_geometry(self, msg):
-        self.vision_geometry = msg
-
-    def get_field_size(self):
-        self.field_length = vision_geometry.field_length
-        self.field_width = vision_geometry.field_width
-        self.goal_width = vision_geometry.goal_width
-
-        return field_length, field_width, goal_width
-
+    # ゴーリーの目標位置生成
     def get_control_target(self, my_robot_info, ball_info,
         field_length, field_width, goal_width,
         kazasu_left, kazasu_right):
+
         control_target = ControlTarget()
-        # control_target.goal_velocity = Pose2D(0, 0, 3.14)
-        control_target.path.append(Pose2D(-1, 1, 0))
+
+        # 新しい自身の位置を生成
+        new_my_pose = Pose2D(0, 0, 0)
+        new_my_pose.x = -field_length / 2 + self.MARGIN_DIST_X
+
+        # ゴール位置を生成
+        goal_pose = Pose2D(-field_length / 2, 0, 0)
+
+        # ボールの位置を抽出
+        ball_pose = ball_info.pose
+
+        # ボールの速度
+        ball_velocity_x = ball_info.velocity.x
+        ball_velocity_y = ball_info.velocity.y
+        ball_velocity = math.hypot(ball_velocity_x, ball_velocity_y)
+
+        # ボールの進む角度
+        angle_ball = math.atan2(ball_velocity_y, ball_velocity_x)
+
+        # ボールの進む変化量を計算（方向を考慮した単位量）
+        var_ball_velocity_x = math.cos(angle_ball) 
+        var_ball_velocity_y = math.sin(angle_ball) 
+
+        # ボールの次の予測位置を取得
+        ball_pose_next = Pose2D(
+            ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
+
+        # ボールが一定速度以上かつ向かってくる場合はボールの進路に関する直線の傾きと切片を算出
+        if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and 0 < ball_velocity_x:
+            slope, intercept = self._get_line_parameters(
+                ball_pose, ball_pose_next)
+        # ボールが止まっている場合などはボールとゴールを結ぶ直線の傾きと切片を算出
+        else:
+            slope, intercept = self._get_line_parameters(
+                ball_pose, goal_pose)
+
+        # ゴーリのy座標を算出
+        new_my_pose.y = slope * new_my_pose.x + intercept
+
+        # ゴール幅からはみ出ないように制限する
+        if goal_width / 2 < new_my_pose.y:
+            new_my_pose.y = goal_width / 2
+        elif new_my_pose.y < -goal_width / 2:
+            new_my_pose.y = -goal_width / 2
+
+        # 新しいパスを追加
+        control_target.path.append(new_my_pose)
 
         return control_target
+
+    # 2点の座標から直線の傾きと切片を算出, 
+    def _get_line_parameters(self, pose1, pose2):
+
+        x1 = pose1.x
+        y1 = pose1.y
+        x2 = pose2.x
+        y2 = pose2.y
+
+        # 0になるとエラーになるので適当な小数を入れる
+        if x1 - x2 == 0:
+            x1 += 1e-12
+        
+        # 傾きの算出
+        slope = (y2 - y1) / (x2 - x1)
+        # 切片の算出
+        intercept = y2 - slope * x2
+        
+        return slope, intercept
 
