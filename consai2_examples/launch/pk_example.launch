@@ -3,6 +3,7 @@
   <arg name="side" default="left" />
   <arg name="sim" default="false" />
   <arg name="joydev" default="/dev/input/js0" />
+  <arg name="joyconfig" default="dualshock3" />
 
   <node name="joy_core" pkg="joy" type="joy_node" required="true">
     <param name="dev" type="string" value="$(arg joydev)" />
@@ -18,7 +19,9 @@
   <node name="vision_wrapper" pkg="consai2_world_observer" type="consai2_world_observer" required="true" output="screen" />
   <node name="consai2_visualizer" pkg="consai2_gui" type="consai2_gui" required="true" output="screen" />
 
-  <node name="pk_example" pkg="consai2_examples" type="pk_example.py" required="true" output="screen" />
+  <node name="pk_example" pkg="consai2_examples" type="pk_example.py" required="true" output="screen">
+    <rosparam command="load" file="$(find consai2_examples)/param/pk_joy_$(arg joyconfig).yaml" />
+  </node>
 
   <node name="consai2_control" pkg="consai2_control" type="example_control.py" required="true" output="screen" />
   <include file="$(find consai2_sender)/launch/sender.launch">
