@@ -30,9 +30,6 @@ class PkGoalie(object):
         # ゴール位置を生成
         goal_pose = Pose2D(-field_length / 2, 0, 0)
 
-        # ボールの位置を抽出
-        ball_pose = ball_info.pose
-
         # ボールの速度
         ball_velocity_x = ball_info.velocity.x
         ball_velocity_y = ball_info.velocity.y
@@ -45,12 +42,15 @@ class PkGoalie(object):
         var_ball_velocity_x = math.cos(angle_ball) 
         var_ball_velocity_y = math.sin(angle_ball) 
 
+        # ボールの位置を抽出
+        ball_pose = ball_info.pose
+
         # ボールの次の予測位置を取得
         ball_pose_next = Pose2D(
             ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
 
         # ボールが一定速度以上かつ向かってくる場合はボールの進路に関する直線の傾きと切片を算出
-        if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and 0 < ball_velocity_x:
+        if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
             slope, intercept = self._get_line_parameters(
                 ball_pose, ball_pose_next)
         # ボールが止まっている場合などはボールとゴールを結ぶ直線の傾きと切片を算出
