@@ -19,7 +19,8 @@ class PkGoalie(object):
     # ゴーリーの目標位置生成
     def get_control_target(self, my_robot_info, ball_info,
         field_length, field_width, goal_width,
-        kazasu_left, kazasu_right):
+        kazasu_left, kazasu_right,
+        level=1):
 
         control_target = ControlTarget()
 
@@ -52,18 +53,27 @@ class PkGoalie(object):
         # ボールがゴールに入っている場合はその場のy座標を代入
         if ball_pose.x < goal_pose.x: 
             new_my_pose.y = my_robot_info.pose.y
-        # ゴールされていなければゴーリのy座標を算出
+        # ゴールされていなければゴーリの新しいy座標を生成
         else:
-            # ボールが一定速度以上かつ向かってくる場合はボールの進路に関する直線の傾きと切片を算出
-            if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+            # level1
+            if level == 1:
+                # ボールのy座標と同じ位置に移動
+                new_my_pose.y = ball_pose.y
+            # lebel2: ボールが一定速度以上かつ向かってくる場合
+            elif level == 2 and self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+                # ボールの進路に関する直線の傾きと切片を算出
                 slope, intercept = self._get_line_parameters(
                     ball_pose, ball_pose_next)
-            # ボールが止まっている場合などはボールとゴールを結ぶ直線の傾きと切片を算出
+                # y座標を算出
+                new_my_pose.y = slope * new_my_pose.x + intercept
+
+            # ボールが止まっている場合など
             else:
+                # ボールとゴールを結ぶ直線の傾きと切片を算出
                 slope, intercept = self._get_line_parameters(
                     ball_pose, goal_pose)
-            # y座標を算出
-            new_my_pose.y = slope * new_my_pose.x + intercept
+                # y座標を算出
+                new_my_pose.y = slope * new_my_pose.x + intercept
 
         # ゴール幅からはみ出ないように制限する
         if goal_width / 2 < new_my_pose.y:
