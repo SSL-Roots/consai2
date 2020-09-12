@@ -49,17 +49,21 @@ class PkGoalie(object):
         ball_pose_next = Pose2D(
             ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
 
-        # ボールが一定速度以上かつ向かってくる場合はボールの進路に関する直線の傾きと切片を算出
-        if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
-            slope, intercept = self._get_line_parameters(
-                ball_pose, ball_pose_next)
-        # ボールが止まっている場合などはボールとゴールを結ぶ直線の傾きと切片を算出
+        # ボールがゴールに入っている場合はその場のy座標を代入
+        if ball_pose.x < goal_pose.x: 
+            new_my_pose.y = my_robot_info.pose.y
+        # ゴールされていなければゴーリのy座標を算出
         else:
-            slope, intercept = self._get_line_parameters(
-                ball_pose, goal_pose)
-
-        # ゴーリのy座標を算出
-        new_my_pose.y = slope * new_my_pose.x + intercept
+            # ボールが一定速度以上かつ向かってくる場合はボールの進路に関する直線の傾きと切片を算出
+            if self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+                slope, intercept = self._get_line_parameters(
+                    ball_pose, ball_pose_next)
+            # ボールが止まっている場合などはボールとゴールを結ぶ直線の傾きと切片を算出
+            else:
+                slope, intercept = self._get_line_parameters(
+                    ball_pose, goal_pose)
+            # y座標を算出
+            new_my_pose.y = slope * new_my_pose.x + intercept
 
         # ゴール幅からはみ出ないように制限する
         if goal_width / 2 < new_my_pose.y:
