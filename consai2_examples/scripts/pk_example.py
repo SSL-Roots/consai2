@@ -187,7 +187,7 @@ def main():
                 pk_attacker = PkAttacker(rospy.get_rostime())
 
             attacker_control_target = pk_attacker.get_control_target(
-                goalie_info, ball_info_,
+                attacker_info, ball_info_,
                 field_length, field_width,
                 attacker_kazasu_left, attacker_kazasu_right,
                 attacker_foot_switch_has_pressed,
