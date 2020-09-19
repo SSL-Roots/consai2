@@ -55,14 +55,25 @@ class KeyboardThread(threading.Thread):
         self.kick_flag = False
 
     def run(self):
+        TIMEOUT = 0.1
+        OFF_THRESH_SEC = 1.0
+        off_count = 0
+
         while(1):
-            key = self.getKey(0.1)
+            key = self.getKey(TIMEOUT)
             if key == 'b':
-                self.kick_flag = True
+                off_count = 0
+            elif key == '\x03':
+                break
             else:
+                if off_count <= int(OFF_THRESH_SEC / TIMEOUT):
+                    off_count += 1
+
+            if off_count > int(OFF_THRESH_SEC / TIMEOUT):
                 self.kick_flag = False
-                if (key == '\x03'):
-                    break
+            else:
+                self.kick_flag = True
+
 
     def getKey(self, key_timeout):
         tty.setraw(sys.stdin.fileno())
