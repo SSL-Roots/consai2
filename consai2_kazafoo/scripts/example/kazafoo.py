@@ -11,12 +11,6 @@ from sensor_msgs.msg import Joy
 import sys, select, termios, tty
 import serial
 
-import time
-
-moveBindings = {
-        'b':(0,0,-1,0),
-    }
-
 
 class KazafooCom(threading.Thread):
     def __init__(self):
@@ -34,8 +28,11 @@ class KazafooCom(threading.Thread):
     def run(self):
         while(1):
             data = self._serial.readline()
-            left_value_raw = data.split(',')[0]
-            right_value_raw = data.split(',')[1]
+            try:
+                left_value_raw = data.split(',')[0]
+                right_value_raw = data.split(',')[1]
+            except IndexError:
+                continue
 
             try:
                 self.left_value = float(left_value_raw)
@@ -47,109 +44,54 @@ class KazafooCom(threading.Thread):
                 self.right_value = 0.0
 
 
-class PublishThread(threading.Thread):
-    def __init__(self, rate):
-        super(PublishThread, self).__init__()
-        self.publisher = rospy.Publisher('joy', Joy, queue_size = 1)
+class KeyboardThread(threading.Thread):
+    def __init__(self):
+        super(KeyboardThread, self).__init__()
+        self.daemon = True
+
+        self.settings = termios.tcgetattr(sys.stdin)
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
+
         self.kick_flag = False
-        self.condition = threading.Condition()
-        self.done = False
-
-        # Set timeout to None if rate is 0 (causes new_message to wait forever
-        # for new data to publish)
-        if rate != 0.0:
-            self.timeout = 1.0 / rate
-        else:
-            self.timeout = None
-
-        self.start()
-
-    def update(self, kick_flag):
-        self.condition.acquire()
-        self.kick_flag = kick_flag
-        # Notify publish thread that we have a new message.
-        self.condition.notify()
-        self.condition.release()
-
-    def stop(self):
-        self.done = True
-        self.update(False)
-        self.join()
 
     def run(self):
-        joy = Joy()
-        joy.buttons = [0] * 3
-        while not self.done:
-            self.condition.acquire()
-            # Wait for a new message or timeout.
-            self.condition.wait(self.timeout)
+        while(1):
+            key = self.getKey(0.1)
+            if key == 'b':
+                self.kick_flag = True
+            else:
+                self.kick_flag = False
+                if (key == '\x03'):
+                    break
 
-            # Copy state into joy message.
-            joy.buttons[0] = 1.0 if self.kick_flag else 0.0
+    def getKey(self, key_timeout):
+        tty.setraw(sys.stdin.fileno())
+        rlist, _, _ = select.select([sys.stdin], [], [], key_timeout)
+        if rlist:
+            key = sys.stdin.read(1)
+        else:
+            key = ''
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
+        return key
 
-            self.condition.release()
-
-            # Publish.
-            self.publisher.publish(joy)
-
-        # Publish stop message when thread exits.
-        joy.buttons[0] = 0.0
-        self.publisher.publish(joy)
-
-
-def getKey(key_timeout):
-    tty.setraw(sys.stdin.fileno())
-    rlist, _, _ = select.select([sys.stdin], [], [], key_timeout)
-    if rlist:
-        key = sys.stdin.read(1)
-    else:
-        key = ''
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
-    return key
 
 if __name__=="__main__":
-    # settings = termios.tcgetattr(sys.stdin)
-
     rospy.init_node('kazafoo_node')
 
-    # speed = rospy.get_param("~speed", 0.5)
-    # turn = rospy.get_param("~turn", 1.0)
-    # repeat = rospy.get_param("~repeat_rate", 0.0)
-    # key_timeout = rospy.get_param("~key_timeout", 0.0)
-    # if key_timeout == 0.0:
-    #     key_timeout = 0.1
-
-    # pub_thread = PublishThread(repeat)
+    publisher = rospy.Publisher('joy', Joy, queue_size = 1)
 
     kazafoo_com_thread = KazafooCom()
     kazafoo_com_thread.start()
 
-    r = rospy.Rate(10)
+    keyboard_thread = KeyboardThread()
+    keyboard_thread.start()
+
+    r = rospy.Rate(20)
     while not rospy.is_shutdown():
-        print("looping")
-        print(kazafoo_com_thread.left_value)
-        print(kazafoo_com_thread.right_value)
+        joy = Joy()
+        joy.buttons = [0.0] * 3
+        joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
+        joy.buttons[1] = 1 if kazafoo_com_thread.left_value > 0.5 else 0
+        joy.buttons[2] = 1 if kazafoo_com_thread.right_value > 0.5 else 0
+        publisher.publish(joy)
         r.sleep()
-
-    kick_flag = False
-    # try:
-    #     pub_thread.update(kick_flag)
-
-    #     while(1):
-    #         key = getKey(key_timeout)
-    #         if key == 'b':
-    #             kick_flag = True
-    #         else:
-    #             kick_flag = False
-    #             if (key == '\x03'):
-    #                 break
- 
-    #         pub_thread.update(kick_flag)
-
-    # except Exception as e:
-    #     print(e)
-
-    # finally:
-    #     pub_thread.stop()
-
-    #     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
