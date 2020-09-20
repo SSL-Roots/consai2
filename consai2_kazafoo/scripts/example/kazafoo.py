@@ -7,6 +7,7 @@ import threading
 import rospy
 
 from sensor_msgs.msg import Joy
+from std_msgs.msg import Float32
 
 import sys, select, termios, tty
 import serial
@@ -89,7 +90,9 @@ class KeyboardThread(threading.Thread):
 if __name__=="__main__":
     rospy.init_node('kazafoo_node')
 
-    publisher = rospy.Publisher('joy', Joy, queue_size = 1)
+    publisher = rospy.Publisher('joy_kazafoo', Joy, queue_size = 1)
+    pub_kazasu_left = rospy.Publisher('kazasu_left', Float32, queue_size = 1)
+    pub_kazasu_right = rospy.Publisher('kazasu_right', Float32, queue_size = 1)
 
     kazafoo_com_thread = KazafooCom()
     kazafoo_com_thread.start()
@@ -104,5 +107,8 @@ if __name__=="__main__":
         joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
         joy.buttons[1] = 1 if kazafoo_com_thread.left_value > 0.5 else 0
         joy.buttons[2] = 1 if kazafoo_com_thread.right_value > 0.5 else 0
+
+        pub_kazasu_left.publish(kazafoo_com_thread.left_value)
+        pub_kazasu_right.publish(kazafoo_com_thread.right_value)
         publisher.publish(joy)
         r.sleep()
