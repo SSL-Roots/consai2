@@ -122,8 +122,8 @@ def main():
     pk_attacker = None
     while not rospy.is_shutdown():
         # TODO: かざすセンサとフットスイッチから値を得ること
-        goalie_kazasu_left = attacker_kazasu_left = 0.0
-        goalie_kazasu_right = attacker_kazasu_right = 0.0
+        goalie_kazasu_left = attacker_kazasu_left = False
+        goalie_kazasu_right = attacker_kazasu_right = False
         goalie_foot_switch_has_pressed = attacker_foot_switch_has_pressed = False
 
         # ジョイコントローラのコマンドを分解
