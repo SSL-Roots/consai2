@@ -34,8 +34,8 @@ class JoyWrapper(object):
         self._D_PAD_COLOR_TOGGLE = rospy.get_param('~d_pad_color_toggle')
 
         self._foot_switch_has_pressed = False
-        self._kazasu_left = 0.0
-        self._kazasu_right = 0.0
+        self._kazasu_left = False
+        self._kazasu_right = False
         self._attacker_can_move = False
         self._goalie_can_move = False
         self._attacker_id = 0
@@ -65,14 +65,24 @@ class JoyWrapper(object):
             self._foot_switch_has_pressed = False
 
         # アナログスティックをどこに傾けても、0.0 ~ 1.0を得る
-        self._kazasu_left = max(
+        kazasu_analog_left = max(
             math.fabs(joy_msg.axes[self._AXIS_KAZASU_LEFT_X]),
             math.fabs(joy_msg.axes[self._AXIS_KAZASU_LEFT_Y]),
             )
-        self._kazasu_right = max(
+        kazasu_analog_right = max(
             math.fabs(joy_msg.axes[self._AXIS_KAZASU_RIGHT_X]),
             math.fabs(joy_msg.axes[self._AXIS_KAZASU_RIGHT_Y]),
             )
+
+        if kazasu_analog_left > 0.5:
+            self._kazasu_left = True
+        else:
+            self._kazasu_left = False
+
+        if kazasu_analog_right > 0.5:
+            self._kazasu_right = True
+        else:
+            self._kazasu_right = False
 
         state_has_changed = False
         state_has_changed |= self._change_attacker_move_state(joy_msg)
