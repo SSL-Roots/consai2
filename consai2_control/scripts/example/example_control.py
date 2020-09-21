@@ -99,7 +99,7 @@ class Controller(object):
         self._PID_GAIN = { # 位置制御のPIDゲイン
                 "x":PIDGain(1.475, 0.0, 21.0),
                 "y":PIDGain(1.475, 0.0, 21.0),
-                "theta":PIDGain(1.0, 0.0, 0.0)
+                "theta":PIDGain(1.2, 0.0, 10.0)
                 }
 
         self._MAX_ID = rospy.get_param('consai2_description/max_id', 15)
