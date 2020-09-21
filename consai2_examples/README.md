@@ -187,6 +187,9 @@ MakerFaireTokyo 2020で実施したデモプログラムです。
 次のコマンドでノードを起動します。
 
 ```sh
+# 例：実機で、kazafoo装置を使う
+$ roslaunch consai2_examples pk_example.launch sim:=false use_kazafoo:=true
+
 # 例：シミュレータ上で、左から右に攻める
 $ roslaunch consai2_examples pk_example.launch sim:=true side:=left
 

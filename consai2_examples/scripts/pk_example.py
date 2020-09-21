@@ -17,6 +17,11 @@ def callback_joy(msg):
     global joy_msg_
     joy_msg_ = msg
 
+joy_kazafoo_msg_ = Joy()
+def callback_joy_kazafoo(msg):
+    global joy_kazafoo_msg_
+    joy_kazafoo_msg_ = msg
+
 blue_robot_info_ = {}
 def callback_blue_robot_info(msg, robot_id):
     global blue_robot_info_
@@ -82,6 +87,7 @@ def main():
     joy_wrapper = JoyWrapper()
 
     sub_joy = rospy.Subscriber('joy', Joy, callback_joy, queue_size=1)
+    sub_joy_kazafoo = rospy.Subscriber('joy_kazafoo', Joy, callback_joy_kazafoo, queue_size=1)
     sub_ball_info = rospy.Subscriber('vision_wrapper/ball_info', BallInfo,
         callback_ball_info, queue_size=1)
     sub_vision_geometry = rospy.Subscriber('vision_receiver/raw_vision_geometry',
@@ -121,10 +127,15 @@ def main():
     pk_goalie = None
     pk_attacker = None
     while not rospy.is_shutdown():
-        # TODO: かざすセンサとフットスイッチから値を得ること
+        goalie_foot_switch_has_pressed = attacker_foot_switch_has_pressed = False
         goalie_kazasu_left = attacker_kazasu_left = False
         goalie_kazasu_right = attacker_kazasu_right = False
-        goalie_foot_switch_has_pressed = attacker_foot_switch_has_pressed = False
+
+        # kazafooの信号を受信できたら、kazasuとfootswitchの変数を更新する
+        if len(joy_kazafoo_msg_.buttons) >= 3:
+            goalie_foot_switch_has_pressed = attacker_foot_switch_has_pressed = joy_kazafoo_msg_.buttons[0]
+            goalie_kazasu_left = attacker_kazasu_left = joy_kazafoo_msg_.buttons[1]
+            goalie_kazasu_right = attacker_kazasu_right = joy_kazafoo_msg_.buttons[2]
 
         # ジョイコントローラのコマンドを分解
         joy_wrapper.update(joy_msg_)
@@ -172,7 +183,7 @@ def main():
 
             goalie_control_target = pk_goalie.get_control_target(
                 goalie_info, ball_info_,
-                field_length, field_width, goal_width,
+                field_length, field_width, 1.0,
                 goalie_kazasu_left, goalie_kazasu_right)
         else:
             pk_goalie = None
@@ -208,7 +219,7 @@ def main():
 
         # 前回とIDもしくはカラーが変わった場合は、制御停止信号を送信する
         stop_control_target = ControlTarget()
-        stop_control_target.control_enable = True
+        stop_control_target.control_enable = False
         stop_control_target.goal_velocity = Pose2D()
         if prev_goalie_is_yellow != goalie_is_yellow or prev_goalie_id != goalie_id:
             stop_control_target.robot_id = prev_goalie_id
@@ -221,7 +232,7 @@ def main():
             publish_control_target(
                 pub_blue_control_target_list, pub_yellow_control_target_list,
                 prev_attacker_is_yellow, prev_attacker_id, stop_control_target)
-        
+
         # IDとカラーを保存する
         prev_goalie_is_yellow = goalie_is_yellow
         prev_attacker_is_yellow = attacker_is_yellow
@@ -235,3 +246,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
