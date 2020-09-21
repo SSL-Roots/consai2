@@ -15,9 +15,9 @@ class PkAttacker(object):
 
     def __init__(self, rostime_now):
         # ボールに近づいた時、近づけたかを判定するしきい値。小さいほどきびしい
-        self._APPROACH_DIST = 0.2  # meters
+        self._APPROACH_DIST = 0.1  # meters
         # ボールに近づいた時、ボールを見ているか判定するしきい値。小さいほどきびしい
-        self._APPROACH_ANGLE = 15.0  # degrees
+        self._APPROACH_ANGLE = 10.0  # degrees
         # ボールまわりで旋回する時、ターゲット（ゴール）を見ているか判定するしきい値
         # 小さいほどきびしい
         self._LOOK_TARGET_ANGLE = 10.0  # degrees
@@ -27,12 +27,12 @@ class PkAttacker(object):
         self._KICK_FLAG_RESET_TIME = 5  # seconds
 
         # 旋回時、シュート時のドリブルパワー
-        self._DRIBBLE_POWER = 0.6  # 0.0 ~ 1.0
-        self._KICK_POWER = 1.0  # 0.0 ~ 1.0
+        self._DRIBBLE_POWER = 1.0  # 0.0 ~ 1.0
+        self._KICK_POWER = 0.5  # 0.0 ~ 1.0
         # kazasuで操作するときの角速度
-        self._AIM_OMEGA = 0.5  # rad/sec
+        self._AIM_OMEGA = 0.1  # rad/sec
         # kazasuで操作するときの、前進速度。
-        self._AIM_VEL = 0.1  # meter/sec
+        self._AIM_VEL = 0.05  # meter/sec
 
         self._kick_timestamp = rostime_now
         self._current_state = self._STATE_DISAPPEARED
