@@ -15,12 +15,12 @@ class PkAttacker(object):
 
     def __init__(self, rostime_now):
         # ボールに近づいた時、近づけたかを判定するしきい値。小さいほどきびしい
-        self._APPROACH_DIST = 0.1  # meters
+        self._APPROACH_DIST = 0.12  # meters
         # ボールに近づいた時、ボールを見ているか判定するしきい値。小さいほどきびしい
-        self._APPROACH_ANGLE = 10.0  # degrees
+        self._APPROACH_ANGLE = 5.0  # degrees
         # ボールまわりで旋回する時、ターゲット（ゴール）を見ているか判定するしきい値
         # 小さいほどきびしい
-        self._LOOK_TARGET_ANGLE = 10.0  # degrees
+        self._LOOK_TARGET_ANGLE = 5.0  # degrees
 
         # フットスイッチ長押し時に、キックフラグをリセットする時間
         # 5 をセットすると、5秒に１回キックフラグをFalseにする
@@ -30,7 +30,7 @@ class PkAttacker(object):
         self._DRIBBLE_POWER = 1.0  # 0.0 ~ 1.0
         self._KICK_POWER = 0.5  # 0.0 ~ 1.0
         # kazasuで操作するときの角速度
-        self._AIM_OMEGA = 0.1  # rad/sec
+        self._AIM_OMEGA = 0.8  # rad/sec
         # kazasuで操作するときの、前進速度。
         self._AIM_VEL = 0.05  # meter/sec
 
