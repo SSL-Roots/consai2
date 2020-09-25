@@ -14,10 +14,14 @@ class PkAttacker(object):
     _STATE_AIM = 4
 
     def __init__(self, rostime_now):
+        # 最大速度と最大加速度
+        self._MAX_VELOCITY = Pose2D(0.5, 0.5, 2.0* math.pi)
+        self._MAX_ACCELERATION = Pose2D(0.5/60.0, 0.5/60.0, 2.0*math.pi/60.0)
+
         # ボールに近づいた時、近づけたかを判定するしきい値。小さいほどきびしい
         self._APPROACH_DIST = 0.12  # meters
         # ボールに近づいた時、ボールを見ているか判定するしきい値。小さいほどきびしい
-        self._APPROACH_ANGLE = 5.0  # degrees
+        self._APPROACH_ANGLE = 8.0  # degrees
         # ボールまわりで旋回する時、ターゲット（ゴール）を見ているか判定するしきい値
         # 小さいほどきびしい
         self._LOOK_TARGET_ANGLE = 5.0  # degrees
@@ -86,6 +90,9 @@ class PkAttacker(object):
             control_target = self._aim_and_shoot(ball_pose, target_pose,
                 kazasu_left, kazasu_right, foot_switch_has_pressed, rostime_now)
 
+        # 最大速度と加速度に制限を設ける
+        control_target.max_velocity.append(self._MAX_VELOCITY)
+        control_target.max_acceleration.append(self._MAX_ACCELERATION)
         return control_target
 
     def _approach(self, my_pose, ball_pose):
@@ -122,7 +129,7 @@ class PkAttacker(object):
         tr_robot_angle_BtoT = trans_BtoT.transform_angle(my_pose.theta)
 
         length = trans_BtoR.transform(my_pose).x
-        add_angle = math.copysign(80, tr_robot_angle_BtoT) * 1.0
+        add_angle = math.copysign(math.radians(45), tr_robot_angle_BtoT) * -1.0
         tr_goal_pose_BtoR = Pose2D(length*math.cos(add_angle), length*math.sin(add_angle), 0)
 
         control_target_pose = trans_BtoR.inverted_transform(tr_goal_pose_BtoR)

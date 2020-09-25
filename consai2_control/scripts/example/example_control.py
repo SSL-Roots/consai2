@@ -250,9 +250,11 @@ class Controller(object):
         current_control_velocity = self._control_velocity[color][robot_id]
 
         # 制御速度の生成
+        max_vel = self._control_target[color][robot_id].max_velocity
+        max_acc = self._control_target[color][robot_id].max_acceleration
         robot_velocity = robot_info.velocity
         new_control_velocity = self._velocity_control(
-                goal_velocity, current_control_velocity)
+                goal_velocity, current_control_velocity, max_vel, max_acc)
 
         # 速度方向をロボット座標系に変換
         theta = robot_info.pose.theta
@@ -296,8 +298,10 @@ class Controller(object):
         pose_error.theta = angle_normalize(goal_pose.theta - robot_pose.theta)
 
         # 目標動作速度を求める
+        max_vel = self._control_target[color][robot_id].max_velocity
+        max_acc = self._control_target[color][robot_id].max_acceleration
         target_velocity = self._pid_controller[color][robot_id].update(pose_error, self._disable_integrater_input_x, self._disable_integrater_input_y, self._disable_integrater_input_theta,)
-        new_control_velocity = self._velocity_control(target_velocity, current_control_velocity)
+        new_control_velocity = self._velocity_control(target_velocity, current_control_velocity, max_vel, max_acc)
 
         # アンチワインドアップ処理
         # ref:  https://hamachannel.hatenablog.com/entry/2019/01/06/135004
@@ -325,31 +329,49 @@ class Controller(object):
                 return True
         return False
 
-    def _velocity_control(self, target_velocity, current_control_velocity):
+    def _velocity_control(self, target_velocity, current_control_velocity, max_vel=[], max_acc=[]):
         # 現在速度と目標速度の差分から、field座標系での制御速度を生成する
+
+        max_acceleration_x = self._MAX_ACCELERATION
+        max_acceleration_y = self._MAX_ACCELERATION
+        max_acceleration_theta = self._MAX_ANGLE_ACCELERATION
+
+        if max_acc:
+            max_acceleration_x = max_acc[0].x
+            max_acceleration_y = max_acc[0].y
+            max_acceleration_theta = max_acc[0].theta
+
+        max_velocity_x = self._MAX_VELOCITY
+        max_velocity_y = self._MAX_VELOCITY
+        max_velocity_theta = self._MAX_ANGLE_VELOCITY
+
+        if max_vel:
+            max_velocity_x = max_vel[0].x
+            max_velocity_y = max_vel[0].y
+            max_velocity_theta = max_vel[0].theta
 
         # x方向の加速度制限
         current_control_velocity.x = self._acceleration_limit(
                 target_velocity.x, current_control_velocity.x,
-                self._MAX_ACCELERATION)
+                max_acceleration_x)
         # y方向の加速度制限
         current_control_velocity.y = self._acceleration_limit(
                 target_velocity.y, current_control_velocity.y,
-                self._MAX_ACCELERATION)
+                max_acceleration_y)
         # thetaの加速度制限
         current_control_velocity.theta = self._acceleration_limit(
                 target_velocity.theta, current_control_velocity.theta,
-                self._MAX_ANGLE_ACCELERATION)
+                max_acceleration_theta)
 
         # x方向の速度制限
         current_control_velocity.x = self._velocity_limit(
-                current_control_velocity.x, self._MAX_VELOCITY)
+                current_control_velocity.x, max_velocity_x)
         # y方向の速度制限
         current_control_velocity.y = self._velocity_limit(
-                current_control_velocity.y, self._MAX_VELOCITY)
+                current_control_velocity.y, max_velocity_y)
         # theta方向の速度制限
         current_control_velocity.theta = self._velocity_limit(
-                current_control_velocity.theta, self._MAX_ANGLE_VELOCITY)
+                current_control_velocity.theta, max_velocity_theta)
 
         return current_control_velocity
 
