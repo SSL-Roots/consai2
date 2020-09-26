@@ -1,6 +1,7 @@
 # coding: UTF-8
 
 from consai2_msgs.msg import ControlTarget
+import copy
 from geometry_msgs.msg import Pose2D
 import math
 import pk_tool
@@ -78,10 +79,16 @@ class PkAttacker(object):
 
         elif self._current_state == self._STATE_APPROACH:
             # 今いる位置からボールにまっすぐ近づく
-            control_target, self._current_state = self._approach(my_pose, ball_pose)
+            # control_target, self._current_state = self._approach(my_pose, ball_pose)
+
+            control_target, self._current_state = self._get_behind_ball(
+                my_pose, ball_pose, target_pose)
 
         elif self._current_state == self._STATE_ROTATE:
             # ボールに回り込み、targetを見る
+            # control_target, self._current_state = self._rotate_around_ball(
+            #     my_pose, ball_pose, target_pose)
+
             control_target, self._current_state = self._rotate(
                 my_pose, ball_pose, target_pose)
 
@@ -116,8 +123,45 @@ class PkAttacker(object):
 
         return control_target, next_state
 
-    def _rotate(self, my_pose, ball_pose, target_pose):
-        # ボールに回り込み、targetを見る
+    def _get_behind_ball(self, my_pose, ball_pose, target_pose):
+        # ボールの後側へ回り込む
+        control_target = ControlTarget()
+        next_state = self._STATE_APPROACH
+
+        angle_ball_to_robot = pk_tool.get_angle(ball_pose, my_pose)
+        trans_BtoR = pk_tool.Trans(ball_pose, angle_ball_to_robot)
+        angle_ball_to_target = pk_tool.get_angle(ball_pose, target_pose)
+        trans_BtoT = pk_tool.Trans(ball_pose, angle_ball_to_target)
+
+        tr_robot_pose_BtoT = trans_BtoT.transform(my_pose)
+
+        # ボールの前方にいる場合は、ボールの斜め後ろに移動する
+        DISTANCE = 0.2
+        if tr_robot_pose_BtoT.x > 0:
+            control_target_pose = trans_BtoT.inverted_transform(
+                Pose2D(-DISTANCE, math.copysign(DISTANCE, tr_robot_pose_BtoT.y), 0))
+            control_target_pose.theta = angle_ball_to_target
+        else:
+            # ボールを見ながらボールに近づく
+            tr_pose_angle = pk_tool.get_angle_from_center(tr_robot_pose_BtoT)
+            inv_pos_x = -DISTANCE * (1.0 - math.fabs(tr_pose_angle) / math.pi)
+            control_target_pose = trans_BtoT.inverted_transform(
+                Pose2D(inv_pos_x, 0, 0))
+            control_target_pose.theta = pk_tool.get_angle(my_pose, ball_pose) 
+
+        control_target.path.append(control_target_pose)
+
+        # ロボットがボールに近づき、ボールを見つめていたら状態遷移する
+        dist_to_ball = trans_BtoR.transform(my_pose).x
+        look_angle = math.fabs(trans_BtoR.transform_angle(my_pose.theta))
+        if dist_to_ball < self._APPROACH_DIST\
+            and look_angle > math.radians(180 - self._APPROACH_ANGLE):
+            next_state = self._STATE_ROTATE
+
+        return control_target, next_state
+
+    def _rotate_around_ball(self, my_pose, ball_pose, target_pose):
+        # ドリブルしながらボールを中心に旋回し、targetを見る
         control_target = ControlTarget()
         next_state = self._STATE_ROTATE
 
@@ -134,6 +178,29 @@ class PkAttacker(object):
 
         control_target_pose = trans_BtoR.inverted_transform(tr_goal_pose_BtoR)
         control_target_pose.theta = pk_tool.get_angle(control_target_pose, ball_pose)
+        control_target.dribble_power = self._DRIBBLE_POWER
+        control_target.path.append(control_target_pose)
+
+        # ロボットがゴールを見つめたら状態遷移する
+        if math.fabs(tr_robot_angle_BtoT) < math.radians(self._LOOK_TARGET_ANGLE):
+            next_state = self._STATE_AIM
+
+        return control_target, next_state
+
+    def _rotate(self, my_pose, ball_pose, target_pose):
+        # ドリブルしながら自分を中心に回転し、targetを見る
+        control_target = ControlTarget()
+        next_state = self._STATE_ROTATE
+
+        angle_ball_to_target = pk_tool.get_angle(ball_pose, target_pose)
+        trans_BtoT = pk_tool.Trans(ball_pose, angle_ball_to_target)
+
+        tr_robot_angle_BtoT = trans_BtoT.transform_angle(my_pose.theta)
+
+        add_angle = math.copysign(math.radians(80), tr_robot_angle_BtoT) * -1.0
+
+        control_target_pose = copy.deepcopy(my_pose)
+        control_target_pose.theta = my_pose.theta + add_angle
         control_target.dribble_power = self._DRIBBLE_POWER
         control_target.path.append(control_target_pose)
 
