@@ -23,7 +23,7 @@ class PkGoalie(object):
     def get_control_target(self, my_robot_info, ball_info,
         field_length, field_width, goal_width,
         kazasu_left, kazasu_right,
-        auto_pk=False, level=1):
+        auto_pk=True, level=1):
 
         control_target = ControlTarget()
 
