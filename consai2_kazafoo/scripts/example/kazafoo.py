@@ -7,10 +7,42 @@ import threading
 import rospy
 
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, ColorRGBA
 
 import sys, select, termios, tty
 import serial
+
+NUM_OF_LED = 30
+
+led_data = {
+    "left": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "n": 0.0,
+    },
+    "right": {
+        "r": 0.0,
+        "g": 0.0,
+        "b": 0.0,
+        "n": 0.0,
+    }
+}
+
+def callback_led_left(data):
+    global led_data
+    led_data["left"]["r"] = data.r
+    led_data["left"]["g"] = data.g
+    led_data["left"]["b"] = data.b
+    led_data["left"]["n"] = data.a
+
+
+def callback_led_right(data):
+    global led_data
+    led_data["right"]["r"] = data.r
+    led_data["right"]["g"] = data.g
+    led_data["right"]["b"] = data.b
+    led_data["right"]["n"] = data.a
 
 
 class KazafooCom:
@@ -40,6 +72,22 @@ class KazafooCom:
             right_value = 0.0
 
         return (left_value, right_value)
+
+    def setLedLeft(self, r, g, b, n):
+        self._setLed(True, r, g, b, n)
+
+    def setLedRight(self, r, g, b, n):
+        self._setLed(False, r, g, b, n)
+
+    def _setLed(self, is_left, r, g, b, n):
+        r_raw = str(int(min(99         * r, 99)        )).zfill(2)
+        g_raw = str(int(min(99         * g, 99)        )).zfill(2)
+        b_raw = str(int(min(99         * b, 99)        )).zfill(2) 
+        n_raw = str(int(min(NUM_OF_LED * n, NUM_OF_LED))).zfill(2)
+        
+        header = 'LL' if is_left else 'LR'
+
+        self._serial.write((header + r_raw + g_raw + b_raw + n_raw + '\n').encode('ascii'))
 
 
 class KeyboardThread(threading.Thread):
@@ -91,6 +139,9 @@ if __name__=="__main__":
     pub_kazasu_left = rospy.Publisher('kazasu_left', Float32, queue_size = 1)
     pub_kazasu_right = rospy.Publisher('kazasu_right', Float32, queue_size = 1)
 
+    sub_led_left  = rospy.Subscriber('led_left',  ColorRGBA, callback_led_left)
+    sub_led_right = rospy.Subscriber('led_right', ColorRGBA, callback_led_right)
+
     kazafoo_com = KazafooCom()
 
     keyboard_thread = KeyboardThread()
@@ -98,8 +149,14 @@ if __name__=="__main__":
 
     r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        # set led
+        kazafoo_com.setLedLeft (led_data['left'] ['r'], led_data['left'] ['g'], led_data['left'] ['b'], led_data['left'] ['n'])
+        kazafoo_com.setLedRight(led_data['right']['r'], led_data['right']['g'], led_data['right']['b'], led_data['right']['n'])
+
+        # get sensor values
         (sensor_left, sensor_right) = kazafoo_com.getSensorValues()
 
+        # publish sensor values
         joy = Joy()
         joy.buttons = [0.0] * 3
         joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
@@ -108,4 +165,5 @@ if __name__=="__main__":
         pub_kazasu_left.publish(sensor_left)
         pub_kazasu_right.publish(sensor_right)
         publisher.publish(joy)
+
         r.sleep()
