@@ -16,8 +16,8 @@ class PkAttacker(object):
 
     def __init__(self, rostime_now):
         # 最大速度と最大加速度
-        self._MAX_VELOCITY = Pose2D(0.5, 0.5, 2.0* math.pi)
-        self._MAX_ACCELERATION = Pose2D(0.5/60.0, 0.5/60.0, 2.0*math.pi/60.0)
+        self._MAX_VELOCITY = Pose2D(0.5, 0.5, 0.5* math.pi)
+        self._MAX_ACCELERATION = Pose2D(0.5/60.0, 0.5/60.0, 0.5*math.pi/60.0)
 
         # ボールに近づいた時、近づけたかを判定するしきい値。小さいほどきびしい
         self._APPROACH_DIST = 0.12  # meters
@@ -32,7 +32,7 @@ class PkAttacker(object):
         self._KICK_FLAG_RESET_TIME = 5  # seconds
 
         # 旋回時、シュート時のドリブルパワー
-        self._DRIBBLE_POWER = 1.0  # 0.0 ~ 1.0
+        self._DRIBBLE_POWER = 0.8  # 0.0 ~ 1.0
         self._KICK_POWER = 0.5  # 0.0 ~ 1.0
         # kazasuで操作するときの角速度
         self._AIM_OMEGA = 0.8  # rad/sec
@@ -86,11 +86,11 @@ class PkAttacker(object):
 
         elif self._current_state == self._STATE_ROTATE:
             # ボールに回り込み、targetを見る
-            # control_target, self._current_state = self._rotate_around_ball(
-            #     my_pose, ball_pose, target_pose)
-
-            control_target, self._current_state = self._rotate(
+            control_target, self._current_state = self._rotate_around_ball(
                 my_pose, ball_pose, target_pose)
+
+            # control_target, self._current_state = self._rotate(
+            #     my_pose, ball_pose, target_pose)
 
         elif self._current_state == self._STATE_AIM:
             # ちょっとずつ前進しながら、kazasu信号で回転し、foot_swでシュート
