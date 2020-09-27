@@ -7,7 +7,7 @@ import threading
 import rospy
 
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32, ColorRGBA
+from std_msgs.msg import ColorRGBA
 
 import sys, select, termios, tty
 import serial
@@ -136,8 +136,6 @@ if __name__=="__main__":
     rospy.init_node('kazafoo_node')
 
     publisher = rospy.Publisher('joy_kazafoo', Joy, queue_size = 1)
-    pub_kazasu_left = rospy.Publisher('kazasu_left', Float32, queue_size = 1)
-    pub_kazasu_right = rospy.Publisher('kazasu_right', Float32, queue_size = 1)
 
     sub_led_left  = rospy.Subscriber('led_left',  ColorRGBA, callback_led_left)
     sub_led_right = rospy.Subscriber('led_right', ColorRGBA, callback_led_right)
@@ -162,8 +160,9 @@ if __name__=="__main__":
         joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
         joy.buttons[1] = 1 if sensor_left > 0.5 else 0
         joy.buttons[2] = 1 if sensor_right > 0.5 else 0
-        pub_kazasu_left.publish(sensor_left)
-        pub_kazasu_right.publish(sensor_right)
+        joy.axes = [0.0] * 3
+        joy.axes[1] = sensor_left
+        joy.axes[2] = sensor_right
         publisher.publish(joy)
 
         r.sleep()
