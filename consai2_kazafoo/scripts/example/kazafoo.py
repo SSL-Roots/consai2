@@ -147,7 +147,7 @@ if __name__=="__main__":
     keyboard_thread = KeyboardThread()
     keyboard_thread.start()
 
-    r = rospy.Rate(10)
+    r = rospy.Rate(20)
     while not rospy.is_shutdown():
         # set led
         kazafoo_com.setLedLeft (led_data['left'] ['r'], led_data['left'] ['g'], led_data['left'] ['b'], led_data['left'] ['n'])
