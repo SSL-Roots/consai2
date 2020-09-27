@@ -16,11 +16,14 @@ class PkGoalie(object):
         # ボールが動いていると判定する速度[m/s]
         self.MOVE_BALL_VELOCITY_THRESHOLD =  0.5
 
+        # kazasu信号で左右移動するときに移動する距離(目標値)[m]
+        self.AIM_DIST_Y = 0.1
+
     # ゴーリーの目標位置生成
     def get_control_target(self, my_robot_info, ball_info,
         field_length, field_width, goal_width,
         kazasu_left, kazasu_right,
-        level=1):
+        auto_pk=True, level=1):
 
         control_target = ControlTarget()
 
@@ -31,49 +34,66 @@ class PkGoalie(object):
         # ゴール位置を生成
         goal_pose = Pose2D(-field_length / 2, 0, 0)
 
-        # ボールの速度
-        ball_velocity_x = ball_info.velocity.x
-        ball_velocity_y = ball_info.velocity.y
-        ball_velocity = math.hypot(ball_velocity_x, ball_velocity_y)
+        if auto_pk:
 
-        # ボールの進む角度
-        angle_ball = math.atan2(ball_velocity_y, ball_velocity_x)
+            # ボールの速度
+            ball_velocity_x = ball_info.velocity.x
+            ball_velocity_y = ball_info.velocity.y
+            ball_velocity = math.hypot(ball_velocity_x, ball_velocity_y)
 
-        # ボールの進む変化量を計算（方向を考慮した単位量）
-        var_ball_velocity_x = math.cos(angle_ball) 
-        var_ball_velocity_y = math.sin(angle_ball) 
+            # ボールの進む角度
+            angle_ball = math.atan2(ball_velocity_y, ball_velocity_x)
 
-        # ボールの位置を抽出
-        ball_pose = ball_info.pose
+            # ボールの進む変化量を計算（方向を考慮した単位量）
+            var_ball_velocity_x = math.cos(angle_ball) 
+            var_ball_velocity_y = math.sin(angle_ball) 
 
-        # ボールの次の予測位置を取得
-        ball_pose_next = Pose2D(
-            ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
+            # ボールの位置を抽出
+            ball_pose = ball_info.pose
 
-        # ボールがゴールに入っている場合はその場のy座標を代入
-        if ball_pose.x < goal_pose.x: 
-            new_my_pose.y = my_robot_info.pose.y
-        # ゴールされていなければゴーリの新しいy座標を生成
-        else:
-            # level1
-            if level == 1:
-                # ボールのy座標と同じ位置に移動
-                new_my_pose.y = ball_pose.y
-            # lebel2: ボールが一定速度以上かつ向かってくる場合
-            elif level == 2 and self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
-                # ボールの進路に関する直線の傾きと切片を算出
-                slope, intercept = self._get_line_parameters(
-                    ball_pose, ball_pose_next)
-                # y座標を算出
-                new_my_pose.y = slope * new_my_pose.x + intercept
+            # ボールの次の予測位置を取得
+            ball_pose_next = Pose2D(
+                ball_pose.x + var_ball_velocity_x, ball_pose.y + var_ball_velocity_y, 0) 
 
-            # ボールが止まっている場合など
+            # ボールがゴールに入っている場合はその場のy座標を代入
+            if ball_pose.x < goal_pose.x: 
+                new_my_pose.y = my_robot_info.pose.y
+            # ゴールされていなければゴーリの新しいy座標を生成
             else:
-                # ボールとゴールを結ぶ直線の傾きと切片を算出
-                slope, intercept = self._get_line_parameters(
-                    ball_pose, goal_pose)
-                # y座標を算出
-                new_my_pose.y = slope * new_my_pose.x + intercept
+                # level1
+                if level == 1:
+                    # ボールのy座標と同じ位置に移動
+                    new_my_pose.y = ball_pose.y
+                # lebel2: ボールが一定速度以上かつ向かってくる場合
+                elif level == 2 and self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+                    # ボールの進路に関する直線の傾きと切片を算出
+                    slope, intercept = self._get_line_parameters(
+                        ball_pose, ball_pose_next)
+                    # y座標を算出
+                    new_my_pose.y = slope * new_my_pose.x + intercept
+
+                # ボールが止まっている場合など
+                else:
+                    # ボールとゴールを結ぶ直線の傾きと切片を算出
+                    slope, intercept = self._get_line_parameters(
+                        ball_pose, goal_pose)
+                    # y座標を算出
+                    new_my_pose.y = slope * new_my_pose.x + intercept
+
+        else:
+            # kazasu信号により左右移動
+            if kazasu_left and kazasu_right:
+                # 左右両方反応しているときはその場で停止
+                new_my_pose.y = my_robot_info.pose.y
+            elif kazasu_left:
+                # 左へ移動
+                new_my_pose.y = my_robot_info.pose.y + self.AIM_DIST_Y
+            elif kazasu_right:
+                # 右へ移動
+                new_my_pose.y = my_robot_info.pose.y - self.AIM_DIST_Y
+            else:
+                # その場で停止
+                new_my_pose.y = my_robot_info.pose.y
 
         # ゴール幅からはみ出ないように制限する
         if goal_width / 2 < new_my_pose.y:
