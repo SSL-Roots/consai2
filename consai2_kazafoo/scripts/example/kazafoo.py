@@ -13,36 +13,33 @@ import sys, select, termios, tty
 import serial
 
 
-class KazafooCom(threading.Thread):
+class KazafooCom:
     def __init__(self):
-        super(KazafooCom, self).__init__()
-        self.daemon = True
-
         self._DEVICE  = rospy.get_param('consai2_description/kazafoo_device', '/dev/ttyACM0')
         self._BAUDRATE   = rospy.get_param('consai2_description/kazafoo_device', 9600)
 
-        self._serial = serial.Serial(self._DEVICE, self._BAUDRATE)
+        self._serial = serial.Serial(self._DEVICE, self._BAUDRATE, timeout=1.0)
 
-        self.left_value = 0.0
-        self.right_value = 0.0
+    def getSensorValues(self):
+        self._serial.write('GS\n'.encode('ascii'))
+        data = self._serial.readline()
 
-    def run(self):
-        while(1):
-            data = self._serial.readline()
-            try:
-                left_value_raw = data.split(',')[0]
-                right_value_raw = data.split(',')[1]
-            except IndexError:
-                continue
+        try:
+            left_value_raw = data.split(',')[0]
+            right_value_raw = data.split(',')[1]
+        except IndexError:
+            return (0.0, 0.0)
 
-            try:
-                self.left_value = float(left_value_raw)
-            except:
-                self.left_value = 0.0
-            try:
-                self.right_value = float(right_value_raw)
-            except:
-                self.right_value = 0.0
+        try:
+            left_value = float(left_value_raw)
+        except:
+            left_value = 0.0
+        try:
+            right_value = float(right_value_raw)
+        except:
+            right_value = 0.0
+
+        return (left_value, right_value)
 
 
 class KeyboardThread(threading.Thread):
@@ -94,21 +91,21 @@ if __name__=="__main__":
     pub_kazasu_left = rospy.Publisher('kazasu_left', Float32, queue_size = 1)
     pub_kazasu_right = rospy.Publisher('kazasu_right', Float32, queue_size = 1)
 
-    kazafoo_com_thread = KazafooCom()
-    kazafoo_com_thread.start()
+    kazafoo_com = KazafooCom()
 
     keyboard_thread = KeyboardThread()
     keyboard_thread.start()
 
-    r = rospy.Rate(20)
+    r = rospy.Rate(10)
     while not rospy.is_shutdown():
+        (sensor_left, sensor_right) = kazafoo_com.getSensorValues()
+
         joy = Joy()
         joy.buttons = [0.0] * 3
         joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
-        joy.buttons[1] = 1 if kazafoo_com_thread.left_value > 0.5 else 0
-        joy.buttons[2] = 1 if kazafoo_com_thread.right_value > 0.5 else 0
-
-        pub_kazasu_left.publish(kazafoo_com_thread.left_value)
-        pub_kazasu_right.publish(kazafoo_com_thread.right_value)
+        joy.buttons[1] = 1 if sensor_left > 0.5 else 0
+        joy.buttons[2] = 1 if sensor_right > 0.5 else 0
+        pub_kazasu_left.publish(sensor_left)
+        pub_kazasu_right.publish(sensor_right)
         publisher.publish(joy)
         r.sleep()
