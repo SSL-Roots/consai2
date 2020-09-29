@@ -10,6 +10,7 @@ from python_qt_binding.QtGui import QMouseEvent
 from python_qt_binding.QtWidgets import QWidget
 
 from geometry_msgs.msg import Pose2D
+from std_msgs.msg import ColorRGBA
 
 from consai2_msgs.msg import VisionGeometry, BallInfo, RobotInfo
 from consai2_msgs.msg import Replacements, ReplaceBall, ReplaceRobot
@@ -86,6 +87,10 @@ class PaintWidget(QWidget):
         # レフェリー情報
         self._decoded_referee = None
 
+        # MFTデモ用のLED制御変数
+        self._led_left = ColorRGBA()
+        self._led_right = ColorRGBA()
+
         # Publisher
         self._pub_replace = rospy.Publisher('sim_sender/replacements', 
                 Replacements, queue_size=1)
@@ -106,6 +111,12 @@ class PaintWidget(QWidget):
         self._sub_joy_target = rospy.Subscriber(
                 'consai2_examples/joy_target', ControlTarget, 
                 self._callback_joy_target, queue_size=1)
+
+        # MFTデモ用のSubscriber
+        self._sub_led_left = rospy.Subscriber(
+            'led_left', ColorRGBA, self._callback_led_left, queue_size=1)
+        self._sub_led_right = rospy.Subscriber(
+            'led_right', ColorRGBA, self._callback_led_right, queue_size=1)
 
         self._subs_robot_info = {'blue':[], 'yellow':[]}
 
@@ -203,6 +214,11 @@ class PaintWidget(QWidget):
     def _callback_joy_target(self, msg):
         self._joy_target = msg
 
+    def _callback_led_left(self, msg):
+        self._led_left = msg
+    
+    def _callback_led_right(self, msg):
+        self._led_right = msg
 
     def mousePressEvent(self, event):
         # マウスのドラッグ操作で描画領域を移動する
@@ -275,6 +291,7 @@ class PaintWidget(QWidget):
 
         # これ以降に書きたいものを重ねる
         self._draw_field(painter)
+        self._draw_kazafoo_leds(painter)
 
         # Referee情報
         self._draw_referee(painter)
@@ -977,3 +994,28 @@ class PaintWidget(QWidget):
             painter.drawText(current_point, text)
 
 
+    def _draw_kazafoo_leds(self, painter):
+        # kazafoo_ledを描画する
+        ALPHA = 0.8  # 透明度
+        WIDTH_RATE = 0.1 # LEDバーのサイズ  0.0 ~ 0.5
+
+        painter.setPen(Qt.black)
+
+        left_color = QColor.fromRgbF(
+            self._led_left.r, self._led_left.g, self._led_left.b, ALPHA)
+        right_color = QColor.fromRgbF(
+            self._led_right.r, self._led_right.g, self._led_right.b, ALPHA)
+
+        led_width = self._view_width * WIDTH_RATE
+        left_rect = QRectF(
+            -self._view_width*0.5,
+            self._view_height * (1.0 - 0.5 - self._led_left.a), 
+            led_width, self._view_height * self._led_left.a)
+        right_rect = QRectF(
+            self._view_width*0.5 - led_width,
+            self._view_height * (1.0 - 0.5 - self._led_right.a), 
+            led_width, self._view_height * self._led_right.a)
+        painter.setBrush(left_color)
+        painter.drawRect(left_rect)
+        painter.setBrush(right_color)
+        painter.drawRect(right_rect)
