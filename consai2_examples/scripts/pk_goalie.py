@@ -8,6 +8,7 @@ from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 
 import math
+import pk_tool
 
 class PkGoalie(object):
     def __init__(self):
@@ -19,11 +20,15 @@ class PkGoalie(object):
         # kazasu信号で左右移動するときに移動する距離(目標値)[m]
         self.AIM_DIST_Y = 0.1
 
+        # 相手ロボットがボールを持っていると判定するしきい値[m]
+        self.DIST_ROBOT_TO_BALL_THRESHOLD = 0.2
+
     # ゴーリーの目標位置生成
     def get_control_target(self, my_robot_info, ball_info,
         field_length, field_width, goal_width,
         kazasu_left, kazasu_right,
-        auto_pk=True, level=1):
+        attacker_info,
+        auto_pk=True, level=3):
 
         control_target = ControlTarget()
 
@@ -69,6 +74,27 @@ class PkGoalie(object):
                     # ボールの進路に関する直線の傾きと切片を算出
                     slope, intercept = self._get_line_parameters(
                         ball_pose, ball_pose_next)
+                    # y座標を算出
+                    new_my_pose.y = slope * new_my_pose.x + intercept
+                # lebel3: 相手の向いている方向を使う
+                elif level == 3:
+                    # アタッカーとボールの距離を取る
+                    dist_atk_to_ball = pk_tool.distance_2_poses(attacker_info.pose, ball_pose)
+                    # 相手ロボットとボールが近い場合
+                    if dist_atk_to_ball < self.DIST_ROBOT_TO_BALL_THRESHOLD:
+                        # 相手ロボットの向いている方向を使う
+                        slope = math.tan(attacker_info.pose.theta)
+                        intercept = attacker_info.pose.y - slope * attacker_info.pose.x 
+                    # ボールが移動しているときはロボットの進む方向を使う
+                    elif self.MOVE_BALL_VELOCITY_THRESHOLD < ball_velocity and ball_velocity_x < 0:
+                        # ボールの進路に関する直線の傾きと切片を算出
+                        slope, intercept = self._get_line_parameters(
+                            ball_pose, ball_pose_next)
+                    # 停止
+                    else:
+                        # ボールとゴールを結ぶ直線の傾きと切片を算出
+                        slope, intercept = self._get_line_parameters(
+                            ball_pose, goal_pose)
                     # y座標を算出
                     new_my_pose.y = slope * new_my_pose.x + intercept
 
