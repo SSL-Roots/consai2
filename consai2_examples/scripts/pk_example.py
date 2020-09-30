@@ -186,7 +186,8 @@ def main():
             goalie_control_target = pk_goalie.get_control_target(
                 goalie_info, ball_info_,
                 field_length, field_width, 1.0,
-                goalie_kazasu_left, goalie_kazasu_right)
+                goalie_kazasu_left, goalie_kazasu_right,
+                attacker_info)
         else:
             pk_goalie = None
             goalie_control_target.goal_velocity = Pose2D()
