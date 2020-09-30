@@ -85,7 +85,9 @@ class PkAttacker(object):
                 my_pose, ball_pose, target_pose)
 
         elif self._current_state == self._STATE_ROTATE:
-            # ボールに回り込み、targetを見る
+            # ボールに回り込み、相手サイドを見る（あえて、ゴールを見ようとしない）
+            target_pose.x = -field_length * 0.5
+            target_pose.y = my_pose.y
             control_target, self._current_state = self._rotate_around_ball(
                 my_pose, ball_pose, target_pose)
 
