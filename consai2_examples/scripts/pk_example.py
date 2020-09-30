@@ -216,7 +216,7 @@ def main():
         led_controller.publish_led_colors(joy_wrapper.get_attacker_can_move(),
             ball_info_, field_length, field_width, 1.0,
             attacker_kazasu_left, attacker_kazasu_right,
-            attacker_foot_switch_has_pressed)
+            attacker_foot_switch_has_pressed, rospy.get_rostime())
 
         # 制御目標値の送信
         publish_control_target(
