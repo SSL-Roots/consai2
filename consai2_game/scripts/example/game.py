@@ -227,8 +227,12 @@ class RobotNode(object):
                 rospy.logdebug("OUR_BALL_PLACEMENT")
                 replace_pose = referee.placement_position
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                    self._control_target = goalie.interpose(
-                            ball_info, robot_info, self._control_target)
+                    # 【デモで追加】ゴーリーを暴れさせない
+                    self._control_target = normal.move_to(
+                            self._control_target,
+                            Field.goal_pose('our', 'center'), ball_info, look_ball=True)
+                    # self._control_target = goalie.interpose(
+                    #         ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = ball_placement.basic_ball_placement(self._control_target, replace_pose, ball_info, robot_info, self._MY_ID, 'atk', [Field.field('length'), Field.field('width')])
@@ -316,8 +320,12 @@ class RobotNode(object):
                 rospy.logdebug("THEIR_BALL_PLACEMENT")
                 replace_pose = referee.placement_position
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                    self._control_target = goalie.interpose(
-                            ball_info, robot_info, self._control_target)
+                    # 【デモで追加】ゴーリーを暴れさせない
+                    self._control_target = normal.move_to(
+                            self._control_target,
+                            Field.goal_pose('our', 'center'), ball_info, look_ball=True)
+                    # self._control_target = goalie.interpose(
+                    #         ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 # elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     # self._control_target = offense.interpose(ball_info,
