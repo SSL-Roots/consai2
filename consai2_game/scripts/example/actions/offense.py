@@ -2,6 +2,7 @@
 
 # offense.pyでは、ボールを蹴るactionを定義する
 
+import copy
 import rospy
 import math
 import sys,os
@@ -319,8 +320,10 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
     tr_my_pose = trans.transform(my_pose)
 
     # ロボットがボールの裏側に回ったらcan_kick is True
+    # ロボットの方向がゴールを狙っていることも判定
     can_kick = False
-    if tr_my_pose.x < 0.01 and math.fabs(tr_my_pose.y) < 0.05:
+    if tr_my_pose.x < 0.01 and math.fabs(tr_my_pose.y) < 0.05 \
+        and math.fabs(trans.transform_angle(my_pose.theta)) < math.radians(10):
         can_kick = True
 
     # レシーバにパスする場合、蹴る位置近くにロボットが存在すれば receive_arrive is True
@@ -433,6 +436,11 @@ def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable
 
     kick_enable = True
     kick_power = 0.3
+
+    # 【デモで追加】ゴーリーに擬似的にパスする
+    pass_target = copy.deepcopy(Field.goal_pose('our', 'center'))
+    pass_target.x += 0.1
+    return _setplay_shoot(my_pose, ball_info, control_target, kick_enable, pass_target, kick_power)
 
     # ダイレクトかつ、直接シュートが無理の無い位置だった場合は直シュート
     if direct and ball_info.pose.x < Field.penalty_pose('their','upper_front').x:
