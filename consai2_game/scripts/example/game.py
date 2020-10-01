@@ -71,8 +71,11 @@ class RobotNode(object):
 
             if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                 if tool.is_in_defense_area(ball_info.pose, 'our'):
-                    self._control_target = offense.outside_shoot(
+                    # 【デモ用に追加】ゴーリーもとにかくボールをける
+                    self._control_target = offense.inplay_shoot(
                             self._my_pose, ball_info, self._control_target)
+                    # self._control_target = offense.outside_shoot(
+                    #         self._my_pose, ball_info, self._control_target)
                 else:
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
