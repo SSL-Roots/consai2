@@ -59,8 +59,10 @@ class RobotNode(object):
         self._control_target.dribble_power = 0.0
         self._control_target.kick_power = 0.0
 
-        if referee.can_move_robot is False or ball_info.disappeared:
+        if referee.can_move_robot is False or ball_info.disappeared \
+            or tool.is_in_field(ball_info.pose) is False:
             # 移動禁止 or ボールの消失で制御を停止する
+            # ボールがフィールド外に出ても停止する
             rospy.logdebug("HALT")
             self._control_target, remake_path= normal.stop(self._control_target)
             avoid_obstacle = False # 障害物回避しない
