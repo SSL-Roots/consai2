@@ -10,6 +10,7 @@ from geometry_msgs.msg import Pose2D
 from pk_goalie import PkGoalie
 from pk_attacker import PkAttacker
 from pk_joy_wrapper import JoyWrapper
+from pk_led_controller import LEDController
 from sensor_msgs.msg import Joy
 
 joy_msg_ = Joy()
@@ -85,6 +86,7 @@ def main():
     rospy.init_node('pk_example')
 
     joy_wrapper = JoyWrapper()
+    led_controller = LEDController()
 
     sub_joy = rospy.Subscriber('joy', Joy, callback_joy, queue_size=1)
     sub_joy_kazafoo = rospy.Subscriber('joy_kazafoo', Joy, callback_joy_kazafoo, queue_size=1)
@@ -209,6 +211,12 @@ def main():
             attacker_control_target.goal_velocity = Pose2D()
         attacker_control_target.control_enable = True
         attacker_control_target.robot_id = attacker_id
+
+        # LED制御信号の送信
+        led_controller.publish_led_colors(joy_wrapper.get_attacker_can_move(),
+            ball_info_, field_length, field_width, 1.0,
+            attacker_kazasu_left, attacker_kazasu_right,
+            attacker_foot_switch_has_pressed, rospy.get_rostime())
 
         # 制御目標値の送信
         publish_control_target(
