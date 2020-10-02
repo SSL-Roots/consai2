@@ -54,6 +54,7 @@ class KazafooCom:
         self._BAUDRATE   = rospy.get_param('consai2_description/kazafoo_device', 9600)
 
         self._serial = serial.Serial(self._DEVICE, self._BAUDRATE, timeout=1.0)
+        self._latest_active_foot_switch = rospy.Time()
 
     def getSensorValues(self):
         self._serial.write('GS\n'.encode('ascii'))
@@ -84,7 +85,15 @@ class KazafooCom:
             return False
         
         if int(data[0]) == 0:
+            self._latest_active_foot_switch = rospy.Time.now()
             return True
+
+        # Hold True state for 1.0 sec
+        now = rospy.Time.now()
+        last_active_foot_switch_elapsed = now - self._latest_active_foot_switch
+        if last_active_foot_switch_elapsed.to_sec() < 1.0:
+            return True
+
         return False
 
     def setLedLeft(self, r, g, b, n):
