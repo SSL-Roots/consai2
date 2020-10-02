@@ -14,6 +14,9 @@ import serial
 
 NUM_OF_LED = 30
 
+FOOT_SWITCH_MODE_NORMAL   = 0
+FOOT_SWITCH_MODE_KEYBOARD = 1
+
 led_data = {
     "left": {
         "r": 0.0,
@@ -72,6 +75,17 @@ class KazafooCom:
             right_value = 0.0
 
         return (left_value, right_value)
+
+    def getFootSwtichState(self):
+        self._serial.write('GF\n'.encode('ascii'))
+        data = self._serial.readline()
+
+        if len(data) == 0:
+            return False
+        
+        if int(data[0]) == 0:
+            return True
+        return False
 
     def setLedLeft(self, r, g, b, n):
         self._setLed(True, r, g, b, n)
@@ -135,6 +149,11 @@ class KeyboardThread(threading.Thread):
 if __name__=="__main__":
     rospy.init_node('kazafoo_node')
 
+    # Foot switch mode
+    # 0: embedded to kazafoo
+    # 1: keyboard['b']
+    footswitch_mode = rospy.get_param('consai2_description/kazafoo_footswitch', 0)
+
     publisher = rospy.Publisher('joy_kazafoo', Joy, queue_size = 1)
 
     sub_led_left  = rospy.Subscriber('led_left',  ColorRGBA, callback_led_left)
@@ -142,8 +161,9 @@ if __name__=="__main__":
 
     kazafoo_com = KazafooCom()
 
-    keyboard_thread = KeyboardThread()
-    keyboard_thread.start()
+    if footswitch_mode == FOOT_SWITCH_MODE_KEYBOARD:
+        keyboard_thread = KeyboardThread()
+        keyboard_thread.start()
 
     r = rospy.Rate(20)
     while not rospy.is_shutdown():
@@ -154,10 +174,17 @@ if __name__=="__main__":
         # get sensor values
         (sensor_left, sensor_right) = kazafoo_com.getSensorValues()
 
+        # get footswitch state
+        footswitch_state = 0
+        if footswitch_mode == FOOT_SWITCH_MODE_KEYBOARD:
+            footswitch_state = keyboard_thread.kick_flag
+        else:
+            footswitch_state = kazafoo_com.getFootSwtichState()
+
         # publish sensor values
         joy = Joy()
         joy.buttons = [0.0] * 3
-        joy.buttons[0] = 1 if keyboard_thread.kick_flag else 0
+        joy.buttons[0] = 1 if footswitch_state else 0
         joy.buttons[1] = 1 if sensor_left > 0.5 else 0
         joy.buttons[2] = 1 if sensor_right > 0.5 else 0
         joy.axes = [0.0] * 3
