@@ -74,12 +74,11 @@ class RobotNode(object):
             if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                 if tool.is_in_defense_area(ball_info.pose, 'our'):
                     # 【デモ用に追加】ゴーリーもとにかくボールをける
-                    self._control_target = offense.inplay_shoot(
-                            self._my_pose, ball_info, self._control_target)
-                    # self._control_target = offense.outside_shoot(
-                    #         self._my_pose, ball_info, self._control_target)
+                    self._control_target = goalie.demo_shoot(
+                            ball_info, robot_info, self._control_target,
+                            self._my_pose, True)
                 else:
-                    self._control_target = goalie.interpose(
+                    self._control_target = goalie.demo_shoot(
                             ball_info, robot_info, self._control_target)
                 avoid_obstacle = False # 障害物回避しない
             elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
@@ -201,9 +200,10 @@ class RobotNode(object):
                 rospy.logdebug("OUR_INDIRECT_FREE")
 
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
-                    self._control_target = goalie.interpose(
-                            ball_info, robot_info, self._control_target)
-                    self._control_target = goalie.pass_shoot(
+                    # self._control_target = goalie.interpose(
+                    #         ball_info, robot_info, self._control_target)
+                    # デモで追加、パスシュート
+                    self._control_target = goalie.demo_shoot(
                             ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:

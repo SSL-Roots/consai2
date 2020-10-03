@@ -11,6 +11,7 @@ from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+import offense
 
 sys.path.append(os.pardir)
 from field import Field
@@ -133,7 +134,7 @@ def interpose(ball_info, robot_info, control_target):
     return control_target
 
 
-def pass_shoot(ball_info, robot_info, control_target):
+def demo_shoot(ball_info, robot_info, control_target, my_pose = None, inplay_shoot = False):
 
     # ゴールライン上ではなく一定距離[m]前を守るための変数
     MARGIN_DIST_X = 0.1
@@ -168,15 +169,22 @@ def pass_shoot(ball_info, robot_info, control_target):
         new_goal_pose = intersection_pose
         new_goal_pose.x -= 0.09  # ロボットの中心からドリブラの位置までの距離を下げる:w
         new_goal_pose.theta = 0.0
+        control_target.kick_power = 0.5
+        control_target.dribble_power = 0.5
     else:
+        # ボールが止まっていたら
+
+        if inplay_shoot:
+            return offense.inplay_shoot(my_pose, ball_info, control_target)
+
         new_goal_pose.x = OUR_GOAL_POSE.x + MARGIN_DIST_X
         new_goal_pose.y = 0.0
         new_goal_pose.theta = 0.0
         # to_ball_angle = tool.get_angle(new_goal_pose, ball_pose)
         # new_goal_pose.theta = to_ball_angle
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 0.0
 
-    control_target.kick_power = 0.5
-    control_target.dribble_power = 0.5
     control_target.path = []
     control_target.path.append(new_goal_pose)
 
