@@ -2,6 +2,7 @@
 
 # defense.pyでは、ボールを蹴らないactionを定義する
 
+import copy
 import rospy
 import math
 import sys,os
@@ -10,6 +11,7 @@ from consai2_msgs.msg import BallInfo, RobotInfo
 from consai2_msgs.msg import ControlTarget
 from geometry_msgs.msg import Pose2D
 import tool
+import offense
 
 sys.path.append(os.pardir)
 from field import Field
@@ -131,3 +133,59 @@ def interpose(ball_info, robot_info, control_target):
 
     return control_target
 
+
+def demo_shoot(ball_info, robot_info, control_target, my_pose = None, inplay_shoot = False):
+
+    # ゴールライン上ではなく一定距離[m]前を守るための変数
+    MARGIN_DIST_X = 0.1
+
+    # ゴールの位置(自陣のゴールのx座標は絶対負になる)
+    OUR_GOAL_POSE = Field.goal_pose('our', 'center')
+    OUR_GOAL_UPPER = Field.goal_pose('our', 'upper')
+    OUR_GOAL_LOWER = Field.goal_pose('our', 'lower')
+
+    ball_pose = ball_info.pose
+    ball_velocity = ball_info.velocity
+    ball_velocity_angle = tool.get_angle_from_center(ball_velocity)
+    ball_vel_pose = Pose2D(
+        ball_pose.x + 10 * math.cos(ball_velocity_angle),
+        ball_pose.y + 10 * math.sin(ball_velocity_angle),
+        0.0
+    )
+
+    new_goal_pose = Pose2D()
+    # ボールが動いてたら、ディフェンスラインと、ボール速度の交点に移動
+    defense_pose_upper = copy.deepcopy(OUR_GOAL_UPPER)
+    defense_pose_upper.x += MARGIN_DIST_X
+    defense_pose_lower = copy.deepcopy(OUR_GOAL_LOWER)
+    defense_pose_lower.x += MARGIN_DIST_X
+
+    intersection_pose = tool.get_intersection(
+        ball_pose, ball_vel_pose, defense_pose_upper, defense_pose_lower)
+    if intersection_pose \
+        and tool.get_size_from_center(ball_info.velocity) > 0.5 \
+        and math.fabs(intersection_pose.y) <= defense_pose_upper.y \
+        and intersection_pose.x < defense_pose_lower.x + 0.1:
+        new_goal_pose = intersection_pose
+        new_goal_pose.x -= 0.09  # ロボットの中心からドリブラの位置までの距離を下げる:w
+        new_goal_pose.theta = 0.0
+        control_target.kick_power = 0.5
+        control_target.dribble_power = 0.5
+    else:
+        # ボールが止まっていたら
+
+        if inplay_shoot:
+            return offense.inplay_shoot(my_pose, ball_info, control_target)
+
+        new_goal_pose.x = OUR_GOAL_POSE.x + MARGIN_DIST_X
+        new_goal_pose.y = 0.0
+        new_goal_pose.theta = 0.0
+        # to_ball_angle = tool.get_angle(new_goal_pose, ball_pose)
+        # new_goal_pose.theta = to_ball_angle
+        control_target.kick_power = 0.0
+        control_target.dribble_power = 0.0
+
+    control_target.path = []
+    control_target.path.append(new_goal_pose)
+
+    return control_target

@@ -26,8 +26,8 @@ class ObstacleAvoidance(object):
         self._range_tr_x = 0.2
 
         # 経路生成時の相対的に移動する位置(ロボットから見た座標系)
-        self._tr_move_x = 0.2
-        self._tr_move_y = 0.5
+        self._tr_move_x = -0.1
+        self._tr_move_y = 0.4
 
     # フィールドのボールとロボットの情報を更新
     def update_obstacles(self, ball_info, robot_info):

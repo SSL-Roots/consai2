@@ -89,18 +89,26 @@ def is_in_defense_area(pose, team='our'):
 
     if team == 'our':
         # 自チームディフェンスエリアに入っているか
-        if pose.x < PENALTY_UPPER_FRONT.x \
-                and pose.y < PENALTY_UPPER_FRONT.y \
-                and pose.y > PENALTY_LOWER_FRONT.y:
+        if pose.x < PENALTY_UPPER_FRONT.x + 0.1:
+                # and pose.y < PENALTY_UPPER_FRONT.y \
+                # and pose.y > PENALTY_LOWER_FRONT.y:
             pose_is_in_area = True
     else:
         # 相手チームディフェンスエリアに入っているか
-        if pose.x > PENALTY_UPPER_FRONT.x \
-                and pose.y < PENALTY_UPPER_FRONT.y \
-                and pose.y > PENALTY_LOWER_FRONT.y:
+        if pose.x > PENALTY_UPPER_FRONT.x :
+                # and pose.y < PENALTY_UPPER_FRONT.y \
+                # and pose.y > PENALTY_LOWER_FRONT.y:
             pose_is_in_area = True
 
     return pose_is_in_area
+
+def is_in_field(pose):
+    # フィールドに入ってるか判定する
+    if math.fabs(pose.x) < Field.field('half_length') \
+        and math.fabs(pose.y) < Field.field('half_width'):
+        return True
+    else:
+        return False
 
 def get_size_from_center(pose):
     return math.hypot(pose.x, pose.y)

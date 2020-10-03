@@ -44,7 +44,7 @@ IS_TOUCH_DIST = 0.20
 
 # 侵入禁止範囲
 # 0.5m以内に侵入してはだめなので0.5以上にする
-BALL_MARGIN_DIST = 0.65
+BALL_MARGIN_DIST = 0.25
 
 # atkが指定位置に到達したか判定
 def atk_arrived_check(tr_my_pose):
@@ -326,7 +326,9 @@ def avoid_ball_place_line(my_pose, ball_info, target_pose, control_target, force
     # ライン上にいるロボットは回避位置を生成する
     # ラインに対して垂直に移動する
     if BALL_PLACE_AREA_NO_DRIBBLE < dist_ball_to_target or force_avoid:
-        if -BALL_MARGIN_DIST < tr_my_pose.y < BALL_MARGIN_DIST:
+        if -BALL_MARGIN_DIST < tr_my_pose.y < BALL_MARGIN_DIST \
+            and tr_my_pose.x > -BALL_MARGIN_DIST \
+            and tr_my_pose.x < tr_target_pose.x + BALL_MARGIN_DIST:
             if tr_my_pose.y < 0:
                 tr_my_pose.y -= BALL_MARGIN_DIST
             else:
