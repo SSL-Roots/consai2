@@ -203,6 +203,8 @@ class RobotNode(object):
                 if self._my_role == role.ROLE_ID["ROLE_GOALIE"]:
                     self._control_target = goalie.interpose(
                             ball_info, robot_info, self._control_target)
+                    self._control_target = goalie.pass_shoot(
+                            ball_info, robot_info, self._control_target)
                     avoid_obstacle = False # 障害物回避しない
                 elif self._my_role == role.ROLE_ID["ROLE_ATTACKER"]:
                     self._control_target, avoid_ball = offense.setplay_pass(

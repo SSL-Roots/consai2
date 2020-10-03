@@ -348,6 +348,7 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
         new_goal_pose.theta = angle_ball_to_target
         # ドリブルとキックをオン
         control_target.kick_power = KICK_POWER
+        control_target.dribble_power = 0.8
     else:
         # ボールの裏に移動する
         new_position = trans.inverted_transform(Pose2D(-0.3, 0, 0))
@@ -355,7 +356,7 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
         new_goal_pose.theta = angle_ball_to_target
         # ドリブルとキックをオフ
         control_target.kick_power = 0.0
-        control_target.dribble_power = 0.0
+        control_target.dribble_power = 0.8
         
     # パスを追加
     control_target.path = []
@@ -435,7 +436,7 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False, penalty
 def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
     kick_enable = True
-    kick_power = 0.15
+    kick_power = 0.3
 
     # 【デモで追加】ゴーリーに擬似的にパスする
     pass_target = copy.deepcopy(Field.goal_pose('our', 'center'))
