@@ -169,7 +169,7 @@ def _demo_inplay_shoot(my_pose, ball_info, control_target, target_pose,
     # ボールに近づいた時、近づけたかを判定するしきい値。小さいほどきびしい
     APPROACH_DIST = 0.15  # meters
     # ボールに近づいた時、ボールを見ているか判定するしきい値。小さいほどきびしい
-    APPROACH_ANGLE = 15.0  # degrees
+    APPROACH_ANGLE = 10.0  # degrees
     DRIBBLE_POWER = 0.8  # 0.0 ~ 1.0
     KICK_POWER = 0.6  # 0.0 ~ 1.0
 
@@ -260,7 +260,7 @@ def _rotate_around_ball(my_pose, ball_pose, target_pose):
     tr_robot_angle_BtoT = trans_BtoT.transform_angle(my_pose.theta)
 
     length = trans_BtoR.transform(my_pose).x
-    add_angle = math.copysign(math.radians(60), tr_robot_angle_BtoT) * -1.0
+    add_angle = math.copysign(math.radians(45), tr_robot_angle_BtoT) * -1.0
     tr_goal_pose_BtoR = Pose2D(length*math.cos(add_angle), length*math.sin(add_angle), 0)
 
     control_target_pose = trans_BtoR.inverted_transform(tr_goal_pose_BtoR)
@@ -435,7 +435,7 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False, penalty
 def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
     kick_enable = True
-    kick_power = 0.3
+    kick_power = 0.2
 
     # 【デモで追加】ゴーリーに擬似的にパスする
     pass_target = copy.deepcopy(Field.goal_pose('our', 'center'))
