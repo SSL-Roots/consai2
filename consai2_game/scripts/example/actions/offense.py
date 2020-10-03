@@ -435,7 +435,7 @@ def setplay_shoot(my_pose, ball_info, control_target, kick_enable=False, penalty
 def setplay_pass(my_pose, ball_info, control_target, target_pose, receive_enable=False, receiver_role_exist=None, robot_info=None, direct=False):
 
     kick_enable = True
-    kick_power = 0.2
+    kick_power = 0.15
 
     # 【デモで追加】ゴーリーに擬似的にパスする
     pass_target = copy.deepcopy(Field.goal_pose('our', 'center'))
