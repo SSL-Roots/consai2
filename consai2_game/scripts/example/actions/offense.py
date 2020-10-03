@@ -323,7 +323,7 @@ def _setplay_shoot(my_pose, ball_info, control_target, kick_enable, target_pose,
     # ロボットの方向がゴールを狙っていることも判定
     can_kick = False
     if tr_my_pose.x < 0.01 and math.fabs(tr_my_pose.y) < 0.05 \
-        and math.fabs(trans.transform_angle(my_pose.theta)) < math.radians(10):
+        and math.fabs(trans.transform_angle(my_pose.theta)) < math.radians(5):
         can_kick = True
 
     # レシーバにパスする場合、蹴る位置近くにロボットが存在すれば receive_arrive is True
