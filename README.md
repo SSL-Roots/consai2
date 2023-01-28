@@ -1,3 +1,8 @@
+**本パッケージの使用は非推奨です**
+
+https://github.com/SSL-Roots/consai_ros2
+へ開発を移行しています。
+
 [![Build Status](https://travis-ci.org/SSL-Roots/consai2.svg?branch=master)](https://travis-ci.org/SSL-Roots/consai2)
 
 # CON-SAI2
